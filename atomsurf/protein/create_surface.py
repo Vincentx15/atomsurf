@@ -12,7 +12,7 @@ if __name__ == '__main__':
     script_dir = os.path.dirname(os.path.realpath(__file__))
     sys.path.append(os.path.join(script_dir, '..', '..'))
 
-from atomsurf.utils.utils import silentremove
+from atomsurf.utils.python_utils import silentremove
 
 """
 In this file, we define functions to make the following transformations :
