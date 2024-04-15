@@ -1,0 +1,13 @@
+pandas==1.1.3
+tqdm
+atom3d
+open3d
+robust-laplacian
+potpourri3d
+pyparsing
+pytorch-lightning==1.9.0
+tensorboard
+tqdm
+omegaconf==2.1.2
+hydra-core==1.1.1
+deltaconv==1.0.2
