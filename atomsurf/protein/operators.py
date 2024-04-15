@@ -270,7 +270,7 @@ def compute_operators(verts, faces, k_eig=128, normals=None):
     dtype = verts.dtype
     eps = 1e-8
 
-    verts_np = diff_utils.toNP(verts).astype(np.float64)
+    verts_np = diff_utils.toNP(verts, np.float64)
     faces_np = diff_utils.toNP(faces)
     frames = build_tangent_frames(verts, faces, normals=normals)
 
@@ -352,65 +352,47 @@ def get_operators(npz_path, verts, faces, k_eig=128, normals=None, recompute=Fal
     """
     We remove the hashing util and add a filename for the npz instead.
     """
-    frames, mass, L, evals, evecs, gradX, gradY = compute_operators(verts, faces, k_eig, normals=normals)
-    dtype_np = np.float32
-    L_np = diff_utils.sparse_torch_to_np(L).astype(dtype_np)
-    gradX_np = diff_utils.sparse_torch_to_np(gradX).astype(dtype_np)
-    gradY_np = diff_utils.sparse_torch_to_np(gradY).astype(dtype_np)
-    np.savez(npz_path,
-             verts=verts.astype(dtype_np),
-             frames=diff_utils.toNP(frames).astype(dtype_np),
-             faces=faces,
-             k_eig=k_eig,
-             mass=diff_utils.toNP(mass).astype(dtype_np),
-             L_data=L_np.data.astype(dtype_np),
-             L_indices=L_np.indices,
-             L_indptr=L_np.indptr,
-             L_shape=L_np.shape,
-             evals=diff_utils.toNP(evals).astype(dtype_np),
-             evecs=diff_utils.toNP(evecs).astype(dtype_np),
-             gradX_data=gradX_np.data.astype(dtype_np),
-             gradX_indices=gradX_np.indices,
-             gradX_indptr=gradX_np.indptr,
-             gradX_shape=gradX_np.shape,
-             gradY_data=gradY_np.data.astype(dtype_np),
-             gradY_indices=gradY_np.indices,
-             gradY_indptr=gradY_np.indptr,
-             gradY_shape=gradY_np.shape,
-             )
-    return frames, mass, L, evals, evecs, gradX, gradY
+    if not os.path.exists(npz_path) or recompute:
+        frames, mass, L, evals, evecs, gradX, gradY = compute_operators(verts, faces, k_eig, normals=normals)
+        dtype_np = np.float32
+        L_np = diff_utils.sparse_torch_to_np(L, dtype_np)
+        gradX_np = diff_utils.sparse_torch_to_np(gradX, dtype_np)
+        gradY_np = diff_utils.sparse_torch_to_np(gradY, dtype_np)
+        np.savez(npz_path,
+                 verts=diff_utils.toNP(verts, dtype_np),
+                 faces=diff_utils.toNP(faces, dtype_np),
+                 k_eig=k_eig,
+                 mass=diff_utils.toNP(mass, dtype_np),
+                 L_data=L_np.data.astype(dtype_np),
+                 L_indices=L_np.indices,
+                 L_indptr=L_np.indptr,
+                 L_shape=L_np.shape,
+                 evals=diff_utils.toNP(evals, dtype_np),
+                 evecs=diff_utils.toNP(evecs, dtype_np),
+                 gradX_data=gradX_np.data.astype(dtype_np),
+                 gradX_indices=gradX_np.indices,
+                 gradX_indptr=gradX_np.indptr,
+                 gradX_shape=gradX_np.shape,
+                 gradY_data=gradY_np.data.astype(dtype_np),
+                 gradY_indices=gradY_np.indices,
+                 gradY_indptr=gradY_np.indptr,
+                 gradY_shape=gradY_np.shape,
+                 )
 
 
-def load_operators(npz_path):
+def load_operators(npzfile):
     """
     We remove the hashing util and add a filename for the npz instead.
     """
-
-    def read_sp_mat(prefix):
-        data = npzfile[prefix + "_data"]
-        indices = npzfile[prefix + "_indices"]
-        indptr = npzfile[prefix + "_indptr"]
-        shape = npzfile[prefix + "_shape"]
-        mat = scipy.sparse.csc_matrix((data, indices, indptr), shape=shape)
-        return mat
-
-    npzfile = np.load(npz_path, allow_pickle=True)
-    frames = npzfile["frames"]
+    if not isinstance(npzfile, np.lib.npyio.NpzFile):
+        npzfile = np.load(npzfile, allow_pickle=True)
     mass = npzfile["mass"]
-    L = read_sp_mat("L")
+    L = diff_utils.read_sp_mat(npzfile, "L")
     evals = npzfile["evals"]
     evecs = npzfile["evecs"]
-    gradX = read_sp_mat("gradX")
-    gradY = read_sp_mat("gradY")
-
-    # frames = torch.from_numpy(frames).to(device=device, dtype=dtype)
-    # mass = torch.from_numpy(mass).to(device=device, dtype=dtype)
-    # L = diff_utils.sparse_np_to_torch(L).to(device=device, dtype=dtype)
-    # evals = torch.from_numpy(evals).to(device=device, dtype=dtype)
-    # evecs = torch.from_numpy(evecs).to(device=device, dtype=dtype)
-    # gradX = diff_utils.sparse_np_to_torch(gradX).to(device=device, dtype=dtype)
-    # gradY = diff_utils.sparse_np_to_torch(gradY).to(device=device, dtype=dtype)
-    return frames, mass, L, evals, evecs, gradX, gradY
+    gradX = diff_utils.read_sp_mat(npzfile, "gradX")
+    gradY = diff_utils.read_sp_mat(npzfile, "gradY")
+    return mass, L, evals, evecs, gradX, gradY
 
 
 if __name__ == "__main__":
@@ -422,4 +404,5 @@ if __name__ == "__main__":
     faces = np.asarray(mesh.triangles, dtype=np.int32)
 
     operator_file = "../../data/example_files/example_operator.npz"
-    operators = compute_operators(vertices, faces, k_eig=128)
+    get_operators(operator_file, vertices, faces, k_eig=128, recompute=False)
+    operators = load_operators(operator_file)

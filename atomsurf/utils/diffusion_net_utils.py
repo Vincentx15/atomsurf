@@ -5,11 +5,16 @@ import scipy
 import torch
 
 
-def toNP(x):
+def toNP(x, dtype=None):
     """
     Really, definitely convert a torch tensor to a numpy array
     """
-    return x.detach().to(torch.device("cpu")).numpy()
+    if isinstance(x, np.ndarray):
+        return x
+    np_x = x.detach().to(torch.device("cpu")).numpy()
+    if dtype is not None:
+        np_x = np_x.astype(dtype)
+    return np_x
 
 
 # Numpy sparse matrix to pytorch
@@ -24,13 +29,20 @@ def sparse_np_to_torch(A):
 
 
 # Pytorch sparse to numpy csc matrix
-def sparse_torch_to_np(A):
+def sparse_torch_to_np(A, dtype=None):
     if len(A.shape) != 2:
         raise RuntimeError("should be a matrix-shaped type; dim is : " + str(A.shape))
 
-    indices = toNP(A.indices())
-    values = toNP(A.values())
+    indices = toNP(A.indices(), dtype=dtype)
+    values = toNP(A.values(), dtype=dtype)
 
     mat = scipy.sparse.coo_matrix((values, indices), shape=A.shape).tocsc()
+    return mat
 
+def read_sp_mat(npzfile, prefix):
+    data = npzfile[prefix + "_data"]
+    indices = npzfile[prefix + "_indices"]
+    indptr = npzfile[prefix + "_indptr"]
+    shape = npzfile[prefix + "_shape"]
+    mat = scipy.sparse.csc_matrix((data, indices, indptr), shape=shape)
     return mat
