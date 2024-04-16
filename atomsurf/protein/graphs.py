@@ -52,6 +52,17 @@ res_type_idx_to_1 = {
     idx: protein_letters_3to1[res_type] for res_type, idx in res_type_dict.items()
 }
 
+# Kyte Doolittle scale for hydrophobicity
+hydrophob_dict = {
+    'ILE': 4.5, 'VAL': 4.2, 'LEU': 3.8, 'PHE': 2.8, 'CYS': 2.5, 'MET': 1.9, 'ALA': 1.8, 'GLY': -0.4, 'THR': -0.7,
+    'SER': -0.8, 'TRP': -0.9, 'TYR': -1.3, 'PRO': -1.6, 'HIS': -3.2, 'GLU': -3.5, 'GLN': -3.5, 'ASP': -3.5, 'ASN': -3.5,
+    'LYS': -3.9, 'ARG': -4.5, 'UNK': 0.0,
+}
+
+res_type_to_hphob = {
+    idx: hydrophob_dict[res_type] for res_type, idx in res_type_dict.items()
+}
+
 
 def parse_pdb_path(pdb_path):
     parser = PDBParser()
@@ -105,48 +116,6 @@ def atom_coords_to_edges(node_pos, edge_dist_cutoff=4.5):
         my_edge_weights_torch = 1 / (np.linalg.norm(node_a - node_b, axis=1) + 1e-5)
     return edges, my_edge_weights_torch
 
-
-class PDBGraph(Data):
-    def __init__(self, node_pos, edge_index=None, named_one_hot_features=None, named_features=None, flat_features=None,
-                 **kwargs):
-        super(PDBGraph, self).__init__(edge_index=edge_index, **kwargs)
-        self.node_pos = node_pos
-        self.named_one_hot_features = named_one_hot_features
-        self.named_features = named_features
-        self.flat_features = flat_features
-
-    def add_flat_features(self, value):
-        assert len(value) == len(self.node_pos)
-        if self.flat_features is None:
-            self.flat_features = value
-        else:
-            self.flat_features = torch.cat((self.flat_features, value), 0)
-
-    def add_named_features(self, key, value):
-        assert len(value) == len(self.node_pos)
-        if self.named_features is None:
-            self.named_features = {key: value}
-        else:
-            self.named_features[key] = value
-
-    def add_named_oh_features(self, key, value):
-        assert len(value) == len(self.node_pos)
-        if self.named_one_hot_features is None:
-            self.named_one_hot_features = {key: value}
-        else:
-            self.named_one_hot_features[key] = value
-
-    @staticmethod
-    def load(npz_path):
-        npz_file = np.load(npz_path, allow_pickle=True)
-        node_pos = npz_file['node_pos']
-        edge_index = npz_file['edge_index']
-        named_one_hot_features = npz_file['named_one_hot_features']
-        flat_features = npz_file['flat_features']
-        return PDBGraph(node_pos, edge_index, named_one_hot_features, flat_features)
-
-    def save(self, npz_path):
-        pass
 
 if __name__ == "__main__":
     pass

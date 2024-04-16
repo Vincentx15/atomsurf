@@ -30,6 +30,8 @@ def sparse_np_to_torch(A):
 
 # Pytorch sparse to numpy csc matrix
 def sparse_torch_to_np(A, dtype=None):
+    if isinstance(A, scipy.sparse._csc.csc_matrix):
+        return A
     if len(A.shape) != 2:
         raise RuntimeError("should be a matrix-shaped type; dim is : " + str(A.shape))
 
@@ -38,6 +40,7 @@ def sparse_torch_to_np(A, dtype=None):
 
     mat = scipy.sparse.coo_matrix((values, indices), shape=A.shape).tocsc()
     return mat
+
 
 def read_sp_mat(npzfile, prefix):
     data = npzfile[prefix + "_data"]

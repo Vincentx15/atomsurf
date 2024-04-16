@@ -11,7 +11,7 @@ if __name__ == '__main__':
     sys.path.append(os.path.join(script_dir, '..', '..'))
 
 import atomsurf.utils.diffusion_net_utils as diff_utils
-import atomsurf.protein.operators as operators
+import atomsurf.protein.create_operators as operators
 
 
 class SurfaceObject(Data):
@@ -43,11 +43,9 @@ class SurfaceObject(Data):
         for attr_name in ['L', 'gradX', 'gradY']:
             attr_value = getattr(self, attr_name)
             setattr(self, attr_name, diff_utils.sparse_np_to_torch(attr_value).to(device=device, dtype=dtype))
+        return self
 
-    def numpy(self):
-        if isinstance(self.frames, np.ndarray):
-            return
-        dtype_np = np.float32
+    def numpy(self, dtype_np=np.float32):
         for attr_name in ['verts', 'faces', 'mass', 'evals', 'evecs']:
             attr_value = getattr(self, attr_name)
             setattr(self, attr_name, diff_utils.toNP(attr_value, dtype_np))
@@ -55,6 +53,7 @@ class SurfaceObject(Data):
         for attr_name in ['L', 'gradX', 'gradY']:
             attr_value = getattr(self, attr_name)
             setattr(self, attr_name, diff_utils.sparse_torch_to_np(attr_value, dtype_np))
+        return self
 
     def save(self, npz_path):
         self.numpy()
@@ -68,15 +67,19 @@ class SurfaceObject(Data):
                  L_shape=self.L.shape,
                  evals=self.evals,
                  evecs=self.evecs,
-                 gradX_data=self.gradX_np.data,
-                 gradX_indices=self.gradX_np.indices,
-                 gradX_indptr=self.gradX_np.indptr,
-                 gradX_shape=self.gradX_np.shape,
-                 gradY_data=self.gradY_np.data,
-                 gradY_indices=self.gradY_np.indices,
-                 gradY_indptr=self.gradY_np.indptr,
-                 gradY_shape=self.gradY_np.shape,
+                 gradX_data=self.gradX.data,
+                 gradX_indices=self.gradX.indices,
+                 gradX_indptr=self.gradX.indptr,
+                 gradX_shape=self.gradX.shape,
+                 gradY_data=self.gradY.data,
+                 gradY_indices=self.gradY.indices,
+                 gradY_indptr=self.gradY.indptr,
+                 gradY_shape=self.gradY.shape,
                  )
+
+    def save_torch(self, torch_path):
+        self.from_numpy()
+        torch.save(self, open(torch_path, 'wb'))
 
     @staticmethod
     def load(npz_path):
@@ -94,6 +97,7 @@ class SurfaceObject(Data):
         data_list = [data for data in data_list if data is not None]
         if len(data_list) == 0:
             return None
+        data_list = [data.from_numpy() for data in data_list]
 
         # create batch
         keys = [set(data.keys) for data in data_list]
@@ -120,8 +124,17 @@ class SurfaceObject(Data):
                 batch[key] = batch[key]
         return batch.contiguous()
 
+
 if __name__ == "__main__":
     pass
     surface_file = "../../data/example_files/example_operator.npz"
     surface = SurfaceObject.load(surface_file)
-    print(surface)
+    surface_file_np = "../../data/example_files/example_surface.npz"
+    surface.save(surface_file_np)
+    surface = SurfaceObject.load(surface_file_np)
+
+    surface_file_torch = "../../data/example_files/example_surface.pt"
+    surface.save_torch(surface_file_torch)
+    surface = torch.load(surface_file_torch)
+
+    a=1
