@@ -9,6 +9,8 @@ if __name__ == '__main__':
     script_dir = os.path.dirname(os.path.realpath(__file__))
     sys.path.append(os.path.join(script_dir, '..', '..'))
 
+from atomsurf.utils.diffusion_net_utils import safe_to_torch
+
 
 class Features(Data):
     """
@@ -23,8 +25,8 @@ class Features(Data):
         super(Features, self).__init__(**kwargs)
         self.num_nodes = num_nodes
         if res_map is not None:
-            self.res_map = self.safe_to_torch(res_map)
-            self.num_res = self.res_map.max() + 1
+            self.res_map = safe_to_torch(res_map)
+            self.num_res = int(self.res_map.max()) + 1
             self.possible_nums = {self.num_res, self.num_nodes}
 
         self.names = names
@@ -32,16 +34,6 @@ class Features(Data):
         self.names_oh = names_oh
         self.named_one_hot_features = named_one_hot_features
         self.flat_features = flat_features
-
-    def safe_to_torch(self, value):
-        """
-        :param value:
-        :return:
-        """
-        if not isinstance(value, torch.Tensor):
-            value = np.asarray(value)
-            value = torch.from_numpy(value)
-        return value
 
     def sanitize_features(self, value):
         """
@@ -51,8 +43,9 @@ class Features(Data):
         """
         if isinstance(value, Data):
             return value
-        assert len(value) in self.possible_nums
-        return self.safe_to_torch(value)
+        assert len(value) in self.possible_nums, (f"Trying to add a feature with {len(value)},"
+                                                  f" while possible lengths are {self.possible_nums}")
+        return safe_to_torch(value)
 
     def add_flat_features(self, value):
         assert len(value) in self.possible_nums

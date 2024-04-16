@@ -6,6 +6,7 @@ import numpy as np
 
 import scipy.spatial as ss
 import torch
+from collections import defaultdict
 from torch_geometric.data import Data
 from torch_geometric.utils import to_undirected
 
@@ -16,7 +17,6 @@ if __name__ == '__main__':
 # atom type label for one-hot-encoding
 atom_type_dict = {'H': 0, 'C': 1, 'N': 2, 'O': 3, 'S': 4, 'F': 5, 'P': 6, 'Cl': 7, 'Se': 8,
                   'Br': 9, 'I': 10, 'UNK': 11}
-
 # residue type label for one-hot-encoding
 res_type_dict = {
     'ALA': 0, 'GLY': 1, 'SER': 2, 'THR': 3, 'LEU': 4, 'ILE': 5, 'VAL': 6, 'ASN': 7, 'GLN': 8, 'ARG': 9, 'HIS': 10,
@@ -71,6 +71,7 @@ def parse_pdb_path(pdb_path):
     amino_types = []  # size: (n_amino,)
     atom_amino_id = []  # size: (n_atom,)
     atom_names = []  # size: (n_atom,)
+    atom_types = []  # size: (n_atom,)
     atom_pos = []  # size: (n_atom,3)
     res_id = 0
     # Iterate over all residues in a model
@@ -83,18 +84,23 @@ def parse_pdb_path(pdb_path):
         amino_types.append(resname)
         for atom in residue.get_atoms():
             # skip h
+            element = atom.element
             if atom.get_name().startswith("H"):
                 continue
-            atom_amino_id.append(res_id)
+            if not element in atom_type_dict:
+                element = 'UNK'
+            atom_types.append(atom_type_dict[element])
             atom_names.append(atom.get_name())
             atom_pos.append(atom.get_coord())
+            atom_amino_id.append(res_id)
         res_id += 1
 
     amino_types = np.asarray(amino_types)
     atom_amino_id = np.asarray(atom_amino_id)
     atom_names = np.asarray(atom_names)
+    atom_types = np.asarray(atom_types)
     atom_pos = np.asarray(atom_pos)
-    return amino_types, atom_amino_id, atom_names, atom_pos
+    return amino_types, atom_amino_id, atom_names, atom_types, atom_pos
 
 
 def atom_coords_to_edges(node_pos, edge_dist_cutoff=4.5):

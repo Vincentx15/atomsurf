@@ -5,7 +5,6 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from torch_geometric.data import Data
-from torch_sparse import SparseTensor
 
 if __name__ == '__main__':
     script_dir = os.path.dirname(os.path.realpath(__file__))
@@ -13,6 +12,7 @@ if __name__ == '__main__':
 
 from atomsurf.protein.graphs import parse_pdb_path, atom_coords_to_edges
 from atomsurf.protein.features import Features
+from atomsurf.utils.diffusion_net_utils import safe_to_torch
 
 
 class PronetFeaturesComputer:
@@ -169,7 +169,7 @@ class PronetFeaturesComputer:
 class ResidueGraph(Data):
     def __init__(self, node_pos, edge_index=None, features=None, **kwargs):
         super(ResidueGraph, self).__init__(edge_index=edge_index, **kwargs)
-        self.node_pos = self.safe_to_torch(node_pos)
+        self.node_pos = safe_to_torch(node_pos)
         self.num_res = len(node_pos)
         if features is None:
             self.features = Features(num_nodes=self.num_res)
@@ -182,8 +182,8 @@ class ResidueGraphBuilder:
         self.add_pronet = add_pronet
         pass
 
-    def pdb_to_atomgraph(self, pdb_path):
-        amino_types, atom_amino_id, atom_names, atom_pos = parse_pdb_path(pdb_path)
+    def pdb_to_resgraph(self, pdb_path):
+        amino_types, atom_amino_id, atom_names, atom_elts, atom_pos = parse_pdb_path(pdb_path)
 
         mask_ca = np.char.equal(atom_names, 'CA')
         pos_ca = np.full((len(amino_types), 3), np.nan)
@@ -206,4 +206,4 @@ if __name__ == "__main__":
     pass
     pdb = "../../data/example_files/4kt3.pdb"
     residue_graph_builder = ResidueGraphBuilder()
-    residue_graph = residue_graph_builder.pdb_to_atomgraph(pdb)
+    residue_graph = residue_graph_builder.pdb_to_resgraph(pdb)

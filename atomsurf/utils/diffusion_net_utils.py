@@ -5,6 +5,17 @@ import scipy
 import torch
 
 
+def safe_to_torch(value):
+    """
+    :param value:
+    :return:
+    """
+    if not isinstance(value, torch.Tensor):
+        value = np.asarray(value)
+        value = torch.from_numpy(value)
+    return value
+
+
 def toNP(x, dtype=None):
     """
     Really, definitely convert a torch tensor to a numpy array
