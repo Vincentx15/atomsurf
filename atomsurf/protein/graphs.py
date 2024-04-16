@@ -1,7 +1,7 @@
 import os
 import sys
 
-from Bio.PDB import PDBParser
+from Bio.PDB import PDBParser, MMCIFParser
 import numpy as np
 
 import scipy.spatial as ss
@@ -65,7 +65,7 @@ res_type_to_hphob = {
 
 
 def parse_pdb_path(pdb_path):
-    parser = PDBParser()
+    parser = MMCIFParser() if pdb_path.endswith('.cif') else PDBParser()
     structure = parser.get_structure("toto", pdb_path)
 
     amino_types = []  # size: (n_amino,)
@@ -76,6 +76,9 @@ def parse_pdb_path(pdb_path):
     res_id = 0
     # Iterate over all residues in a model
     for residue in structure.get_residues():
+        # HETATM
+        if residue.id[0] == " ":
+            continue
         resname = residue.get_resname()
         # resname = protein_letters_3to1[resname.title()]
         if resname.upper() not in res_type_dict:
@@ -83,7 +86,7 @@ def parse_pdb_path(pdb_path):
         resname = res_type_dict[resname.upper()]
         amino_types.append(resname)
         for atom in residue.get_atoms():
-            # skip h
+            # Skip H
             element = atom.element
             if atom.get_name().startswith("H"):
                 continue

@@ -28,6 +28,8 @@ class Features(Data):
             self.res_map = safe_to_torch(res_map)
             self.num_res = int(self.res_map.max()) + 1
             self.possible_nums = {self.num_res, self.num_nodes}
+        else:
+            self.possible_nums = {self.num_nodes}
 
         self.names = names
         self.named_features = named_features

@@ -10,7 +10,7 @@ if __name__ == '__main__':
     script_dir = os.path.dirname(os.path.realpath(__file__))
     sys.path.append(os.path.join(script_dir, '..', '..'))
 
-from atomsurf.protein.graphs import parse_pdb_path, atom_coords_to_edges
+from atomsurf.protein.graphs import parse_pdb_path, atom_coords_to_edges, res_type_to_hphob
 from atomsurf.protein.features import Features
 from atomsurf.utils.diffusion_net_utils import safe_to_torch
 
@@ -178,11 +178,12 @@ class ResidueGraph(Data):
 
 
 class ResidueGraphBuilder:
-    def __init__(self, add_pronet=False):
+    def __init__(self, add_pronet=True):
         self.add_pronet = add_pronet
         pass
 
     def pdb_to_resgraph(self, pdb_path):
+        # TODO: look into https://biopython.org/docs/1.75/api/Bio.PDB.DSSP.html
         amino_types, atom_amino_id, atom_names, atom_elts, atom_pos = parse_pdb_path(pdb_path)
 
         mask_ca = np.char.equal(atom_names, 'CA')
@@ -195,15 +196,22 @@ class ResidueGraphBuilder:
                                  edge_index=edge_index,
                                  edge_attr=edge_dists)
         res_graph.features.add_named_oh_features('amino_types', amino_types)
+        hphob = [res_type_to_hphob[amino_type] for amino_type in amino_types]
+        res_graph.features.add_named_features('hphobs', hphob)
 
         if self.add_pronet:
             pfc = PronetFeaturesComputer()
             pronet_features = pfc.get_pronet_features(amino_types, atom_amino_id, atom_names, atom_pos)
             res_graph.features.add_named_features("pronet_features", pronet_features)
+        return res_graph
 
 
 if __name__ == "__main__":
     pass
     pdb = "../../data/example_files/4kt3.pdb"
+    resgraph_path = "../../data/example_files/4kt3_resgraph.pt"
     residue_graph_builder = ResidueGraphBuilder()
     residue_graph = residue_graph_builder.pdb_to_resgraph(pdb)
+    torch.save(residue_graph, resgraph_path)
+    residue_graph = torch.load(resgraph_path)
+    a = 1
