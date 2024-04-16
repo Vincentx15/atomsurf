@@ -80,7 +80,7 @@ class SurfaceObject(Data):
 
     @staticmethod
     def load(npz_path):
-        npz_file = np.load(npz_path)
+        npz_file = np.load(npz_path, allow_pickle=True)
         verts = npz_file['verts']
         faces = npz_file['faces']
         mass, L, evals, evecs, gradX, gradY = operators.load_operators(npz_file)
