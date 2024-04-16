@@ -1,6 +1,8 @@
 import os
 import sys
+import time
 
+import igl
 import numpy as np
 import torch
 from torch_geometric.data import Data
@@ -12,12 +14,48 @@ if __name__ == '__main__':
 
 import atomsurf.utils.diffusion_net_utils as diff_utils
 import atomsurf.protein.create_operators as operators
+from atomsurf.protein.features import Features
+
+
+def compute_HKS(evecs, evals, num_t, t_min=0.1, t_max=1000, scale=1000):
+    evals = evals.flatten()
+    assert evals[1] > 0
+    assert np.min(evals) > -1E-6
+    assert np.array_equal(evals, sorted(evals))
+
+    t_list = np.geomspace(t_min, t_max, num_t)
+    phase = np.exp(-np.outer(t_list, evals[1:]))
+    wphi = phase[:, None, :] * evecs[None, :, 1:]
+    HKS = np.einsum('tnk,nk->nt', wphi, evecs[:, 1:]) * scale
+    heat_trace = np.sum(phase, axis=1)
+    HKS /= heat_trace
+
+    return HKS
+
+
+def get_geom_feats(verts, faces, evecs, evals, num_signatures=16):
+    # Following masif site
+    _, _, k1, k2 = igl.principal_curvature(verts, faces)
+
+    gauss_curvs = k1 * k2
+    mean_curvs = 0.5 * (k1 + k2)
+    gauss_curvs = gauss_curvs.reshape(-1, 1)
+    mean_curvs = mean_curvs.reshape(-1, 1)
+    si = (k1 + k2) / (k1 - k2)
+    si = np.arctan(si) * (2 / np.pi)
+    si = si.reshape(-1, 1)
+
+    # HKS:
+    hks = compute_HKS(evecs, evals, num_signatures)
+    vnormals = igl.per_vertex_normals(verts, faces)
+    geom_feats = np.concatenate([gauss_curvs, mean_curvs, si, hks, vnormals], axis=-1)
+    return geom_feats
 
 
 class SurfaceObject(Data):
     def __init__(self, features=None, verts=None, faces=None,
                  mass=None, L=None, evals=None, evecs=None, gradX=None, gradY=None,
-                 chem_feats=None, geom_feats=None, nbr_vids=None, **kwargs):
+                 **kwargs):
         super().__init__(**kwargs)
 
         self.verts = verts
@@ -30,10 +68,10 @@ class SurfaceObject(Data):
         self.gradY = gradY
         self.k_eig = len(evals)
 
-        self.features = features
-        self.chem_feats = chem_feats
-        self.geom_feats = geom_feats
-        self.nbr_vids = nbr_vids
+        if features is None:
+            self.features = Features(num_nodes=len(self.verts))
+        else:
+            self.features = features
 
     def from_numpy(self, device='cpu', dtype=torch.float32):
         for attr_name in ['verts', 'faces', 'mass', 'evals', 'evecs']:
@@ -91,6 +129,11 @@ class SurfaceObject(Data):
         return SurfaceObject(verts=verts, faces=faces,
                              mass=mass, L=L, evals=evals, evecs=evecs, gradX=gradX, gradY=gradY)
 
+    def add_geom_feats(self):
+        self.numpy()
+        geom_feats = get_geom_feats(verts=self.verts, faces=self.faces, evecs=self.evecs, evals=self.evals)
+        self.features.add_named_features('geom_feats', geom_feats)
+
     @classmethod
     def batch_from_data_list(cls, data_list):
         # filter out None
@@ -129,12 +172,24 @@ if __name__ == "__main__":
     pass
     surface_file = "../../data/example_files/example_operator.npz"
     surface = SurfaceObject.load(surface_file)
+    surface.add_geom_feats()
+
+    # Save as np
     surface_file_np = "../../data/example_files/example_surface.npz"
     surface.save(surface_file_np)
-    surface = SurfaceObject.load(surface_file_np)
 
+    # Save as torch, a bit heavier
     surface_file_torch = "../../data/example_files/example_surface.pt"
     surface.save_torch(surface_file_torch)
-    surface = torch.load(surface_file_torch)
 
-    a=1
+    t0 = time.time()
+    for _ in range(100):
+        surface = SurfaceObject.load(surface_file_np)
+    print('np', time.time() - t0)
+
+    t0 = time.time()
+    for _ in range(100):
+        surface = torch.load(surface_file_torch)
+    print('torch', time.time() - t0)
+    # torch is MUCH faster : 4.34 vs 0.7...
+    a = 1
