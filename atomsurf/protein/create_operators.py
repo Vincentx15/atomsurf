@@ -125,19 +125,6 @@ def hmr_decomp(verts, faces, max_eigen_val=5, k=128):
     return eigen_vals, eigen_vecs, mass
 
 
-def normalize(x, divide_eps=1e-6):
-    """
-    Computes norm^2 of an array of vectors. Given (shape,d), returns (shape) after norm along last dimension
-    """
-    if len(x.shape) == 1:
-        raise ValueError(
-            "called normalize() on single vector of dim "
-            + str(x.shape)
-            + " are you sure?"
-        )
-    return x / (torch.norm(x, dim=len(x.shape) - 1) + divide_eps).unsqueeze(-1)
-
-
 def normalize_np(x, divide_eps=1e-6):
     """
     Computes norm^2 of an array of vectors. Given (shape,d), returns (shape) after norm along last dimension
@@ -151,14 +138,6 @@ def normalize_np(x, divide_eps=1e-6):
     return x / (np.linalg.norm(x, axis=len(x.shape) - 1) + divide_eps)[..., None]
 
 
-def cross(vec_A, vec_B):
-    return torch.cross(vec_A, vec_B, dim=-1)
-
-
-def dot(vec_A, vec_B):
-    return torch.sum(vec_A * vec_B, dim=-1)
-
-
 def dot_np(vec_A, vec_B):
     return np.sum(vec_A * vec_B, axis=-1)
 
@@ -170,47 +149,23 @@ def project_to_tangent_np(vecs, unit_normals):
     return vecs - unit_normals * dots[..., None]
 
 
-def face_area(verts, faces):
-    coords = verts[faces.long()]
+def face_normals_np(verts, faces, normalized=True):
+    coords = verts[faces]
     vec_A = coords[:, 1, :] - coords[:, 0, :]
     vec_B = coords[:, 2, :] - coords[:, 0, :]
 
-    raw_normal = cross(vec_A, vec_B)
-    return 0.5 * torch.norm(raw_normal, dim=len(raw_normal.shape) - 1)
-
-
-def face_normals(verts, faces, normalized=True):
-    coords = verts[faces.long()]
-    vec_A = coords[:, 1, :] - coords[:, 0, :]
-    vec_B = coords[:, 2, :] - coords[:, 0, :]
-
-    raw_normal = cross(vec_A, vec_B)
+    raw_normal = np.cross(vec_A, vec_B)
 
     if normalized:
-        return normalize(raw_normal)
+        return normalize_np(raw_normal)
 
     return raw_normal
 
 
 # NP
-def neighborhood_normal(points):
-    # points: (N, K, 3) array of neighborhood psoitions
-    # points should be centered at origin
-    # out: (N,3) array of normals
-    # numpy in, numpy out
-    (u, s, vh) = np.linalg.svd(points, full_matrices=False)
-    normal = vh[:, 2, :]
-    return normal / np.linalg.norm(normal, axis=-1, keepdims=True)
-
-
-# NP
 def mesh_vertex_normals(verts, faces):
-    # numpy in / out
-    face_n = diff_utils.toNP(
-        face_normals(torch.tensor(verts), torch.tensor(faces))
-    )  # ugly torch <---> numpy
-
-    vertex_normals = np.zeros(verts.shape)
+    face_n = face_normals_np(verts, faces)
+    vertex_normals = np.zeros_like(verts)
     for i in range(3):
         np.add.at(vertex_normals, faces[:, i], face_n)
 
@@ -244,14 +199,14 @@ def vertex_normals_np(verts, faces):
     return normals
 
 
-def assert_close(np_arr, torch_arr):
-    torch_arr_np = diff_utils.toNP(torch_arr, np_arr.dtype)
-    close = np.allclose(torch_arr_np, np_arr)
-    max_diff = np.max(np.abs(np_arr - torch_arr_np))
-    return close, max_diff
-
-
 def build_tangent_frames_np(verts_np, faces_np, normals=None):
+    """
+    Define a local frame based on thee normal to get an approx of local manifold
+    :param verts_np:
+    :param faces_np:
+    :param normals:
+    :return:
+    """
     V = verts_np.shape[0]
     dtype = verts_np.dtype
 
@@ -274,19 +229,14 @@ def build_tangent_frames_np(verts_np, faces_np, normals=None):
     return frames_np
 
 
-def edge_tangent_vectors(verts, frames, edges):
-    edges = edges.long()
-    edge_vecs = verts[edges[1, :], :] - verts[edges[0, :], :]
-    basisX = frames[edges[0, :], 0, :]
-    basisY = frames[edges[0, :], 1, :]
-
-    compX = dot(edge_vecs, basisX)
-    compY = dot(edge_vecs, basisY)
-    edge_tangent = torch.stack((compX, compY), dim=-1)
-    return edge_tangent
-
-
 def edge_tangent_vectors_np(verts_np, frames_np, edges_np):
+    """
+    Get tangent vector of edges in each local frame
+    :param verts_np:
+    :param frames_np:
+    :param edges_np:
+    :return:
+    """
     edge_vecs_np = verts_np[edges_np[1, :], :] - verts_np[edges_np[0, :], :]
     basisX_np = frames_np[edges_np[0, :], 0, :]
     basisY_np = frames_np[edges_np[0, :], 1, :]
@@ -384,8 +334,6 @@ def compute_operators(verts, faces, k_eig=128, normals=None, use_hmr_decomp=Fals
     """
     dtype = verts.dtype
     eps = 1e-8
-    frames = build_tangent_frames_np(verts, faces, normals=normals)
-
     # Build the scalar Laplacian
     L = pp3d.cotan_laplacian(verts, faces, denom_eps=1e-10)
     massvec_np = pp3d.vertex_areas(verts, faces)
@@ -436,6 +384,7 @@ def compute_operators(verts, faces, k_eig=128, normals=None, use_hmr_decomp=Fals
 
     # == Build gradient matrices
     # For meshes, we use the same edges as were used to build the Laplacian.
+    frames = build_tangent_frames_np(verts, faces, normals=normals)
     edges = np.stack((inds_row, inds_col), axis=0)
     edge_vecs = edge_tangent_vectors_np(verts, frames, edges)
     grad_mat = build_grad(verts, edges, edge_vecs)
