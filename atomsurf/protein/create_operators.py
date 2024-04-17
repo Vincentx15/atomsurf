@@ -125,7 +125,7 @@ def hmr_decomp(verts, faces, max_eigen_val=5, k=128):
     return eigen_vals, eigen_vecs, mass
 
 
-def normalize_np(x, divide_eps=1e-6):
+def normalize(x, divide_eps=1e-6):
     """
     Computes norm^2 of an array of vectors. Given (shape,d), returns (shape) after norm along last dimension
     """
@@ -138,18 +138,18 @@ def normalize_np(x, divide_eps=1e-6):
     return x / (np.linalg.norm(x, axis=len(x.shape) - 1) + divide_eps)[..., None]
 
 
-def dot_np(vec_A, vec_B):
+def dot(vec_A, vec_B):
     return np.sum(vec_A * vec_B, axis=-1)
 
 
 # Given (..., 3) vectors and normals, projects out any components of vecs
 # which lies in the direction of normals. Normals are assumed to be unit.
-def project_to_tangent_np(vecs, unit_normals):
-    dots = dot_np(vecs, unit_normals)
+def project_to_tangent(vecs, unit_normals):
+    dots = dot(vecs, unit_normals)
     return vecs - unit_normals * dots[..., None]
 
 
-def face_normals_np(verts, faces, normalized=True):
+def face_normals(verts, faces, normalized=True):
     coords = verts[faces]
     vec_A = coords[:, 1, :] - coords[:, 0, :]
     vec_B = coords[:, 2, :] - coords[:, 0, :]
@@ -157,14 +157,14 @@ def face_normals_np(verts, faces, normalized=True):
     raw_normal = np.cross(vec_A, vec_B)
 
     if normalized:
-        return normalize_np(raw_normal)
+        return normalize(raw_normal)
 
     return raw_normal
 
 
 # NP
 def mesh_vertex_normals(verts, faces):
-    face_n = face_normals_np(verts, faces)
+    face_n = face_normals(verts, faces)
     vertex_normals = np.zeros_like(verts)
     for i in range(3):
         np.add.at(vertex_normals, faces[:, i], face_n)
@@ -177,7 +177,7 @@ def mesh_vertex_normals(verts, faces):
 
 
 # NP version
-def vertex_normals_np(verts, faces):
+def vertex_normals(verts, faces):
     normals = mesh_vertex_normals(verts, faces)
 
     # if any are NaN, wiggle slightly and recompute
@@ -199,51 +199,51 @@ def vertex_normals_np(verts, faces):
     return normals
 
 
-def build_tangent_frames_np(verts_np, faces_np, normals=None):
+def build_tangent_frames(verts, faces, normals=None):
     """
     Define a local frame based on thee normal to get an approx of local manifold
-    :param verts_np:
-    :param faces_np:
+    :param verts:
+    :param faces:
     :param normals:
     :return:
     """
-    V = verts_np.shape[0]
-    dtype = verts_np.dtype
+    V = verts.shape[0]
+    dtype = verts.dtype
 
     if normals is None:
-        vert_normals_np = vertex_normals_np(verts_np, faces_np)  # (V,3)
+        vert_normals = vertex_normals(verts, faces)  # (V,3)
     else:
-        vert_normals_np = normals
+        vert_normals = normals
 
     # = find an orthogonal basis
-    basis_cand1_np = np.tile(np.array([1, 0, 0]).astype(dtype=dtype)[None, :], (V, 1))
-    basis_cand2_np = np.tile(np.array([0, 1, 0]).astype(dtype=dtype)[None, :], (V, 1))
-    basis_1_far = np.abs(dot_np(vert_normals_np, basis_cand1_np)) < 0.9
-    basisX_np = np.where(basis_1_far[:, None], basis_cand1_np, basis_cand2_np)
-    basisX_np = project_to_tangent_np(basisX_np, vert_normals_np)
-    basisX_np = normalize_np(basisX_np)
-    basisY_np = np.cross(vert_normals_np, basisX_np)
-    frames_np = np.stack((basisX_np, basisY_np, vert_normals_np), axis=-2)
-    if np.any(np.isnan(frames_np)):
+    basis_cand1 = np.tile(np.array([1, 0, 0]).astype(dtype=dtype)[None, :], (V, 1))
+    basis_cand2 = np.tile(np.array([0, 1, 0]).astype(dtype=dtype)[None, :], (V, 1))
+    basis_1_far = np.abs(dot(vert_normals, basis_cand1)) < 0.9
+    basisX = np.where(basis_1_far[:, None], basis_cand1, basis_cand2)
+    basisX = project_to_tangent(basisX, vert_normals)
+    basisX = normalize(basisX)
+    basisY = np.cross(vert_normals, basisX)
+    frames = np.stack((basisX, basisY, vert_normals), axis=-2)
+    if np.any(np.isnan(frames)):
         raise ValueError("NaN coordinate frame! Must be very degenerate")
-    return frames_np
+    return frames
 
 
-def edge_tangent_vectors_np(verts_np, frames_np, edges_np):
+def edge_tangent_vectors(verts, frames, edges):
     """
     Get tangent vector of edges in each local frame
-    :param verts_np:
-    :param frames_np:
-    :param edges_np:
+    :param verts:
+    :param frames:
+    :param edges:
     :return:
     """
-    edge_vecs_np = verts_np[edges_np[1, :], :] - verts_np[edges_np[0, :], :]
-    basisX_np = frames_np[edges_np[0, :], 0, :]
-    basisY_np = frames_np[edges_np[0, :], 1, :]
-    compX_np = dot_np(edge_vecs_np, basisX_np)
-    compY_np = dot_np(edge_vecs_np, basisY_np)
-    edge_tangent_np = np.stack((compX_np, compY_np), axis=-1)
-    return edge_tangent_np
+    edge_vecs = verts[edges[1, :], :] - verts[edges[0, :], :]
+    basisX = frames[edges[0, :], 0, :]
+    basisY = frames[edges[0, :], 1, :]
+    compX = dot(edge_vecs, basisX)
+    compY = dot(edge_vecs, basisY)
+    edge_tangent = np.stack((compX, compY), axis=-1)
+    return edge_tangent
 
 
 def build_grad(verts, edges, edge_tangent_vectors):
@@ -336,12 +336,12 @@ def compute_operators(verts, faces, k_eig=128, normals=None, use_hmr_decomp=Fals
     eps = 1e-8
     # Build the scalar Laplacian
     L = pp3d.cotan_laplacian(verts, faces, denom_eps=1e-10)
-    massvec_np = pp3d.vertex_areas(verts, faces)
-    massvec_np += eps * np.mean(massvec_np)
+    massvec = pp3d.vertex_areas(verts, faces)
+    massvec += eps * np.mean(massvec)
 
     if np.isnan(L.data).any():
         raise RuntimeError("NaN Laplace matrix")
-    if np.isnan(massvec_np).any():
+    if np.isnan(massvec).any():
         raise RuntimeError("NaN mass matrix")
 
     # Read off neighbors & rotations from the Laplacian
@@ -353,7 +353,7 @@ def compute_operators(verts, faces, k_eig=128, normals=None, use_hmr_decomp=Fals
     if not use_hmr_decomp:
         # Prepare matrices
         L_eigsh = (L + scipy.sparse.identity(L.shape[0]) * eps).tocsc()
-        massvec_eigsh = massvec_np
+        massvec_eigsh = massvec
         Mmat = scipy.sparse.diags(massvec_eigsh)
         eigs_sigma = eps
 
@@ -362,12 +362,12 @@ def compute_operators(verts, faces, k_eig=128, normals=None, use_hmr_decomp=Fals
             try:
                 # We would be happy here to lower tol or maxiter since we don't need these to be super precise,
                 # but for some reason those parameters seem to have no effect
-                evals_np, evecs_np = sla.eigsh(
+                evals, evecs = sla.eigsh(
                     L_eigsh, k=k_eig, M=Mmat, sigma=eigs_sigma
                 )
 
                 # Clip off any eigenvalues that end up slightly negative due to numerical weirdness
-                evals_np = np.clip(evals_np, a_min=0.0, a_max=float("inf"))
+                evals = np.clip(evals, a_min=0.0, a_max=float("inf"))
 
                 break
             except Exception as e:
@@ -380,13 +380,13 @@ def compute_operators(verts, faces, k_eig=128, normals=None, use_hmr_decomp=Fals
                         eps * 10 ** failcount
                 )
     else:
-        evals_np, evecs_np, Mmat = hmr_decomp(verts=verts, faces=faces)
+        evals, evecs, Mmat = hmr_decomp(verts=verts, faces=faces)
 
     # == Build gradient matrices
     # For meshes, we use the same edges as were used to build the Laplacian.
-    frames = build_tangent_frames_np(verts, faces, normals=normals)
+    frames = build_tangent_frames(verts, faces, normals=normals)
     edges = np.stack((inds_row, inds_col), axis=0)
-    edge_vecs = edge_tangent_vectors_np(verts, frames, edges)
+    edge_vecs = edge_tangent_vectors(verts, frames, edges)
     grad_mat = build_grad(verts, edges, edge_vecs)
 
     # Split complex gradient in to two real sparse mats (torch doesn't like complex sparse matrices)
@@ -395,10 +395,10 @@ def compute_operators(verts, faces, k_eig=128, normals=None, use_hmr_decomp=Fals
 
     # === Convert back to torch
     device = 'cpu'
-    massvec = torch.from_numpy(massvec_np).to(device=device, dtype=dtype)
+    massvec = torch.from_numpy(massvec).to(device=device, dtype=dtype)
     L = diff_utils.sparse_np_to_torch(L).to(device=device, dtype=dtype)
-    evals = torch.from_numpy(evals_np).to(device=device, dtype=dtype)
-    evecs = torch.from_numpy(evecs_np).to(device=device, dtype=dtype)
+    evals = torch.from_numpy(evals).to(device=device, dtype=dtype)
+    evecs = torch.from_numpy(evecs).to(device=device, dtype=dtype)
     gradX = diff_utils.sparse_np_to_torch(gradX).to(device=device, dtype=dtype)
     gradY = diff_utils.sparse_np_to_torch(gradY).to(device=device, dtype=dtype)
     return frames, massvec, L, evals, evecs, gradX, gradY
