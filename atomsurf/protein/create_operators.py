@@ -9,7 +9,6 @@ import potpourri3d as pp3d
 import scipy.spatial
 from scipy.sparse.linalg import eigsh
 from scipy.sparse import coo_matrix, diags
-import torch
 
 if __name__ == '__main__':
     script_dir = os.path.dirname(os.path.realpath(__file__))
@@ -142,9 +141,9 @@ def dot(vec_A, vec_B):
     return np.sum(vec_A * vec_B, axis=-1)
 
 
-# Given (..., 3) vectors and normals, projects out any components of vecs
-# which lies in the direction of normals. Normals are assumed to be unit.
 def project_to_tangent(vecs, unit_normals):
+    # Given (..., 3) vectors and normals, projects out any components of vecs
+    # which lies in the direction of normals. Normals are assumed to be unit.
     dots = dot(vecs, unit_normals)
     return vecs - unit_normals * dots[..., None]
 
@@ -153,16 +152,12 @@ def face_normals(verts, faces, normalized=True):
     coords = verts[faces]
     vec_A = coords[:, 1, :] - coords[:, 0, :]
     vec_B = coords[:, 2, :] - coords[:, 0, :]
-
     raw_normal = np.cross(vec_A, vec_B)
-
     if normalized:
         return normalize(raw_normal)
-
     return raw_normal
 
 
-# NP
 def mesh_vertex_normals(verts, faces):
     face_n = face_normals(verts, faces)
     vertex_normals = np.zeros_like(verts)
@@ -176,7 +171,6 @@ def mesh_vertex_normals(verts, faces):
     return vertex_normals
 
 
-# NP version
 def vertex_normals(verts, faces):
     normals = mesh_vertex_normals(verts, faces)
 
@@ -187,7 +181,7 @@ def vertex_normals(verts, faces):
         scale = np.linalg.norm(bbox) * 1e-4
         wiggle = (np.random.RandomState(seed=777).rand(*verts.shape) - 0.5) * scale
         wiggle_verts = verts + bad_normals_mask * wiggle
-        normals = mesh_vertex_normals(wiggle_verts, diff_utils.toNP(faces))
+        normals = mesh_vertex_normals(wiggle_verts, faces)
 
     # if still NaN assign random normals (probably means unreferenced verts in mesh)
     bad_normals_mask = np.isnan(normals).any(axis=1)
@@ -392,15 +386,6 @@ def compute_operators(verts, faces, k_eig=128, normals=None, use_hmr_decomp=Fals
     # Split complex gradient in to two real sparse mats (torch doesn't like complex sparse matrices)
     gradX = np.real(grad_mat)
     gradY = np.imag(grad_mat)
-
-    # === Convert back to torch
-    device = 'cpu'
-    massvec = torch.from_numpy(massvec).to(device=device, dtype=dtype)
-    L = diff_utils.sparse_np_to_torch(L).to(device=device, dtype=dtype)
-    evals = torch.from_numpy(evals).to(device=device, dtype=dtype)
-    evecs = torch.from_numpy(evecs).to(device=device, dtype=dtype)
-    gradX = diff_utils.sparse_np_to_torch(gradX).to(device=device, dtype=dtype)
-    gradY = diff_utils.sparse_np_to_torch(gradY).to(device=device, dtype=dtype)
     return frames, massvec, L, evals, evecs, gradX, gradY
 
 
@@ -414,29 +399,25 @@ def get_operators(npz_path, verts, faces, k_eig=128, normals=None, recompute=Fal
                                                                         k_eig,
                                                                         normals=normals,
                                                                         use_hmr_decomp=use_hmr_decomp)
-        dtype_np = np.float32
-        L_np = diff_utils.sparse_torch_to_np(L, dtype_np)
-        gradX_np = diff_utils.sparse_torch_to_np(gradX, dtype_np)
-        gradY_np = diff_utils.sparse_torch_to_np(gradY, dtype_np)
         np.savez(npz_path,
-                 verts=diff_utils.toNP(verts, dtype_np),
-                 faces=diff_utils.toNP(faces, dtype_np),
+                 verts=verts,
+                 faces=faces,
                  k_eig=k_eig,
-                 mass=diff_utils.toNP(mass, dtype_np),
-                 L_data=L_np.data.astype(dtype_np),
-                 L_indices=L_np.indices,
-                 L_indptr=L_np.indptr,
-                 L_shape=L_np.shape,
-                 evals=diff_utils.toNP(evals, dtype_np),
-                 evecs=diff_utils.toNP(evecs, dtype_np),
-                 gradX_data=gradX_np.data.astype(dtype_np),
-                 gradX_indices=gradX_np.indices,
-                 gradX_indptr=gradX_np.indptr,
-                 gradX_shape=gradX_np.shape,
-                 gradY_data=gradY_np.data.astype(dtype_np),
-                 gradY_indices=gradY_np.indices,
-                 gradY_indptr=gradY_np.indptr,
-                 gradY_shape=gradY_np.shape,
+                 mass=mass,
+                 L_data=L.data,
+                 L_indices=L.indices,
+                 L_indptr=L.indptr,
+                 L_shape=L.shape,
+                 evals=evals,
+                 evecs=evecs,
+                 gradX_data=gradX.data,
+                 gradX_indices=gradX.indices,
+                 gradX_indptr=gradX.indptr,
+                 gradX_shape=gradX.shape,
+                 gradY_data=gradY.data,
+                 gradY_indices=gradY.indices,
+                 gradY_indptr=gradY.indptr,
+                 gradY_shape=gradY.shape,
                  )
 
 
