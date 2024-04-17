@@ -7,6 +7,8 @@ import scipy.sparse.linalg as sla
 import numpy as np
 import potpourri3d as pp3d
 import scipy.spatial
+from scipy.sparse.linalg import eigsh
+from scipy.sparse import coo_matrix, diags
 import torch
 
 if __name__ == '__main__':
@@ -19,6 +21,108 @@ import atomsurf.utils.diffusion_net_utils as diff_utils
 In this file, we define functions to make the following transformations :
 .ply -> DiffNets operators in .npz format
 """
+
+
+class TriMesh(object):
+    def __init__(self, verts, faces):
+        self.verts = verts
+        self.faces = faces
+        self.stiffness = None
+        self.eigen_vals = None
+        self.eigen_vecs = None
+        self.mass = None
+
+    def LB_decomposition(self, k=None):
+        # stiffness matrix
+        self.stiffness = self.compute_stiffness_matrix()
+        # mass matrix
+        self.mass = self.compute_fem_mass_matrix()
+        # compute Laplace-Beltrami basis (eigen-vectors are stored column-wise)
+        self.eigen_vals, self.eigen_vecs = eigsh(A=self.stiffness, k=k, M=self.mass, sigma=-0.01)
+        self.eigen_vals[0] = 0
+
+    def compute_stiffness_matrix(self):
+        verts = self.verts
+        faces = self.faces
+        v1 = verts[faces[:, 0]]
+        v2 = verts[faces[:, 1]]
+        v3 = verts[faces[:, 2]]
+
+        e1 = v3 - v2
+        e2 = v1 - v3
+        e3 = v2 - v1
+
+        # compute cosine alpha/beta
+        L1 = np.linalg.norm(e1, axis=1)
+        L2 = np.linalg.norm(e2, axis=1)
+        L3 = np.linalg.norm(e3, axis=1)
+        cos1 = np.einsum('ij,ij->i', -e2, e3) / (L2 * L3)
+        cos2 = np.einsum('ij,ij->i', e1, -e3) / (L1 * L3)
+        cos3 = np.einsum('ij,ij->i', -e1, e2) / (L1 * L2)
+
+        # cot(arccos(x)) = x/sqrt(1-x^2)
+        I = np.concatenate([faces[:, 0], faces[:, 1], faces[:, 2]])
+        J = np.concatenate([faces[:, 1], faces[:, 2], faces[:, 0]])
+        S = np.concatenate([cos3, cos1, cos2])
+        S = 0.5 * S / np.sqrt(1 - S ** 2)
+
+        In = np.concatenate([I, J, I, J])
+        Jn = np.concatenate([J, I, I, J])
+        Sn = np.concatenate([-S, -S, S, S])
+
+        N = verts.shape[0]
+        stiffness = coo_matrix((Sn, (In, Jn)), shape=(N, N)).tocsc()
+        return stiffness
+
+    def compute_fem_mass_matrix(self):
+        verts = self.verts
+        faces = self.faces
+        # compute face areas
+        v1 = verts[faces[:, 0]]
+        v2 = verts[faces[:, 1]]
+        v3 = verts[faces[:, 2]]
+        face_areas = 0.5 * np.linalg.norm(np.cross(v2 - v1, v3 - v1), axis=1)
+
+        I = np.concatenate([faces[:, 0], faces[:, 1], faces[:, 2]])
+        J = np.concatenate([faces[:, 1], faces[:, 2], faces[:, 0]])
+        S = np.concatenate([face_areas, face_areas, face_areas])
+
+        In = np.concatenate([I, J, I])
+        Jn = np.concatenate([J, I, I])
+        Sn = 1. / 12. * np.concatenate([S, S, 2 * S])
+
+        N = verts.shape[0]
+        mass = coo_matrix((Sn, (In, Jn)), shape=(N, N)).tocsc()
+
+        return mass
+
+
+def hmr_decomp(verts, faces, max_eigen_val=5, k=128):
+    trimesh = TriMesh(verts=verts, faces=faces.astype(int))
+
+    # HMR uses a growing and variable number of eigen vecs. This only makes sense for small surfaces such as pockets.
+    # In our case, even after 600 evecs, the eval is 1.06 << 5=hmr_cutoff
+    # num_verts = len(verts)
+    # num_eigs = int(0.16 * num_verts)
+    # max_val = 0
+    # while max_val < max_eigen_val:
+    #     num_eigs += 5
+    #     print(num_eigs, max_val)
+    #     trimesh.LB_decomposition(k=num_eigs)  # scipy eigsh must have k < N
+    #     max_val = np.max(trimesh.eigen_vals)
+    # cutoff = np.argmax(trimesh.eigen_vals > max_eigen_val)
+    # eigen_vals = trimesh.eigen_vals[:cutoff]
+    # eigen_vecs = trimesh.eigen_vecs[:, :cutoff]
+
+    trimesh.LB_decomposition(k=k)  # scipy eigsh must have k < N
+    eigen_vals = trimesh.eigen_vals
+    eigen_vecs = trimesh.eigen_vecs
+
+    # save features
+    eigen_vals = eigen_vals.astype(np.float32)
+    eigen_vecs = eigen_vecs.astype(np.float32)
+    mass = trimesh.mass.astype(np.float32)
+    return eigen_vals, eigen_vecs, mass
 
 
 def normalize(x, divide_eps=1e-6):
@@ -241,7 +345,7 @@ def build_grad(verts, edges, edge_tangent_vectors):
     return mat
 
 
-def compute_operators(verts, faces, k_eig=128, normals=None):
+def compute_operators(verts, faces, k_eig=128, normals=None, use_hmr_decomp=False):
     """
     Builds spectral operators for a mesh/point cloud. Constructs mass matrix, eigenvalues/vectors for Laplacian, and gradient matrix.
     See get_operators() for a similar routine that wraps this one with a layer of caching.
@@ -290,8 +394,7 @@ def compute_operators(verts, faces, k_eig=128, normals=None):
     inds_col = L_coo.col
 
     # === Compute the eigenbasis
-    if k_eig > 0:
-
+    if not use_hmr_decomp:
         # Prepare matrices
         L_eigsh = (L + scipy.sparse.identity(L.shape[0]) * eps).tocsc()
         massvec_eigsh = massvec_np
@@ -320,11 +423,8 @@ def compute_operators(verts, faces, k_eig=128, normals=None):
                 L_eigsh = L_eigsh + scipy.sparse.identity(L.shape[0]) * (
                         eps * 10 ** failcount
                 )
-
-    else:  # k_eig == 0
-        evals_np = np.zeros((0))
-        evecs_np = np.zeros((verts.shape[0], 0))
-
+    else:
+        evals_np, evecs_np, Mmat = hmr_decomp(verts=verts_np, faces=faces_np)
     # == Build gradient matrices
 
     # For meshes, we use the same edges as were used to build the Laplacian.
@@ -348,12 +448,16 @@ def compute_operators(verts, faces, k_eig=128, normals=None):
     return frames, massvec, L, evals, evecs, gradX, gradY
 
 
-def get_operators(npz_path, verts, faces, k_eig=128, normals=None, recompute=False):
+def get_operators(npz_path, verts, faces, k_eig=128, normals=None, recompute=False, use_hmr_decomp=False):
     """
     We remove the hashing util and add a filename for the npz instead.
     """
     if not os.path.exists(npz_path) or recompute:
-        frames, mass, L, evals, evecs, gradX, gradY = compute_operators(verts, faces, k_eig, normals=normals)
+        frames, mass, L, evals, evecs, gradX, gradY = compute_operators(verts,
+                                                                        faces,
+                                                                        k_eig,
+                                                                        normals=normals,
+                                                                        use_hmr_decomp=use_hmr_decomp)
         dtype_np = np.float32
         L_np = diff_utils.sparse_torch_to_np(L, dtype_np)
         gradX_np = diff_utils.sparse_torch_to_np(gradX, dtype_np)
@@ -404,5 +508,6 @@ if __name__ == "__main__":
     faces = np.asarray(mesh.triangles, dtype=np.int32)
 
     operator_file = "../../data/example_files/example_operator.npz"
-    get_operators(operator_file, vertices, faces, k_eig=128, recompute=False)
+    get_operators(operator_file, vertices, faces, k_eig=128, recompute=True, use_hmr_decomp=False)
+    # get_operators(operator_file, vertices, faces, k_eig=128, recompute=True, use_hmr_decomp=True)
     operators = load_operators(operator_file)
