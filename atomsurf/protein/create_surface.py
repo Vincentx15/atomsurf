@@ -62,13 +62,16 @@ def parse_verts(vert_file, face_file, keep_normals=False):
         return verts, faces
 
 
-def pdb_to_surf(pdb, out_name, density=1.):
+def pdb_to_surf(pdb_path, out_name=None, density=1.):
     """
     Runs msms on the input PDB file and dumps the output in out_name
-    :param pdb:
+    :param pdb_path:
     :param out_name:
     :return:
     """
+    if out_name is None:
+        out_name=pdb_path
+    out_name = str(Path(out_name).with_suffix(''))
     vert_file = out_name + '.vert'
     face_file = out_name + '.face'
     xyzr_name = f"{out_name}_temp.xyzr"
@@ -81,7 +84,7 @@ def pdb_to_surf(pdb, out_name, density=1.):
     try:
         # First get the xyzr file
         with open(xyzr_name, "w") as f:
-            subprocess.run([pdb2xyzr_path, pdb], stdout=f)
+            subprocess.run([pdb2xyzr_path, pdb_path], stdout=f)
 
         # Then run msms on this file
         cline = f"{msms_path} -if {xyzr_name} -of {out_name} -density {density}"
@@ -101,10 +104,10 @@ def pdb_to_surf(pdb, out_name, density=1.):
     return verts, faces
 
 
-def pdb_to_surf_with_min(pdb, out_name, min_number=256):
+def pdb_to_surf_with_min(pdb_path, out_name=None, min_number=256):
     """
     This function is useful to retrieve at least min_number vertices, which is useful for later use in DiffNets
-    :param pdb:
+    :param pdb_path:
     :param out_name:
     :param min_number:
     :return:
@@ -114,7 +117,7 @@ def pdb_to_surf_with_min(pdb, out_name, min_number=256):
     density = 1.
     verts, faces = None, None
     while number_of_vertices < min_number:
-        verts, faces = pdb_to_surf(pdb=pdb, out_name=out_name, density=density)
+        verts, faces = pdb_to_surf(pdb_path=pdb_path, out_name=out_name, density=density)
         number_of_vertices = len(verts)
         density += 1
     return verts, faces
@@ -263,11 +266,24 @@ def mesh_simplification(verts, faces, out_ply, vert_number=2000):
 
     if not is_valid_mesh:
         raise ValueError(f'Mesh is not valid')
+    verts, faces = np.array(mesh_py.vertices, dtype=np.float32), np.array(mesh_py.faces, dtype=np.int32)
 
     # save to ply
-    verts, faces = np.array(mesh_py.vertices, dtype=np.float32), np.array(mesh_py.faces, dtype=np.int32)
-    mesh = o3d.geometry.TriangleMesh(o3d.utility.Vector3dVector(verts), o3d.utility.Vector3iVector(faces))
-    o3d.io.write_triangle_mesh(out_ply, mesh, write_vertex_normals=True)
+    if out_ply is not None:
+        mesh = o3d.geometry.TriangleMesh(o3d.utility.Vector3dVector(verts), o3d.utility.Vector3iVector(faces))
+        o3d.io.write_triangle_mesh(out_ply, mesh, write_vertex_normals=True)
+    return verts, faces
+
+
+def get_surface(pdb_path="../../data/example_files/4kt3.pdb",
+                out_ply_path=None,
+                min_number=256):
+    # # Check that msms and with_min gives the right output
+    verts, faces = pdb_to_surf_with_min(pdb_path, out_name=out_ply_path, min_number=min_number)
+    verts, faces = mesh_simplification(verts=verts,
+                                       faces=faces,
+                                       out_ply=out_ply_path,
+                                       vert_number=1000)
     return verts, faces
 
 
@@ -305,3 +321,7 @@ if __name__ == "__main__":
     mesh_reduced = o3d.io.read_triangle_mesh(ply_file)
     mesh_reduced.compute_triangle_normals()
     o3d.visualization.draw_geometries([mesh_reduced])
+
+    verts, faces = get_surface(pdb_path="../../data/example_files/4kt3.pdb",
+                               out_ply_path="../../data/example_files/example_mesh.ply",
+                               min_number=256)

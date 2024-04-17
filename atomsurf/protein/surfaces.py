@@ -13,7 +13,6 @@ if __name__ == '__main__':
     sys.path.append(os.path.join(script_dir, '..', '..'))
 
 import atomsurf.utils.diffusion_net_utils as diff_utils
-import atomsurf.protein.create_operators as operators
 from atomsurf.protein.features import Features
 
 
@@ -121,10 +120,11 @@ class SurfaceObject(Data):
 
     @staticmethod
     def load(npz_path):
+        from atomsurf.protein.create_operators import load_operators
         npz_file = np.load(npz_path, allow_pickle=True)
         verts = npz_file['verts']
         faces = npz_file['faces']
-        mass, L, evals, evecs, gradX, gradY = operators.load_operators(npz_file)
+        mass, L, evals, evecs, gradX, gradY = load_operators(npz_file)
 
         return SurfaceObject(verts=verts, faces=faces,
                              mass=mass, L=L, evals=evals, evecs=evecs, gradX=gradX, gradY=gradY)
@@ -133,6 +133,20 @@ class SurfaceObject(Data):
         self.numpy()
         geom_feats = get_geom_feats(verts=self.verts, faces=self.faces, evecs=self.evecs, evals=self.evals)
         self.features.add_named_features('geom_feats', geom_feats)
+
+    @classmethod
+    def from_verts_faces(cls, verts, faces):
+        from atomsurf.protein.create_operators import compute_operators
+        frames, massvec, L, evals, evecs, gradX, gradY = compute_operators(verts, faces)
+        surface = cls(verts=verts, faces=faces, mass=massvec, L=L, evals=evals,
+                      evecs=evecs, gradX=gradX, gradY=gradY)
+        return surface
+
+    @classmethod
+    def from_pdb_path(cls, pdb_path, out_ply_path=None):
+        from atomsurf.protein.create_surface import get_surface
+        verts, faces = get_surface(pdb_path, out_ply_path=out_ply_path)
+        return cls.from_verts_faces(verts, faces)
 
     @classmethod
     def batch_from_data_list(cls, data_list):

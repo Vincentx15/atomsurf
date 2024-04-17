@@ -77,7 +77,7 @@ def parse_pdb_path(pdb_path):
     # Iterate over all residues in a model
     for residue in structure.get_residues():
         # HETATM
-        if residue.id[0] == " ":
+        if residue.id[0] != " ":
             continue
         resname = residue.get_resname()
         # resname = protein_letters_3to1[resname.title()]
