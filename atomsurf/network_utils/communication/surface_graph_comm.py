@@ -1,0 +1,86 @@
+import torch
+import torch.nn as nn
+# project
+from .passing_utils import compute_rbf_graph, compute_bipartite_graphs
+
+
+class SurfaceGraphCommunication(nn.Module):
+    def __init__(self, use_bp,
+                 s_pre_block=None, g_pre_block=None,
+                 bp_gs_block=None, bp_sg_block=None,
+                 s_post_block=None, g_post_block=None,
+                 neigh_thresh=8, sigma=2.5,
+                 **kwargs):
+        super().__init__()
+
+        self.use_bp = use_bp
+
+        self.s_pre_block = s_pre_block
+        self.g_pre_block = g_pre_block
+
+        self.bp_gs_block = bp_gs_block
+        self.bp_sg_block = bp_sg_block
+
+        self.s_post_block = s_post_block
+        self.g_post_block = g_post_block
+
+        self.neigh_thresh = neigh_thresh
+        self.sigma = sigma
+
+        # init variables
+        if use_bp:
+            self.bp_gs, self.bp_sg = None, None
+        else:
+            self.rbf_weights = None
+
+    def forward(self, surface=None, graph=None):
+        if surface is None or graph is None:
+            return surface, graph
+
+        # prepare the communication graph
+        self.compute_graph(surface, graph)
+        vertices = surface.vertices
+
+        # get input features and apply preprocessing
+        surface = self.s_pre_block(surface)
+        graph = self.g_pre_block(graph)
+
+        # apply the message passing
+        if self.use_bp:
+            # concatenate the features for the graph structure
+            x = [torch.cat((xs_b, graph_b.x)) for xs_b, graph_b in zip(surface.x, graph.to_data_list())]
+
+            # apply the message passing
+            xs_out = [self.bp_gs_block(x_b, bp_gs_b.edge_index, bp_gs_b.edge_weight) for x_b, bp_gs_b in zip(x, self.bp_gs)]
+            xg_out = [self.bp_sg_block(x_b, bp_sg_b.edge_index, bp_sg_b.edge_weight) for x_b, bp_sg_b in zip(x, self.bp_sg)]
+
+            # extract the projected features
+            xs_out = [out[:len(vert)] for out, vert in zip(xs_out, vertices)]
+            xg_out = torch.cat([out[len(vert):] for out, vert in zip(xg_out, vertices)], dim=0)
+        else:
+            # project features from one representation to the other
+            xg_out = torch.cat([torch.mm(rbf_w.T, x) for rbf_w, x in zip(self.rbf_weights, surface.x)], dim=0)
+            xs_out = [torch.mm(rbf_w, graph_b.x) for rbf_w, graph_b in zip(self.rbf_weights, graph.to_data_list())]
+
+        # apply post processing
+        xs = self.s_post_block(surface.x, xs_out)
+        xg = self.g_post_block(graph.x, xg_out)
+
+        # update the features and return
+        surface.x = xs
+        graph.x = xg
+        return surface, graph
+
+    def compute_graph(self, surface, graph):
+        if self.use_bp:
+            if "bp_gs" not in surface or "bp_sg" not in surface:
+                self.bp_gs, self.bp_sg = compute_bipartite_graphs(surface, graph, neigh_th=self.neigh_thresh)
+                surface["bp_gs"], surface["bp_sg"] = self.bp_gs.clone(), self.bp_sg.clone()
+            else:
+                self.bp_gs, self.bp_sg = surface.bp_gs, surface.bp_sg
+        else:
+            if "rbf_weights" not in surface:
+                self.rbf_weights = compute_rbf_graph(surface, graph, sigma=self.sigma)
+                surface["rbf_weights"] = self.rbf_weights.clone()
+            else:
+                self.rbf_weights = surface.rbf_weights
