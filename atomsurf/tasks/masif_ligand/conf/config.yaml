@@ -1,0 +1,37 @@
+defaults:
+  - _self_
+  - achitecture: vanilla
+  - dataset@trainset: [masif_ligand_hmr]
+  - dataset@valset: [masif_ligand_hmr]
+  - dataset@testset: [masif_ligand_hmr]
+  - optimizer: adam
+  - scheduler: reduce_lr_on_plateau
+  - override hydra/job_logging: colorlog
+  - override hydra/hydra_logging: colorlog
+
+gpus:
+  - 0
+
+
+# general params
+seed: 2024
+
+
+
+# trainer params
+# # epochs and batch_size
+accumulate_grad_batches: 1
+check_val_every_n_epoch: 1
+val_check_interval: 1.0
+# # verbose
+limit_train_batches: 1.0
+limit_val_batches: 1.0
+max_steps: -1
+auto_lr_find: False
+log_every_n_steps: 50
+# # gradient clipping
+gradient_clip_val: 1.0
+# # detect NaNs
+detect_anomaly: False
+# # debugging
+overfit_batches: 0
