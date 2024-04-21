@@ -1,7 +1,29 @@
 import torch
 import torch.nn as nn
+from torch_geometric.nn import GCNConv, GATConv, GATv2Conv
 from torch_geometric.nn import MessagePassing
 from torch_geometric.utils import add_self_loops
+
+
+def init_block(name, use_gat=False, use_v2=False, self_loops=False, fill_value="mean", aggr='add', dim_in=128, dim_out=64):
+    if name == "identity":
+        return IdentityLayer()
+    elif name == "no_param_aggregate":
+        return NoParamAggregate(aggr=aggr, add_self_loops=add_self_loops, fill_value=fill_value)
+    elif name == "cat_post_process":
+        return CatPostProcessBlock(dim_in, dim_out)
+    elif name == "skip_connection":
+        return SkipConnectionBlock()
+    elif name == "return_processed":
+        return ReturnProcessedBlock()
+    elif name == "gcn":
+        if not use_gat:
+            conv_layer = GCNConv
+        else:
+            conv_layer = GATv2Conv if use_v2 else GATConv
+        edge_dim = 1 if use_v2 else None
+
+        return conv_layer(dim_in, dim_out, add_self_loops=self_loops, fill_value=fill_value, edge_dim=edge_dim)
 
 
 class IdentityLayer(nn.Module):
@@ -17,7 +39,7 @@ class IdentityLayer(nn.Module):
 
 
 class SkipConnectionBlock(nn.Module):
-    def __init__(self, use_skip, use_cat, cat_block):
+    def __init__(self):
         super().__init__()
 
     def forward(self, x_in, x_out):
