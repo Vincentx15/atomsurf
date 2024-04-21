@@ -14,7 +14,7 @@ if __name__ == '__main__':
 
 from atomsurf.protein.graphs import parse_pdb_path, atom_coords_to_edges
 from atomsurf.protein.features import Features
-from atomsurf.utils.diffusion_net_utils import safe_to_torch
+from atomsurf.utils.helpers import safe_to_torch
 
 
 def compute_radius_charge(pdb_path):

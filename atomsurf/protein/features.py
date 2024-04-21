@@ -9,7 +9,7 @@ if __name__ == '__main__':
     script_dir = os.path.dirname(os.path.realpath(__file__))
     sys.path.append(os.path.join(script_dir, '..', '..'))
 
-from atomsurf.utils.diffusion_net_utils import safe_to_torch
+from atomsurf.utils.helpers import safe_to_torch
 
 
 class Features(Data):
