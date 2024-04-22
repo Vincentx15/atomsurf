@@ -16,16 +16,16 @@ from atomsurf.protein.residue_graph import ResidueGraphBuilder
 
 def create_protein(pdb_path, dump_ply, dump_surf, dump_agraph, dump_rgraph):
     # Create surface
-    # surface = SurfaceObject.from_pdb_path(pdb_path, out_ply_path=dump_ply)
-    # surface.add_geom_feats()
-    # surface.save_torch(dump_surf)
+    surface = SurfaceObject.from_pdb_path(pdb_path, out_ply_path=dump_ply)
+    surface.add_geom_feats()
+    surface.save_torch(dump_surf)
 
     # create atomgraph
     agraph_builder = AtomGraphBuilder()
     agraph = agraph_builder.pdb_to_atomgraph(pdb_path)
     torch.save(agraph, open(dump_agraph, 'wb'))
 
-    # create atomgraph
+    # create residuegraph
     rgraph_builder = ResidueGraphBuilder()
     rgraph = rgraph_builder.pdb_to_resgraph(pdb_path)
     torch.save(rgraph, open(dump_rgraph, 'wb'))

@@ -75,7 +75,7 @@ class SurfaceObject(Data):
     def from_numpy(self, device='cpu', dtype=torch.float32):
         for attr_name in ['verts', 'faces', 'mass', 'evals', 'evecs']:
             attr_value = getattr(self, attr_name)
-            setattr(self, attr_name, torch.from_numpy(attr_value).to(device=device, dtype=dtype))
+            setattr(self, attr_name, diff_utils.safe_to_torch(attr_value).to(device=device, dtype=dtype))
 
         for attr_name in ['L', 'gradX', 'gradY']:
             attr_value = getattr(self, attr_name)
@@ -118,16 +118,16 @@ class SurfaceObject(Data):
         self.from_numpy()
         torch.save(self, open(torch_path, 'wb'))
 
-    @staticmethod
-    def load(npz_path):
+    @classmethod
+    def load(cls, npz_path):
         from atomsurf.protein.create_operators import load_operators
         npz_file = np.load(npz_path, allow_pickle=True)
         verts = npz_file['verts']
         faces = npz_file['faces']
         mass, L, evals, evecs, gradX, gradY = load_operators(npz_file)
 
-        return SurfaceObject(verts=verts, faces=faces,
-                             mass=mass, L=L, evals=evals, evecs=evecs, gradX=gradX, gradY=gradY)
+        return cls(verts=verts, faces=faces,
+                   mass=mass, L=L, evals=evals, evecs=evecs, gradX=gradX, gradY=gradY)
 
     def add_geom_feats(self):
         self.numpy()
@@ -135,9 +135,9 @@ class SurfaceObject(Data):
         self.features.add_named_features('geom_feats', geom_feats)
 
     @classmethod
-    def from_verts_faces(cls, verts, faces):
+    def from_verts_faces(cls, verts, faces, use_hmr_decomp=False):
         from atomsurf.protein.create_operators import compute_operators
-        frames, massvec, L, evals, evecs, gradX, gradY = compute_operators(verts, faces)
+        frames, massvec, L, evals, evecs, gradX, gradY = compute_operators(verts, faces, use_hmr_decomp=use_hmr_decomp)
         surface = cls(verts=verts, faces=faces, mass=massvec, L=L, evals=evals,
                       evecs=evecs, gradX=gradX, gradY=gradY)
         return surface

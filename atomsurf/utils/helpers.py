@@ -22,6 +22,8 @@ def toNP(x, dtype=None):
     """
     if isinstance(x, np.ndarray):
         return x
+    if not isinstance(x, torch.Tensor):
+        raise TypeError(f'x must be a torch tensor or a numpy array, got {type(x)}')
     np_x = x.detach().to(torch.device("cpu")).numpy()
     if dtype is not None:
         np_x = np_x.astype(dtype)
@@ -30,6 +32,8 @@ def toNP(x, dtype=None):
 
 # Numpy sparse matrix to pytorch
 def sparse_np_to_torch(A):
+    if isinstance(A, torch.Tensor):
+        return A
     Acoo = A.tocoo()
     values = Acoo.data
     indices = np.vstack((Acoo.row, Acoo.col))

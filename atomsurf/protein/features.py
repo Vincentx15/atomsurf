@@ -31,9 +31,9 @@ class Features(Data):
         else:
             self.possible_nums = {self.num_nodes}
 
-        self.names = names
+        # self.names = names
         self.named_features = named_features
-        self.names_oh = names_oh
+        # self.names_oh = names_oh
         self.named_one_hot_features = named_one_hot_features
         self.flat_features = flat_features
 
