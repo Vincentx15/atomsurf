@@ -183,12 +183,12 @@ class ResidueGraph(Data):
 
 
 class ResidueGraphBuilder:
-    def __init__(self, add_pronet=True,add_esm=False):
+    def __init__(self, add_pronet=True,add_esm=True):
         self.add_pronet = add_pronet
         self.add_esm = add_esm
         pass
 
-    def pdb_to_resgraph(self, pdb_path):
+    def pdb_to_resgraph(self, pdb_path,esm_path=None):
         # TODO: look into https://biopython.org/docs/1.75/api/Bio.PDB.DSSP.html
         amino_types, atom_amino_id, atom_names, atom_elts, atom_pos = parse_pdb_path(pdb_path)
 
@@ -205,7 +205,7 @@ class ResidueGraphBuilder:
         hphob = [res_type_to_hphob[amino_type] for amino_type in amino_types]
         res_graph.features.add_named_features('hphobs', hphob)
         if self.add_esm:
-            esm_embed= get_esm_embedding_single(pdb_path)
+            esm_embed= get_esm_embedding_single(pdb_path,esm_path)
             res_graph.features.add_named_features('esm_embed', esm_embed)
         if self.add_pronet:
             pfc = PronetFeaturesComputer()
