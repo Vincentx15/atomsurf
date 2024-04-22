@@ -2,12 +2,13 @@ import torch
 import torch.nn as nn
 # project
 from .passing_utils import compute_rbf_graph, compute_bipartite_graphs
+from .utils_blocks import IdentityLayer
 
 
 class SurfaceGraphCommunication(nn.Module):
     def __init__(self, use_bp,
                  s_pre_block=None, g_pre_block=None,
-                 bp_gs_block=None, bp_sg_block=None,
+                 bp_sg_block=None, bp_gs_block=None,
                  s_post_block=None, g_post_block=None,
                  neigh_thresh=8, sigma=2.5,
                  **kwargs):
@@ -18,8 +19,8 @@ class SurfaceGraphCommunication(nn.Module):
         self.s_pre_block = s_pre_block
         self.g_pre_block = g_pre_block
 
-        self.bp_gs_block = bp_gs_block
         self.bp_sg_block = bp_sg_block
+        self.bp_gs_block = bp_gs_block
 
         self.s_post_block = s_post_block
         self.g_post_block = g_post_block
@@ -59,8 +60,8 @@ class SurfaceGraphCommunication(nn.Module):
             xg_out = torch.cat([out[len(vert):] for out, vert in zip(xg_out, vertices)], dim=0)
         else:
             # project features from one representation to the other
-            xg_out = torch.cat([torch.mm(rbf_w.T, x) for rbf_w, x in zip(self.rbf_weights, surface.x)], dim=0)
             xs_out = [torch.mm(rbf_w, graph_b.x) for rbf_w, graph_b in zip(self.rbf_weights, graph.to_data_list())]
+            xg_out = torch.cat([torch.mm(rbf_w.T, x) for rbf_w, x in zip(self.rbf_weights, surface.x)], dim=0)
 
         # apply post processing
         xs = self.s_post_block(surface.x, xs_out)
@@ -84,3 +85,38 @@ class SurfaceGraphCommunication(nn.Module):
                 surface["rbf_weights"] = self.rbf_weights.clone()
             else:
                 self.rbf_weights = surface.rbf_weights
+
+
+class SequentialSurfaceGraphCommunication(SurfaceGraphCommunication):
+    def __init__(self, use_bp,
+                 s_pre_block=None, g_pre_block=None,
+                 bp_sg_block=None, bp_gs_block=None,
+                 s_post_block=None, g_post_block=None,
+                 neigh_thresh=8, sigma=2.5,
+                 **kwargs):
+        super().__init__(use_bp=use_bp,
+                         s_pre_block=s_pre_block, g_pre_block=g_pre_block,
+                         bp_gs_block=bp_gs_block, bp_sg_block=bp_sg_block,
+                         s_post_block=s_post_block, g_post_block=g_post_block,
+                         neigh_thresh=neigh_thresh, sigma=sigma, **kwargs)
+
+    def forward(self, surface=None, graph=None, first_pass=None):
+        assert first_pass is not None, "first_pass must be specified"
+
+        # get the processing blocks
+        s_pre_block, g_pre_block = self.s_pre_block, self.g_pre_block
+
+        if first_pass:
+            # transfer features from the surface to the graph
+            # preprocessing graph features is not necessary
+            self.g_pre_block = IdentityLayer()
+            surface_new, graph_new = super().forward(surface, graph)
+            self.g_pre_block = g_pre_block
+            return surface, graph_new
+        else:
+            # transfer features from the graph to the surface
+            # preprocessing surface features is not necessary
+            self.s_pre_block = IdentityLayer()
+            surface_new, graph_new = super().forward(surface, graph)
+            self.s_pre_block = s_pre_block
+            return surface_new, graph
