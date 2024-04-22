@@ -13,8 +13,13 @@ export PYMESH_PATH=`pwd`
 
 # Install Pymesh dependencies with apt-get
 apt-get install libeigen3-dev libgmp-dev libgmpxx4ldbl libmpfr-dev libboost-dev libboost-thread-dev libtbb-dev python3-dev
-# Or in jean zay by loading modules 
-module load gmp/6.1.2 eigen/3.3.7-mpi cmake/3.21.3 mpfr/4.0.2 boost/1.70.0# Check everything works ok :
+# Or in jean zay by loading modules
+module load gmp/6.1.2 eigen/3.3.7-mpi cmake/3.21.3 mpfr/4.0.2 boost/1.70.0
+
+./setup.py build
+./setup.py install
+
+# Check everything works ok :
 python -c "import pymesh; pymesh.test()"
 ```
 
