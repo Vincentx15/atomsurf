@@ -13,7 +13,7 @@ if __name__ == '__main__':
 from atomsurf.protein.graphs import parse_pdb_path, atom_coords_to_edges, res_type_to_hphob
 from atomsurf.protein.features import Features
 from atomsurf.utils.diffusion_net_utils import safe_to_torch
-
+from atomsurf.protein.create_esm import get_esm_embedding_single
 
 class PronetFeaturesComputer:
     """
@@ -178,8 +178,9 @@ class ResidueGraph(Data):
 
 
 class ResidueGraphBuilder:
-    def __init__(self, add_pronet=True):
+    def __init__(self, add_pronet=True,add_esm=False):
         self.add_pronet = add_pronet
+        self.add_esm = add_esm
         pass
 
     def pdb_to_resgraph(self, pdb_path):
@@ -198,7 +199,9 @@ class ResidueGraphBuilder:
         res_graph.features.add_named_oh_features('amino_types', amino_types)
         hphob = [res_type_to_hphob[amino_type] for amino_type in amino_types]
         res_graph.features.add_named_features('hphobs', hphob)
-
+        if self.add_esm:
+            esm_embed= get_esm_embedding_single(pdb_path)
+            res_graph.features.add_named_features('esm_embed', esm_embed)
         if self.add_pronet:
             pfc = PronetFeaturesComputer()
             pronet_features = pfc.get_pronet_features(amino_types, atom_amino_id, atom_names, atom_pos)
