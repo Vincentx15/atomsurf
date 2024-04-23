@@ -5,7 +5,7 @@ from torch_geometric.nn import MessagePassing
 from torch_geometric.utils import add_self_loops
 
 
-def init_block(name, use_gat=False, use_v2=False, self_loops=False, fill_value="mean", aggr='add', dim_in=128, dim_out=64):
+def init_block(name, use_gat=False, use_v2=False, add_self_loops=False, fill_value="mean", aggr='add', dim_in=128, dim_out=64):
     if name == "identity":
         return IdentityLayer()
     elif name == "no_param_aggregate":
@@ -23,7 +23,7 @@ def init_block(name, use_gat=False, use_v2=False, self_loops=False, fill_value="
             conv_layer = GATv2Conv if use_v2 else GATConv
         edge_dim = 1 if use_v2 else None
 
-        return conv_layer(dim_in, dim_out, add_self_loops=self_loops, fill_value=fill_value, edge_dim=edge_dim)
+        return conv_layer(dim_in, dim_out, add_self_loops=add_self_loops, fill_value=fill_value, edge_dim=edge_dim)
 
 
 class IdentityLayer(nn.Module):

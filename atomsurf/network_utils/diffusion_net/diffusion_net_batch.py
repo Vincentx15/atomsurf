@@ -32,7 +32,7 @@ class DiffusionNetBlockBatch(nn.Module):
             self.MLP_C += self.C_width
 
         # MLPs
-        self.mlp = MiniMLP([self.MLP_C] + self.mlp_hidden_dims + [self.C_width],
+        self.mlp = MiniMLP([self.MLP_C] + list(self.mlp_hidden_dims) + [self.C_width],
                            dropout=self.dropout,
                            use_bn=use_bn)
 
