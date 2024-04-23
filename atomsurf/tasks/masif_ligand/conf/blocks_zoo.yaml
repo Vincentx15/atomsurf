@@ -1,0 +1,59 @@
+diffusion128|gcn128|concurent:
+  name: ProteinEncoder
+  _target_: atomsurf.networks.protein_encoder_block.ProteinEncoder
+  surface_encoder:
+    name: DiffusionNetBlockBatch
+    _target_: atomsurf.networks_utils.DiffusionNetBlockBatch
+    C_width: 128
+    mlp_hidden_dims: [128, 128]
+    dropout: 0.0
+    use_bn: true
+    init_time: 2.0  # either null (for constant init) or a float
+    init_std: 2.0
+  graph_encoder:
+    name: GCNx2Block
+    _target_: atomsurf.networks_utils.GCNx2Block
+    dim_in: 128
+    hidden_dims: 128
+    dim_out: 128
+    dropout: 0.0
+    use_bn: true
+    use_weighted_edge_distance: false
+  communication_block:
+    name: ConcurrentCommunication
+    _target_: atomsurf.networks_utils.ConcurrentCommunication
+    use_bp: true
+    s_pre_block: identity
+    g_pre_block: identity
+    pre_s_dim_in: 128
+    pre_s_dim_out: 64
+    pre_g_dim_in: 128
+    pre_g_dim_out: 64
+
+    use_gat: False
+    use_v2: False
+    bp_self_loops: False
+    bp_fill_value: "mean"
+    bp_s_dim_in: 64
+    bp_s_dim_out: 64
+    bp_g_dim_in: 64
+    bp_g_dim_out: 64
+
+    s_post_block: cat_post_process
+    g_post_block: cat_post_process
+    post_s_dim_in: 128
+    post_s_dim_out: 128
+    post_g_dim_in: 128
+    post_g_dim_out: 128
+
+    neigh_thresh: 8
+    sigma: 2.5
+
+ChemGeomFeatEncoder:
+  name: ChemGeomFeatEncoder
+  _target_: atomsurf.networks.input_feat_encoder.ChemGeomFeatEncoder
+  params:
+    h_dim: 128
+    dropout: 0.1
+    num_gdf: 16
+    num_signatures: 16

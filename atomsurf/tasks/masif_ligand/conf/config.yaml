@@ -1,5 +1,6 @@
 defaults:
   - _self_
+  - blocks_zoo
   - achitecture: vanilla
   - dataset@trainset: [masif_ligand_hmr]
   - dataset@valset: [masif_ligand_hmr]

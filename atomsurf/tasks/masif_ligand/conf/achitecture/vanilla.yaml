@@ -1,47 +1,9 @@
 name: vanilla
 
-# if this too long, we can factorize the blocks, like create standard blocks for each part of the network, and just give some mild parameters
 
 blocks:
-  - block: ChemGeomFeatEncoder
-    name: ChemGeomFeatEncoder
-    _target_: atomsurf.networks.input_feat_encoder.ChemGeomFeatEncoder
-    params:
-      h_dim: 128
-      dropout: 0.1
-      num_gdf: 16
-      num_signatures: 16
-  - block: ProteinEncoder  # block 1
-    name: ProteinEncoder
-    _target_: atomsurf.networks.protein_encoder_block.ProteinEncoder
-    surface_encoder:
-      name: DiffusionNet
-      h_dim: 128
-      dropout: 0.1
-      num_gdf: 16
-      num_signatures: 16
-    graph_encoder:
-      name: GCN
-      h_dim: 128
-      dropout: 0.1
-      num_gdf: 16
-      num_signatures: 16
-    communication_block:
-      name: ConcurrentCommunication
-  - block: ProteinEncoder  # block 2
-    name: ProteinEncoder
-    _target_: atomsurf.networks.protein_encoder_block.ProteinEncoder
-    surface_encoder:
-      name: DiffusionNet
-      h_dim: 128
-      dropout: 0.1
-      num_gdf: 16
-      num_signatures: 16
-    graph_encoder:
-      name: GCN
-      h_dim: 128
-      dropout: 0.1
-      num_gdf: 16
-      num_signatures: 16
-    communication_block:
-      name: ConcurrentCommunication
+  - ${ChemGeomFeatEncoder}
+  - ${diffusion128|gcn128|concurent}
+  - ${diffusion128|gcn128|concurent}
+  - ${diffusion128|gcn128|concurent}
+  - ${diffusion128|gcn128|concurent}
