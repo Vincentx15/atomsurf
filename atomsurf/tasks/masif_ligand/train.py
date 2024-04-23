@@ -1,5 +1,4 @@
 # std
-import os
 import sys
 from pathlib import Path
 # 3p
@@ -10,14 +9,12 @@ from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 
 # project
 if __name__ == '__main__':
-    script_dir = os.path.dirname(os.path.realpath(__file__))
-    sys.path.append(os.path.join(script_dir, '..', '..'))
+    sys.path.append(str(Path(__file__).absolute().parents[3]))
 
 
 from atomsurf.utils.callbacks import CommandLoggerCallback
 from pl_model import MasifLigandModule
-from data_loader import MasifLigandDataset
-from data_processing.data_module import PLDataModule  # to be implemented
+from data_loader import MasifLigandDataModule
 
 
 @hydra.main(config_path="conf", config_name="config")
@@ -85,10 +82,14 @@ def main(cfg=None):
     )
 
     # datamodule
-    datamodule = PLDataModule(MasifLigandDataset, cfg)
+    datamodule = MasifLigandDataModule(cfg)
 
     # train
     trainer.fit(model, datamodule=datamodule)
 
     # test
     trainer.test(model, ckpt_path="best", datamodule=datamodule)
+
+
+if __name__ == "__main__":
+    main()
