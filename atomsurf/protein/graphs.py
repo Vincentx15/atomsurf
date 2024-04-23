@@ -3,8 +3,10 @@ import sys
 
 from Bio.PDB import PDBParser, MMCIFParser
 import numpy as np
-
+from pathlib import Path
 import scipy.spatial as ss
+from subprocess import Popen, PIPE
+import shutil
 import torch
 from collections import defaultdict
 from torch_geometric.data import Data
@@ -64,45 +66,112 @@ res_type_to_hphob = {
 }
 
 
-def parse_pdb_path(pdb_path):
-    parser = MMCIFParser() if pdb_path.endswith('.cif') else PDBParser()
-    structure = parser.get_structure("toto", pdb_path)
+# def parse_pdb_path(pdb_path, verbose=False):
+#     parser = MMCIFParser(QUIET=not verbose) if pdb_path.endswith('.cif') else PDBParser(QUIET=not verbose)
+#     structure = parser.get_structure("toto", pdb_path)
+#
+#     amino_types = []  # size: (n_amino,)
+#     atom_amino_id = []  # size: (n_atom,)
+#     atom_names = []  # size: (n_atom,)
+#     atom_types = []  # size: (n_atom,)
+#     atom_pos = []  # size: (n_atom,3)
+#     res_id = 0
+#     # Iterate over all residues in a model
+#     for residue in structure.get_residues():
+#         # HETATM
+#         if residue.id[0] != " ":
+#             continue
+#         resname = residue.get_resname()
+#         # resname = protein_letters_3to1[resname.title()]
+#         if resname.upper() not in res_type_dict:
+#             resname = 'UNK'
+#         resname = res_type_dict[resname.upper()]
+#         amino_types.append(resname)
+#         for atom in residue.get_atoms():
+#             # Skip H
+#             element = atom.element
+#             if atom.get_name().startswith("H"):
+#                 continue
+#             if not element in atom_type_dict:
+#                 element = 'UNK'
+#             atom_types.append(atom_type_dict[element])
+#             atom_names.append(atom.get_name())
+#             atom_pos.append(atom.get_coord())
+#             atom_amino_id.append(res_id)
+#         res_id += 1
+#
+#     amino_types = np.asarray(amino_types)
+#     atom_amino_id = np.asarray(atom_amino_id)
+#     atom_names = np.asarray(atom_names)
+#     atom_types = np.asarray(atom_types)
+#     atom_pos = np.asarray(atom_pos)
+#     return amino_types, atom_amino_id, atom_names, atom_types, atom_pos
 
+def parse_pdb_path(pdb_path):
+    # TODO FIX mismatch between pdb2PQR and biopython
+    pdb2pqr_bin = shutil.which('pdb2pqr')
+    if pdb2pqr_bin is None:
+        raise RuntimeError('pdb2pqr executable not found')
+
+    pdb_path = Path(pdb_path)
+    out_dir = pdb_path.parent
+    pdb_id = pdb_path.stem
+    pqr_path = Path(out_dir / f'{pdb_id}.pqr')
+    if not pqr_path.exists():
+        cmd = [pdb2pqr_bin, '--ff=AMBER', str(pdb_path), str(pqr_path)]
+        proc = Popen(cmd, stdout=PIPE, stderr=PIPE)
+        stdout, stderr = proc.communicate()
+        err = stderr.decode('utf-8').strip('\n')
+        if 'CRITICAL' in err:
+            print(f'{pdb_id} pdb2pqr failed', flush=True)
+            return None
+
+    with open(pqr_path, 'r') as f:
+        f_read = f.readlines()
+    os.remove(pqr_path)
+    i = 0
     amino_types = []  # size: (n_amino,)
     atom_amino_id = []  # size: (n_atom,)
     atom_names = []  # size: (n_atom,)
     atom_types = []  # size: (n_atom,)
     atom_pos = []  # size: (n_atom,3)
-    res_id = 0
-    # Iterate over all residues in a model
-    for residue in structure.get_residues():
-        # HETATM
-        if residue.id[0] != " ":
-            continue
-        resname = residue.get_resname()
-        # resname = protein_letters_3to1[resname.title()]
-        if resname.upper() not in res_type_dict:
-            resname = 'UNK'
-        resname = res_type_dict[resname.upper()]
-        amino_types.append(resname)
-        for atom in residue.get_atoms():
-            # Skip H
-            element = atom.element
-            if atom.get_name().startswith("H"):
+    successive_res_id = -1
+    old_res = -1
+    for line in f_read:
+        if line[:4] == 'ATOM':
+            assert (len(line) == 70) and (line[69] == '\n')
+            assert line[11] == line[16] == line[54] == line[62] == ' '
+            atom_name = line[12:16].strip()
+            if atom_name.startswith('H'):
                 continue
-            if not element in atom_type_dict:
-                element = 'UNK'
-            atom_types.append(atom_type_dict[element])
-            atom_names.append(atom.get_name())
-            atom_pos.append(atom.get_coord())
-            atom_amino_id.append(res_id)
-        res_id += 1
-
-    amino_types = np.asarray(amino_types)
-    atom_amino_id = np.asarray(atom_amino_id)
+            if atom_name == 'OXT':
+                continue
+            line_split = line.split()
+            atom_name = line_split[2]
+            if atom_name[0] not in atom_type_dict:
+                atom_type = atom_type_dict['UNK']
+            else:
+                atom_type = atom_type_dict[atom_name[0]]
+            coords = line_split[5:8]
+            atom_pos.append(coords)
+            atom_types.append(atom_type)
+            atom_names.append(atom_name)
+            res_id = line_split[4]
+            if not res_id == old_res:
+                successive_res_id += 1
+                old_res = res_id
+                res_name = line_split[3]
+                if res_name not in res_type_dict:
+                    res_type = res_type_dict['UNK']
+                else:
+                    res_type = res_type_dict[res_name]
+                amino_types.append(res_type)
+            atom_amino_id.append(successive_res_id)
+    amino_types = np.asarray(amino_types, dtype=np.int32)
+    atom_amino_id = np.asarray(atom_amino_id, dtype=np.int32)
     atom_names = np.asarray(atom_names)
-    atom_types = np.asarray(atom_types)
-    atom_pos = np.asarray(atom_pos)
+    atom_types = np.asarray(atom_types, dtype=np.int32)
+    atom_pos = np.asarray(atom_pos, dtype=np.float32)
     return amino_types, atom_amino_id, atom_names, atom_types, atom_pos
 
 

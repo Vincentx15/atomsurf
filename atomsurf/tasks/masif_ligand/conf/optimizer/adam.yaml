@@ -1,4 +1,3 @@
-
 name: adam
 lr: 1e-3
 b1: 0.9

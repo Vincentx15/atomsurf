@@ -26,8 +26,8 @@ def create_protein(pdb_path, dump_ply, dump_surf, dump_agraph, dump_rgraph):
     torch.save(agraph, open(dump_agraph, 'wb'))
 
     # create residuegraph
-    rgraph_builder = ResidueGraphBuilder()
-    rgraph = rgraph_builder.pdb_to_resgraph(pdb_path,esmpath)
+    rgraph_builder = ResidueGraphBuilder(add_esm=False)
+    rgraph = rgraph_builder.pdb_to_resgraph(pdb_path, esmpath := None)
     torch.save(rgraph, open(dump_rgraph, 'wb'))
 
 
@@ -42,4 +42,3 @@ if __name__ == '__main__':
                    dump_surf=dump_surf,
                    dump_agraph=dump_agraph,
                    dump_rgraph=dump_rgraph)
-

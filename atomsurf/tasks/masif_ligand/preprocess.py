@@ -10,31 +10,19 @@ if __name__ == '__main__':
 
 from atomsurf.protein.main_data import create_protein
 from atomsurf.protein.surfaces import SurfaceObject
+from atomsurf.protein.atom_graph import AtomGraphBuilder
+from atomsurf.protein.residue_graph import ResidueGraphBuilder
 
-if __name__ == '__main__':
-    pass
-    # In our current pipeline, we used to do MEAN POOLING over small patch.
-    # Maybe we could use the lig_coords directly TODO: look how pooling happens in masif
+
+def get_patch_files():
     script_dir = os.path.dirname(os.path.realpath(__file__))
     masif_ligand_data_dir = os.path.join(script_dir, '..', '..', '..', 'data', 'masif_ligand')
-    pdb_dir = os.path.join(masif_ligand_data_dir, 'raw_data_MasifLigand', 'pdb')
     patch_dir = os.path.join(masif_ligand_data_dir, 'dataset_MasifLigand')
-
     out_surf_dir_hmr = os.path.join(masif_ligand_data_dir, 'surf_hmr')
     out_surf_dir_ours = os.path.join(masif_ligand_data_dir, 'surf_ours')
-
-    out_surf_dir_full = os.path.join(masif_ligand_data_dir, 'surf_full')
-    out_rgraph_dir = os.path.join(masif_ligand_data_dir, 'rgraph')
-    out_agraph_dir = os.path.join(masif_ligand_data_dir, 'agraph')
-
     os.makedirs(out_surf_dir_ours, exist_ok=True)
     os.makedirs(out_surf_dir_hmr, exist_ok=True)
-    os.makedirs(out_surf_dir_full, exist_ok=True)
-    os.makedirs(out_rgraph_dir, exist_ok=True)
-    os.makedirs(out_agraph_dir, exist_ok=True)
-
     for i, patch in enumerate(os.listdir(patch_dir)):
-        break
         print(i)
         path_torch_name = patch.replace('.npz', '.pt')
         surface_ours_dump = os.path.join(out_surf_dir_ours, path_torch_name)
@@ -78,18 +66,49 @@ if __name__ == '__main__':
         except Exception as e:
             print(e)
 
+
+def get_global():
+    script_dir = os.path.dirname(os.path.realpath(__file__))
+    masif_ligand_data_dir = os.path.join(script_dir, '..', '..', '..', 'data', 'masif_ligand')
+    pdb_dir = os.path.join(masif_ligand_data_dir, 'raw_data_MasifLigand', 'pdb')
+    out_surf_dir_full = os.path.join(masif_ligand_data_dir, 'surf_full')
+    out_rgraph_dir = os.path.join(masif_ligand_data_dir, 'rgraph')
+    out_agraph_dir = os.path.join(masif_ligand_data_dir, 'agraph')
+
+    os.makedirs(out_surf_dir_full, exist_ok=True)
+    os.makedirs(out_rgraph_dir, exist_ok=True)
+    os.makedirs(out_agraph_dir, exist_ok=True)
     for i, pdb in enumerate(os.listdir(pdb_dir)):
         print(i)
-        pdb_path = os.path.join(pdb_dir, pdb)
-        name = pdb.rstrip('.pdb')
-        surface_full_dump = os.path.join(out_surf_dir_full, f'{name}.pt')
-        agraph_dump = os.path.join(out_agraph_dir, f'{name}.pt')
-        rgraph_dump = os.path.join(out_rgraph_dir, f'{name}.pt')
+        # if i < 4:
+        #     continue
         try:
-            create_protein(pdb_path=pdb_path,
-                           dump_ply=None,
-                           dump_surf=surface_full_dump,
-                           dump_agraph=agraph_dump,
-                           dump_rgraph=rgraph_dump)
+            pdb_path = os.path.join(pdb_dir, pdb)
+            name = pdb.rstrip('.pdb')
+            surface_full_dump = os.path.join(out_surf_dir_full, f'{name}.pt')
+            agraph_dump = os.path.join(out_agraph_dir, f'{name}.pt')
+            rgraph_dump = os.path.join(out_rgraph_dir, f'{name}.pt')
+
+            surface = SurfaceObject.from_pdb_path(pdb_path, out_ply_path=None)
+            surface.add_geom_feats()
+            surface.save_torch(surface_full_dump)
+
+            # create atomgraph
+            agraph_builder = AtomGraphBuilder()
+            agraph = agraph_builder.pdb_to_atomgraph(pdb_path)
+            torch.save(agraph, open(agraph_dump, 'wb'))
+
+            # create residuegraph
+            rgraph_builder = ResidueGraphBuilder(add_pronet=True, add_esm=False)
+            rgraph = rgraph_builder.pdb_to_resgraph(pdb_path)
+            torch.save(rgraph, open(rgraph_dump, 'wb'))
+        # except ImportError as e:
         except Exception as e:
-            print(e)
+            print(i, pdb, e)
+
+
+if __name__ == '__main__':
+    pass
+    # In our current pipeline, we used to do MEAN POOLING over small patch. TODO: look how pooling happens in masif
+    # get_patch_files()
+    get_global()

@@ -137,6 +137,8 @@ class SurfaceObject(Data):
     @classmethod
     def from_verts_faces(cls, verts, faces, use_hmr_decomp=False):
         from atomsurf.protein.create_operators import compute_operators
+        verts = diff_utils.toNP(verts)
+        faces = diff_utils.toNP(faces).astype(int)
         frames, massvec, L, evals, evecs, gradX, gradY = compute_operators(verts, faces, use_hmr_decomp=use_hmr_decomp)
         surface = cls(verts=verts, faces=faces, mass=massvec, L=L, evals=evals,
                       evecs=evecs, gradX=gradX, gradY=gradY)
@@ -148,38 +150,52 @@ class SurfaceObject(Data):
         verts, faces = get_surface(pdb_path, out_ply_path=out_ply_path)
         return cls.from_verts_faces(verts, faces)
 
-    @classmethod
-    def batch_from_data_list(cls, data_list):
+    def expand_features(self, remove_feats=False):
+        self.x = self.features.build_expanded_features()
+        if remove_feats:
+            self.features = None
+
+
+    @staticmethod
+    def batch_from_data_list(data_list):
         # filter out None
         data_list = [data for data in data_list if data is not None]
         if len(data_list) == 0:
             return None
-        data_list = [data.from_numpy() for data in data_list]
+        return data_list
 
-        # create batch
-        keys = [set(data.keys) for data in data_list]
-        keys = list(set.union(*keys))
-
-        batch = cls()
-        batch.__data_class__ = data_list[0].__class__
-
-        for key in keys:
-            batch[key] = []
-
-        for _, data in enumerate(data_list):
-            for key in data.keys:
-                item = data[key]
-                batch[key].append(item)
-
-        for key in batch.keys:
-            item = batch[key][0]
-            if isinstance(item, int) or isinstance(item, float):
-                batch[key] = torch.tensor(batch[key])
-            elif torch.is_tensor(item):
-                batch[key] = batch[key]
-            elif isinstance(item, SparseTensor):
-                batch[key] = batch[key]
-        return batch.contiguous()
+    # @classmethod
+    # def batch_from_data_list(cls, data_list):
+    #     # filter out None
+    #     data_list = [data for data in data_list if data is not None]
+    #     if len(data_list) == 0:
+    #         return None
+    #     data_list = [data.from_numpy() for data in data_list]
+    #
+    #     # create batch
+    #     keys = [set(data.keys) for data in data_list]
+    #     keys = list(set.union(*keys))
+    #
+    #     batch = cls()
+    #     batch.__data_class__ = data_list[0].__class__
+    #
+    #     for key in keys:
+    #         batch[key] = []
+    #
+    #     for _, data in enumerate(data_list):
+    #         for key in data.keys:
+    #             item = data[key]
+    #             batch[key].append(item)
+    #
+    #     for key in batch.keys:
+    #         item = batch[key][0]
+    #         if isinstance(item, int) or isinstance(item, float):
+    #             batch[key] = torch.tensor(batch[key])
+    #         elif torch.is_tensor(item):
+    #             batch[key] = batch[key]
+    #         elif isinstance(item, SparseTensor):
+    #             batch[key] = batch[key]
+    #     return batch.contiguous()
 
 
 if __name__ == "__main__":
@@ -191,19 +207,20 @@ if __name__ == "__main__":
     # Save as np
     surface_file_np = "../../data/example_files/example_surface.npz"
     surface.save(surface_file_np)
-
     # Save as torch, a bit heavier
     surface_file_torch = "../../data/example_files/example_surface.pt"
     surface.save_torch(surface_file_torch)
-
-    t0 = time.time()
-    for _ in range(100):
-        surface = SurfaceObject.load(surface_file_np)
-    print('np', time.time() - t0)
-
-    t0 = time.time()
-    for _ in range(100):
-        surface = torch.load(surface_file_torch)
-    print('torch', time.time() - t0)
+    # t0 = time.time()
+    # for _ in range(100):
+    #     surface = SurfaceObject.load(surface_file_np)
+    # print('np', time.time() - t0)
+    #
+    # t0 = time.time()
+    # for _ in range(100):
+    #     surface = torch.load(surface_file_torch)
+    # print('torch', time.time() - t0)
     # torch is MUCH faster : 4.34 vs 0.7...
+
+    verts, faces = surface.verts, surface.faces
+    surface_hmr = SurfaceObject.from_verts_faces(verts, faces, use_hmr_decomp=True)
     a = 1
