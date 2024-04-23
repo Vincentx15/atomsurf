@@ -9,9 +9,9 @@ class ProteinEncoderBlock(nn.Module):
         super().__init__()
         self.hparams = hparams
 
-        self.surface_encoder = hydra.utils.instantiate(hparams.surface_encoder)
-        self.graph_encoder = hydra.utils.instantiate(hparams.graph_encoder)
-        self.message_passing = hydra.utils.instantiate(hparams.message_passing)
+        self.surface_encoder = hydra.utils.instantiate(hparams.surface_encoder.instanciate, **hparams.surface_encoder.kwargs)
+        self.graph_encoder = hydra.utils.instantiate(hparams.graph_encoder.instanciate, **hparams.graph_encoder.kwargs)
+        self.message_passing = hydra.utils.instantiate(hparams.communication_block.instanciate, **hparams.communication_block.kwargs)
 
     def forward(self, surface=None, graph=None):
         if surface is not None:
@@ -30,9 +30,9 @@ class SequentialProteinEncoderBlock(nn.Module):
         super().__init__()
         self.hparams = hparams
 
-        self.surface_encoder = hydra.utils.instantiate(hparams.surface_encoder)
-        self.graph_encoder = hydra.utils.instantiate(hparams.graph_encoder)
-        self.message_passing = hydra.utils.instantiate(hparams.message_passing)
+        self.surface_encoder = hydra.utils.instantiate(hparams.surface_encoder.instanciate, **hparams.surface_encoder.kwargs)
+        self.graph_encoder = hydra.utils.instantiate(hparams.graph_encoder.instanciate, **hparams.graph_encoder.kwargs)
+        self.message_passing = hydra.utils.instantiate(hparams.communication_block.instanciate, **hparams.communication_block.kwargs)
 
         # check if message_passing is an instance of SequentialSurfaceGraphCommunication
         if not isinstance(self.message_passing, SequentialSurfaceGraphCommunication):

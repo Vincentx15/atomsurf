@@ -4,8 +4,10 @@ from torch_scatter import scatter
 
 
 class ChemGeomFeatEncoder(nn.Module):
-    def __init__(self, h_dim=128, dropout=0.1, num_gdf=16, num_signatures=16):
+    def __init__(self, hparams):
         super().__init__()
+
+        h_dim, dropout, num_gdf, num_signatures = hparams.h_dim, hparams.dropout, hparams.num_gdf, hparams.num_signatures
 
         # chem feat
         chem_feat_dim = 2 + num_gdf * 2

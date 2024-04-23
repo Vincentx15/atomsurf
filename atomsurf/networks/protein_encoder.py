@@ -7,7 +7,11 @@ class ProteinEncoder(nn.Module):
         super().__init__()
 
         self.hparams = hparams
-        self.network = nn.Sequential([hydra.utils.instantiate(x) for x in hparams.achitecture.blocks])
+
+        self.blocks = [hydra.utils.instantiate(x.instanciate, x.kwargs) for x in hparams.encoder.blocks]
 
     def forward(self, surface=None, graph=None):
-        return self.network(surface, graph)
+        for block in self.blocks:
+            surface, graph = block(surface, graph)
+
+        return surface, graph
