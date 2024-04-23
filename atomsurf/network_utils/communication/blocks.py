@@ -5,17 +5,20 @@ from .utils_blocks import init_block
 
 class ConcurrentCommunication(SurfaceGraphCommunication):
     def __init__(self, use_bp=True,
-                 s_pre_block="identity", g_pre_block="identity", pre_s_dim_in=128, pre_s_dim_out=64, pre_g_dim_in=128, pre_g_dim_out=64,
+                 # preprocess blocks
+                 pre_s_block="identity", pre_g_block="identity", pre_s_dim_in=128, pre_s_dim_out=64, pre_g_dim_in=128, pre_g_dim_out=64,
+                 # message passing blocks
                  use_gat=False, use_v2=False, bp_self_loops=False, bp_fill_value="mean",
                  bp_s_dim_in=64, bp_s_dim_out=64, bp_g_dim_in=64, bp_g_dim_out=64,
-                 post_s_dim_in=128, post_s_dim_out=64,
-                 post_g_dim_in=128, post_g_dim_out=64,
+                 # postprocess blocks
+                 post_s_block="identity", post_g_block="identity", post_s_dim_in=128, post_s_dim_out=64, post_g_dim_in=128, post_g_dim_out=64,
+                 # misc
                  neigh_thresh=8, sigma=2.5,
                  **kwargs):
 
         # preprocess blocks
-        s_pre_block = init_block(s_pre_block, dim_in=pre_s_dim_in, dim_out=pre_s_dim_out)
-        g_pre_block = init_block(g_pre_block, dim_in=pre_g_dim_in, dim_out=pre_g_dim_out)
+        s_pre_block = init_block(pre_s_block, dim_in=pre_s_dim_in, dim_out=pre_s_dim_out)
+        g_pre_block = init_block(pre_g_block, dim_in=pre_g_dim_in, dim_out=pre_g_dim_out)
 
         # message passing blocks
         # * this version does not use self-loops, because we will be summing surface-level features with graph-level features (not good apriori)
@@ -34,8 +37,8 @@ class ConcurrentCommunication(SurfaceGraphCommunication):
         # post-process blocks
         # * skip connection is a bad design, summing surface-level features with graph-level features, the skip is done in two different spaces
         # * we will use concatenation instead
-        s_post_block = init_block("cat_post_process", dim_in=post_s_dim_in, dim_out=post_s_dim_out)
-        g_post_block = init_block("cat_post_process", dim_in=post_g_dim_in, dim_out=post_g_dim_out)
+        s_post_block = init_block(post_s_block, dim_in=post_s_dim_in, dim_out=post_s_dim_out)
+        g_post_block = init_block(post_g_block, dim_in=post_g_dim_in, dim_out=post_g_dim_out)
 
         super().__init__(use_bp, bp_sg_block=bp_sg_block, bp_gs_block=bp_gs_block,
                          s_pre_block=s_pre_block, g_pre_block=g_pre_block,
@@ -45,17 +48,20 @@ class ConcurrentCommunication(SurfaceGraphCommunication):
 
 class SequentialCommunication(SequentialSurfaceGraphCommunication):
     def __init__(self, use_bp=True,
-                 s_pre_block="identity", g_pre_block="identity", pre_s_dim_in=128, pre_s_dim_out=64, pre_g_dim_in=128, pre_g_dim_out=64,
+                 # preprocess blocks
+                 pre_s_block="identity", pre_g_block="identity", pre_s_dim_in=128, pre_s_dim_out=64, pre_g_dim_in=128, pre_g_dim_out=64,
+                 # message passing blocks
                  use_gat=False, use_v2=False, bp_self_loops=False, bp_fill_value="mean",
                  bp_s_dim_in=64, bp_s_dim_out=64, bp_g_dim_in=64, bp_g_dim_out=64,
-                 post_s_dim_in=128, post_s_dim_out=64,
-                 post_g_dim_in=128, post_g_dim_out=64,
+                 # postprocess blocks
+                 post_s_block="identity", post_g_block="identity", post_s_dim_in=128, post_s_dim_out=64, post_g_dim_in=128, post_g_dim_out=64,
+                 # misc
                  neigh_thresh=8, sigma=2.5,
                  **kwargs):
 
         # preprocess blocks
-        s_pre_block = init_block(s_pre_block, dim_in=pre_s_dim_in, dim_out=pre_s_dim_out)
-        g_pre_block = init_block(g_pre_block, dim_in=pre_g_dim_in, dim_out=pre_g_dim_out)
+        s_pre_block = init_block(pre_s_block, dim_in=pre_s_dim_in, dim_out=pre_s_dim_out)
+        g_pre_block = init_block(pre_g_block, dim_in=pre_g_dim_in, dim_out=pre_g_dim_out)
 
         # message passing blocks
         # * this version does not use self-loops, because we will be summing surface-level features with graph-level features (not good apriori)
@@ -75,8 +81,8 @@ class SequentialCommunication(SequentialSurfaceGraphCommunication):
         # post-process blocks
         # * skip connection is a bad design, summing surface-level features with graph-level features, the skip is done in two different spaces
         # * we will use concatenation instead
-        s_post_block = init_block("cat_post_process", dim_in=post_s_dim_in, dim_out=post_s_dim_out)
-        g_post_block = init_block("cat_post_process", dim_in=post_g_dim_in, dim_out=post_g_dim_out)
+        s_post_block = init_block(post_s_block, dim_in=post_s_dim_in, dim_out=post_s_dim_out)
+        g_post_block = init_block(post_g_block, dim_in=post_g_dim_in, dim_out=post_g_dim_out)
 
         super().__init__(use_bp, bp_sg_block=bp_sg_block, bp_gs_block=bp_gs_block,
                          s_pre_block=s_pre_block, g_pre_block=g_pre_block,
