@@ -82,28 +82,31 @@ class DatasetMasifLigand(Dataset):
 
     def __getitem__(self, idx):
         pocket = self.systems_keys[idx]
+        # pocket = "1DW1_A_patch_0_HEM"
         lig_coord, lig_type = self.systems[pocket]
         lig_coord = torch.from_numpy(lig_coord)
         # pocket = f'{pdb_chains}_patch_{ix}_{lig_type}'
         surface = self.surface_builder.build(pocket)
         graph = self.graph_builder.build(pocket)
+        # TODO GDF EXPAND
         item = Data(surface=surface, graph=graph, lig_coord=lig_coord, label=lig_type)
+        feats = item.graph.features.build_expanded_features()
         return item
 
 
 if __name__ == '__main__':
     pass
     masif_ligand_data_dir = os.path.join(script_dir, '..', '..', '..', 'data', 'masif_ligand')
-    train_splits_dir = os.path.join(masif_ligand_data_dir, 'raw_data_MasifLigand', 'splits')
+    splits_dir = os.path.join(masif_ligand_data_dir, 'raw_data_MasifLigand', 'splits')
     ligands_path = os.path.join(masif_ligand_data_dir, 'raw_data_MasifLigand', 'ligand')
-    for split in ['train', 'val', 'test']:
-        train_splits_path = os.path.join(train_splits_dir, f'{split}-list.txt')
-        out_path = os.path.join(train_splits_dir, f'.p')
-        train_systems = get_systems_from_ligands(train_splits_path,
-                                                 ligands_path=ligands_path,
-                                                 out_path=out_path,
-                                                 recompute=True)
-    # data dir
+    # for split in ['train', 'val', 'test']:
+    #     splits_path = os.path.join(splits_dir, f'{split}-list.txt')
+    #     out_path = os.path.join(splits_dir, f'{split}.p')
+    #     systems = get_systems_from_ligands(splits_path,
+    #                                        ligands_path=ligands_path,
+    #                                        out_path=out_path,
+    #                                        recompute=True)
+
     script_dir = os.path.dirname(os.path.realpath(__file__))
     masif_ligand_data_dir = os.path.join(script_dir, '..', '..', '..', 'data', 'masif_ligand')
     cfg_surface = Data()
@@ -118,8 +121,14 @@ if __name__ == '__main__':
     cfg_graph.use_graphs = True
     cfg_graph.data_dir = os.path.join(masif_ligand_data_dir, 'rgraph')
     # cfg_graph.data_dir= os.path.join(masif_ligand_data_dir, 'agraph')
-
     graph_builder = GraphBuilder(cfg_graph)
-    dataset = DatasetMasifLigand(train_systems, surface_builder, graph_builder)
+
+    split = 'train'
+    splits_path = os.path.join(splits_dir, f'{split}-list.txt')
+    out_path = os.path.join(splits_dir, f'{split}.p')
+    systems = get_systems_from_ligands(splits_path,
+                                       ligands_path=ligands_path,
+                                       out_path=out_path)
+    dataset = DatasetMasifLigand(systems, surface_builder, graph_builder)
     a = dataset[0]
     a = 1

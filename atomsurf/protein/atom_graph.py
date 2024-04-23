@@ -154,8 +154,8 @@ class AtomGraphBuilder:
                                res_map=atom_amino_id,
                                edge_index=edge_index,
                                edge_attr=edge_dists)
-        atom_graph.features.add_named_oh_features('amino_types', amino_types)
-        atom_graph.features.add_named_oh_features('atom_types', atom_types)
+        atom_graph.features.add_named_oh_features('amino_types', amino_types, nclasses=21)
+        atom_graph.features.add_named_oh_features('atom_types', atom_types, nclasses=12)
         atom_info = compute_radius_charge(pdb_path)
         atom_graph.features.add_named_features('charge_radius', atom_info)
         return atom_graph

@@ -198,7 +198,7 @@ class ResidueGraphBuilder:
         res_graph = ResidueGraph(node_pos=pos_ca,
                                  edge_index=edge_index,
                                  edge_attr=edge_dists)
-        res_graph.features.add_named_oh_features('amino_types', amino_types)
+        res_graph.features.add_named_oh_features('amino_types', amino_types, 21)
         hphob = [res_type_to_hphob[amino_type] for amino_type in amino_types]
         res_graph.features.add_named_features('hphobs', hphob)
         if self.add_esm:
@@ -207,7 +207,7 @@ class ResidueGraphBuilder:
         if self.add_pronet:
             pfc = PronetFeaturesComputer()
             pronet_features = pfc.get_pronet_features(amino_types, atom_amino_id, atom_names, atom_pos)
-            res_graph.features.add_named_features("pronet_features", pronet_features)
+            res_graph.features.add_misc_features("pronet_features", pronet_features)
         return res_graph
 
 
