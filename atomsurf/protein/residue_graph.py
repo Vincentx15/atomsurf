@@ -12,6 +12,7 @@ if __name__ == '__main__':
 
 from atomsurf.protein.graphs import parse_pdb_path, atom_coords_to_edges, res_type_to_hphob
 from atomsurf.protein.features import Features
+
 from atomsurf.protein.create_esm import get_esm_embedding_single
 from atomsurf.utils.helpers import safe_to_torch
 
