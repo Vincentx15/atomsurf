@@ -1,9 +1,9 @@
 defaults:
   - _self_
   - achitecture: vanilla
-  - dataset@trainset: [masif_ligand_hmr]
-  - dataset@valset: [masif_ligand_hmr]
-  - dataset@testset: [masif_ligand_hmr]
+  - dataset@trainset: [ masif_ligand_hmr ]
+  - dataset@valset: [ masif_ligand_hmr ]
+  - dataset@testset: [ masif_ligand_hmr ]
   - optimizer: adam
   - scheduler: reduce_lr_on_plateau
   - override hydra/job_logging: colorlog
@@ -12,6 +12,26 @@ defaults:
 gpus:
   - 0
 
+
+cfg_surface:
+  use_surfaces: True
+  #    use_whole_surfaces: False
+  #    data_dir: ../../../data/masif_ligand/surf_hmr
+  #    data_dir: ../../../data/masif_ligand/surf_ours
+  use_whole_surfaces: True
+  cfg_surface.data_dir: ../../../data/masif_ligand/surf_full
+
+cfg_graph:
+  use_graphs: True
+  data_dir: ../../../data/masif_ligand/rgraph
+#  data_dir: ../../../data/masif_ligand/agraph
+
+loader:
+  num_workers: 0
+  batch_size: 4
+  pin_memory: False
+  prefetch_factor: 2
+  shuffle: True
 
 # general params
 seed: 2024
