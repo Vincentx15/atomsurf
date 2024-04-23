@@ -8,9 +8,8 @@ class DiffusionNetBlockBatch(nn.Module):
     Inputs and outputs are defined at vertices
     """
 
-    def __init__(
-            self, C_width, mlp_hidden_dims, dropout=0.5, diffusion_method="spectral", with_gradient_features=True,
-            with_gradient_rotations=True, use_bn=True, init_time=2.0, init_std=2.0):
+    def __init__(self, C_width, mlp_hidden_dims, dropout=0.5, use_bn=True, init_time=2.0, init_std=2.0,
+                 diffusion_method="spectral", with_gradient_features=True, with_gradient_rotations=True):
         super().__init__()
 
         # Specified dimensions
