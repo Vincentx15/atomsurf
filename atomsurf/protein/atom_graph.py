@@ -16,6 +16,7 @@ from atomsurf.protein.graphs import parse_pdb_path, atom_coords_to_edges
 from atomsurf.protein.features import Features
 from atomsurf.utils.helpers import safe_to_torch
 
+
 #
 # def compute_radius_charge_debug(pdb_path, coords):
 #     """
@@ -95,6 +96,7 @@ def compute_radius_charge(pdb_path):
         out_dir = pdb_path.parent
         pdb_id = pdb_path.stem
         pqr_path = Path(out_dir / f'{pdb_id}.pqr')
+        log_path = Path(out_dir / f'{pdb_id}.log')
         if not pqr_path.exists():
             cmd = [pdb2pqr_bin, '--ff=AMBER', str(pdb_path), str(pqr_path)]
             proc = Popen(cmd, stdout=PIPE, stderr=PIPE)
@@ -107,6 +109,8 @@ def compute_radius_charge(pdb_path):
         with open(pqr_path, 'r') as f:
             f_read = f.readlines()
         os.remove(pqr_path)
+        if os.path.exists(log_path):
+            os.remove(log_path)
         # atom_info = []
         atom_charge_radius = []
         for line in f_read:
@@ -141,6 +145,19 @@ class AtomGraph(Data):
             self.features = Features(num_nodes=self.num_atoms, res_map=res_map)
         else:
             self.features = features
+
+    def expand_features(self, remove_feats=False):
+        self.x = self.features.build_expanded_features()
+        if remove_feats:
+            self.features = None
+
+    @staticmethod
+    def batch_from_data_list(data_list):
+        # filter out None
+        data_list = [data for data in data_list if data is not None]
+        if len(data_list) == 0:
+            return None
+        return data_list
 
 
 class AtomGraphBuilder:

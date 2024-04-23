@@ -178,6 +178,19 @@ class ResidueGraph(Data):
         else:
             self.features = features
 
+    def expand_features(self, remove_feats=False):
+        self.x = self.features.build_expanded_features()
+        if remove_feats:
+            self.features = None
+
+    @staticmethod
+    def batch_from_data_list(data_list):
+        # filter out None
+        data_list = [data for data in data_list if data is not None]
+        if len(data_list) == 0:
+            return None
+        return data_list
+
 
 class ResidueGraphBuilder:
     def __init__(self, add_pronet=True, add_esm=True):

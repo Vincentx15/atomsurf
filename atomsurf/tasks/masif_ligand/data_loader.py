@@ -3,13 +3,16 @@ import sys
 
 import numpy as np
 import pickle
+import pytorch_lightning as pl
 import torch
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 from torch_geometric.data import Data
 
 if __name__ == '__main__':
     script_dir = os.path.dirname(os.path.realpath(__file__))
     sys.path.append(os.path.join(script_dir, '..', '..', '..'))
+
+from atomsurf.utils.data_utils import AtomBatch
 
 ligands = ["ADP", "COA", "FAD", "HEM", "NAD", "NAP", "SAM"]
 type_idx = {type_: ix for ix, type_ in enumerate(ligands)}
@@ -45,9 +48,10 @@ class SurfaceBuilder:
     def build(self, pocket_name):
         if not self.config.use_surfaces:
             return Data()
-        if self.config.use_whole_graphs:
+        if self.config.use_whole_surfaces:
             pocket_name = pocket_name.split('_patch_')[0]
         surface = torch.load(os.path.join(self.data_dir, f"{pocket_name}.pt"))
+        surface.expand_features(remove_feats=True)
         return surface
 
 
@@ -61,6 +65,7 @@ class GraphBuilder:
             return Data()
         pocket_name = pocket_name.split('_patch_')[0]
         graph = torch.load(os.path.join(self.data_dir, f"{pocket_name}.pt"))
+        graph.expand_features(remove_feats=True)
         return graph
 
 
@@ -81,8 +86,8 @@ class DatasetMasifLigand(Dataset):
         return len(self.systems)
 
     def __getitem__(self, idx):
-        pocket = self.systems_keys[idx]
-        # pocket = "1DW1_A_patch_0_HEM"
+        # pocket = self.systems_keys[idx]
+        pocket = "1DW1_A_patch_0_HEM"
         lig_coord, lig_type = self.systems[pocket]
         lig_coord = torch.from_numpy(lig_coord)
         # pocket = f'{pdb_chains}_patch_{ix}_{lig_type}'
@@ -90,12 +95,48 @@ class DatasetMasifLigand(Dataset):
         graph = self.graph_builder.build(pocket)
         # TODO GDF EXPAND
         item = Data(surface=surface, graph=graph, lig_coord=lig_coord, label=lig_type)
-        feats = item.graph.features.build_expanded_features()
         return item
+
+
+class MasifLigandDataModule(pl.LightningDataModule):
+    def __init__(self, cfg):
+        super().__init__()
+        self.surface_builder = SurfaceBuilder(cfg.cfg_surface)
+        self.graph_builder = GraphBuilder(cfg.cfg_graph)
+        script_dir = os.path.dirname(os.path.realpath(__file__))
+        masif_ligand_data_dir = os.path.join(script_dir, '..', '..', '..', 'data', 'masif_ligand')
+        splits_dir = os.path.join(masif_ligand_data_dir, 'raw_data_MasifLigand', 'splits')
+        self.systems = []
+        for split in ['train', 'val', 'test']:
+            splits_path = os.path.join(splits_dir, f'{split}-list.txt')
+            out_path = os.path.join(splits_dir, f'{split}.p')
+            self.systems.append(get_systems_from_ligands(splits_path,
+                                                         ligands_path=ligands_path,
+                                                         out_path=out_path))
+        self.cfg = cfg
+        self.loader_args = {'num_workers': self.cfg.loader.num_workers,
+                            'batch_size': self.cfg.loader.batch_size,
+                            'pin_memory': self.cfg.loader.pin_memory,
+                            'prefetch_factor': self.cfg.loader.prefetch_factor,
+                            'shuffle': self.cfg.loader.shuffle,
+                            'collate_fn': lambda x: AtomBatch.from_data_list(x)}
+
+    def train_dataloader(self):
+        dataset = DatasetMasifLigand(self.systems[0], self.surface_builder, self.graph_builder)
+        return DataLoader(dataset, **self.loader_args)
+
+    def val_dataloader(self):
+        dataset = DatasetMasifLigand(self.systems[1], self.surface_builder, self.graph_builder)
+        return DataLoader(dataset, **self.loader_args)
+
+    def test_dataloader(self):
+        dataset = DatasetMasifLigand(self.systems[2], self.surface_builder, self.graph_builder)
+        return DataLoader(dataset, **self.loader_args)
 
 
 if __name__ == '__main__':
     pass
+    script_dir = os.path.dirname(os.path.realpath(__file__))
     masif_ligand_data_dir = os.path.join(script_dir, '..', '..', '..', 'data', 'masif_ligand')
     splits_dir = os.path.join(masif_ligand_data_dir, 'raw_data_MasifLigand', 'splits')
     ligands_path = os.path.join(masif_ligand_data_dir, 'raw_data_MasifLigand', 'ligand')
@@ -110,10 +151,11 @@ if __name__ == '__main__':
     script_dir = os.path.dirname(os.path.realpath(__file__))
     masif_ligand_data_dir = os.path.join(script_dir, '..', '..', '..', 'data', 'masif_ligand')
     cfg_surface = Data()
-    cfg_surface.use_surfaces = False
-    cfg_surface.use_whole_graphs = True
+    cfg_surface.use_surfaces = True
+    # cfg_surface.use_whole_surfaces = False
     # cfg_surface.data_dir = os.path.join(masif_ligand_data_dir, 'surf_hmr')
     # cfg_surface.data_dir = os.path.join(masif_ligand_data_dir, 'surf_ours')
+    cfg_surface.use_whole_surfaces = True
     cfg_surface.data_dir = os.path.join(masif_ligand_data_dir, 'surf_full')
     surface_builder = SurfaceBuilder(cfg_surface)
 
@@ -131,4 +173,11 @@ if __name__ == '__main__':
                                        out_path=out_path)
     dataset = DatasetMasifLigand(systems, surface_builder, graph_builder)
     a = dataset[0]
-    a = 1
+
+    loader_cfg = Data(num_workers=0, batch_size=4, pin_memory=False, prefetch_factor=2, shuffle=False)
+    simili_cfg = Data(cfg_surface=cfg_surface, cfg_graph=cfg_graph, loader=loader_cfg)
+    datamodule = MasifLigandDataModule(cfg=simili_cfg)
+    loader = datamodule.train_dataloader()
+    for i, batch in enumerate(loader):
+        if i > 3:
+            break

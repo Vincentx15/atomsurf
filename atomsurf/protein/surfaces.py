@@ -150,38 +150,52 @@ class SurfaceObject(Data):
         verts, faces = get_surface(pdb_path, out_ply_path=out_ply_path)
         return cls.from_verts_faces(verts, faces)
 
-    @classmethod
-    def batch_from_data_list(cls, data_list):
+    def expand_features(self, remove_feats=False):
+        self.x = self.features.build_expanded_features()
+        if remove_feats:
+            self.features = None
+
+
+    @staticmethod
+    def batch_from_data_list(data_list):
         # filter out None
         data_list = [data for data in data_list if data is not None]
         if len(data_list) == 0:
             return None
-        data_list = [data.from_numpy() for data in data_list]
+        return data_list
 
-        # create batch
-        keys = [set(data.keys) for data in data_list]
-        keys = list(set.union(*keys))
-
-        batch = cls()
-        batch.__data_class__ = data_list[0].__class__
-
-        for key in keys:
-            batch[key] = []
-
-        for _, data in enumerate(data_list):
-            for key in data.keys:
-                item = data[key]
-                batch[key].append(item)
-
-        for key in batch.keys:
-            item = batch[key][0]
-            if isinstance(item, int) or isinstance(item, float):
-                batch[key] = torch.tensor(batch[key])
-            elif torch.is_tensor(item):
-                batch[key] = batch[key]
-            elif isinstance(item, SparseTensor):
-                batch[key] = batch[key]
-        return batch.contiguous()
+    # @classmethod
+    # def batch_from_data_list(cls, data_list):
+    #     # filter out None
+    #     data_list = [data for data in data_list if data is not None]
+    #     if len(data_list) == 0:
+    #         return None
+    #     data_list = [data.from_numpy() for data in data_list]
+    #
+    #     # create batch
+    #     keys = [set(data.keys) for data in data_list]
+    #     keys = list(set.union(*keys))
+    #
+    #     batch = cls()
+    #     batch.__data_class__ = data_list[0].__class__
+    #
+    #     for key in keys:
+    #         batch[key] = []
+    #
+    #     for _, data in enumerate(data_list):
+    #         for key in data.keys:
+    #             item = data[key]
+    #             batch[key].append(item)
+    #
+    #     for key in batch.keys:
+    #         item = batch[key][0]
+    #         if isinstance(item, int) or isinstance(item, float):
+    #             batch[key] = torch.tensor(batch[key])
+    #         elif torch.is_tensor(item):
+    #             batch[key] = batch[key]
+    #         elif isinstance(item, SparseTensor):
+    #             batch[key] = batch[key]
+    #     return batch.contiguous()
 
 
 if __name__ == "__main__":
