@@ -92,7 +92,6 @@ class TriMesh(object):
 
         N = verts.shape[0]
         mass = coo_matrix((Sn, (In, Jn)), shape=(N, N)).tocsc()
-
         return mass
 
 
