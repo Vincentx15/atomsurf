@@ -34,7 +34,6 @@ def get_systems_from_ligands(split_list_path, ligands_path, out_path=None, recom
         for ix, (lig_type, lig_coord) in enumerate(zip(ligand_types, ligand_coords)):
             pocket = f'{pdb_chains}_patch_{ix}_{lig_type}'
             all_pockets[pocket] = np.reshape(lig_coord, (-1, 3)), type_idx[lig_type]
-            a = 1
     if out_path is not None:
         pickle.dump(all_pockets, open(out_path, "wb"))
     return all_pockets
@@ -69,7 +68,7 @@ class GraphBuilder:
         return graph
 
 
-class DatasetMasifLigand(Dataset):
+class MasifLigandDataset(Dataset):
 
     def __init__(self, systems, surface_builder, graph_builder):
         self.systems = systems
@@ -122,15 +121,15 @@ class MasifLigandDataModule(pl.LightningDataModule):
                             'collate_fn': lambda x: AtomBatch.from_data_list(x)}
 
     def train_dataloader(self):
-        dataset = DatasetMasifLigand(self.systems[0], self.surface_builder, self.graph_builder)
+        dataset = MasifLigandDataset(self.systems[0], self.surface_builder, self.graph_builder)
         return DataLoader(dataset, **self.loader_args)
 
     def val_dataloader(self):
-        dataset = DatasetMasifLigand(self.systems[1], self.surface_builder, self.graph_builder)
+        dataset = MasifLigandDataset(self.systems[1], self.surface_builder, self.graph_builder)
         return DataLoader(dataset, **self.loader_args)
 
     def test_dataloader(self):
-        dataset = DatasetMasifLigand(self.systems[2], self.surface_builder, self.graph_builder)
+        dataset = MasifLigandDataset(self.systems[2], self.surface_builder, self.graph_builder)
         return DataLoader(dataset, **self.loader_args)
 
 
@@ -171,7 +170,7 @@ if __name__ == '__main__':
     systems = get_systems_from_ligands(splits_path,
                                        ligands_path=ligands_path,
                                        out_path=out_path)
-    dataset = DatasetMasifLigand(systems, surface_builder, graph_builder)
+    dataset = MasifLigandDataset(systems, surface_builder, graph_builder)
     a = dataset[0]
 
     loader_cfg = Data(num_workers=0, batch_size=4, pin_memory=False, prefetch_factor=2, shuffle=False)
