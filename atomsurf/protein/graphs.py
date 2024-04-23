@@ -64,8 +64,8 @@ res_type_to_hphob = {
 }
 
 
-def parse_pdb_path(pdb_path):
-    parser = MMCIFParser() if pdb_path.endswith('.cif') else PDBParser()
+def parse_pdb_path(pdb_path, verbose=False):
+    parser = MMCIFParser(QUIET=not verbose) if pdb_path.endswith('.cif') else PDBParser(QUIET=not verbose)
     structure = parser.get_structure("toto", pdb_path)
 
     amino_types = []  # size: (n_amino,)

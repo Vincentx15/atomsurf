@@ -1,4 +1,5 @@
 # std
+import os
 import sys
 from pathlib import Path
 # 3p
@@ -6,7 +7,13 @@ import hydra
 import torch
 import pytorch_lightning as pl
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
+
 # project
+if __name__ == '__main__':
+    script_dir = os.path.dirname(os.path.realpath(__file__))
+    sys.path.append(os.path.join(script_dir, '..', '..'))
+
+
 from atomsurf.utils.callbacks import CommandLoggerCallback
 from pl_model import MasifLigandModule
 from data_loader import MasifLigandDataset

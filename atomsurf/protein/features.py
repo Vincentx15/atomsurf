@@ -31,9 +31,9 @@ class Features(Data):
         else:
             self.possible_nums = {self.num_nodes}
 
-        self.names = names
+        # self.names = names
         self.named_features = named_features
-        self.names_oh = names_oh
+        # self.names_oh = names_oh
         self.named_one_hot_features = named_one_hot_features
         self.flat_features = flat_features
 
@@ -51,14 +51,14 @@ class Features(Data):
 
     def add_flat_features(self, value):
         assert len(value) in self.possible_nums
-        if "flat_features" not in self.keys():
+        if "flat_features" not in self.keys:
             self.flat_features = value
         else:
             self.flat_features = torch.cat((self.flat_features, value), 0)
 
     def add_named_features(self, key, value):
         value = self.sanitize_features(value)
-        if "named_features" not in self.keys():
+        if "named_features" not in self.keys:
             self.named_features = {key: value}
         else:
             self.named_features[key] = value
@@ -67,7 +67,7 @@ class Features(Data):
         value = self.sanitize_features(value)
         # OH encoding should involve tensors of shape (n,) or (n,1)
         assert len(value.squeeze().shape) == 1
-        if "named_one_hot_features" not in self.keys():
+        if "named_one_hot_features" not in self.keys:
             self.named_one_hot_features = {key: value}
         else:
             self.named_one_hot_features[key] = value

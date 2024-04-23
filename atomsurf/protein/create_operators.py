@@ -129,11 +129,7 @@ def normalize(x, divide_eps=1e-6):
     Computes norm^2 of an array of vectors. Given (shape,d), returns (shape) after norm along last dimension
     """
     if len(x.shape) == 1:
-        raise ValueError(
-            "called normalize() on single vector of dim "
-            + str(x.shape)
-            + " are you sure?"
-        )
+        raise ValueError(f"called normalize() on single vector of dim {x.shape} are you sure?")
     return x / (np.linalg.norm(x, axis=len(x.shape) - 1) + divide_eps)[..., None]
 
 
@@ -326,7 +322,6 @@ def compute_operators(verts, faces, k_eig=128, normals=None, use_hmr_decomp=Fals
     Note: for a generalized eigenvalue problem, the mass matrix matters! The eigenvectors are only orthonormal with respect to the mass matrix,
     like v^H M v, so the mass (given as the diagonal vector massvec) needs to be used in projections, etc.
     """
-    dtype = verts.dtype
     eps = 1e-8
     # Build the scalar Laplacian
     L = pp3d.cotan_laplacian(verts, faces, denom_eps=1e-10)
@@ -347,8 +342,7 @@ def compute_operators(verts, faces, k_eig=128, normals=None, use_hmr_decomp=Fals
     if not use_hmr_decomp:
         # Prepare matrices
         L_eigsh = (L + scipy.sparse.identity(L.shape[0]) * eps).tocsc()
-        massvec_eigsh = massvec
-        Mmat = scipy.sparse.diags(massvec_eigsh)
+        Mmat = scipy.sparse.diags(massvec)
         eigs_sigma = eps
 
         failcount = 0
@@ -356,13 +350,10 @@ def compute_operators(verts, faces, k_eig=128, normals=None, use_hmr_decomp=Fals
             try:
                 # We would be happy here to lower tol or maxiter since we don't need these to be super precise,
                 # but for some reason those parameters seem to have no effect
-                evals, evecs = sla.eigsh(
-                    L_eigsh, k=k_eig, M=Mmat, sigma=eigs_sigma
-                )
+                evals, evecs = sla.eigsh(L_eigsh, k=k_eig, M=Mmat, sigma=eigs_sigma)
 
                 # Clip off any eigenvalues that end up slightly negative due to numerical weirdness
                 evals = np.clip(evals, a_min=0.0, a_max=float("inf"))
-
                 break
             except Exception as e:
                 print(e)
@@ -370,11 +361,10 @@ def compute_operators(verts, faces, k_eig=128, normals=None, use_hmr_decomp=Fals
                     raise ValueError("failed to compute eigendecomp")
                 failcount += 1
                 print("--- decomp failed; adding eps ===> count: " + str(failcount))
-                L_eigsh = L_eigsh + scipy.sparse.identity(L.shape[0]) * (
-                        eps * 10 ** failcount
-                )
+                L_eigsh = L_eigsh + scipy.sparse.identity(L.shape[0]) * (eps * 10 ** failcount)
     else:
-        evals, evecs, Mmat = hmr_decomp(verts=verts, faces=faces)
+        evals, evecs, massvec = hmr_decomp(verts=verts, faces=faces)
+        massvec = massvec.todense()
 
     # == Build gradient matrices
     # For meshes, we use the same edges as were used to build the Laplacian.
