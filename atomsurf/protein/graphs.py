@@ -112,11 +112,6 @@ def parse_pdb_path(pdb_path): #def parse_pdb_from_pqr(pdb_path)
         raise RuntimeError('pdb2pqr executable not found')
 
     pdb_path = Path(pdb_path)
-    #process DSSP
-    p = PDBParser(QUIET=True)
-    structure = p.get_structure("test",pdb_path )[0]
-    dssp = DSSP(structure,pdb_path)
-    res_sse=np.array([SSE_type_dict[dssp[key][2]] for key in list(dssp.keys())])
     #process pqr
     out_dir = pdb_path.parent
     pdb_id = pdb_path.stem
@@ -176,8 +171,19 @@ def parse_pdb_path(pdb_path): #def parse_pdb_from_pqr(pdb_path)
     atom_pos = np.asarray(atom_pos)      
     atom_charge = np.asarray(atom_charge)
     atom_radius = np.asarray(atom_radius)
+    #process DSSP
+    p = PDBParser(QUIET=True)
+    f=open(pqr_path,'r').readlines()
+    pqrpdbpath=str(pqr_path)+'pdb'
+    with open(pqrpdbpath,'w') as f1:
+        for line in f:
+            f1.write(line[0:56]+'\n')
+    structure = p.get_structure("test",pqrpdbpath)[0]
+    dssp = DSSP(structure,pqrpdbpath,file_type="PDB")
+    res_sse=np.array([SSE_type_dict[dssp[key][2]] for key in list(dssp.keys())])
     os.remove(pqr_path)
     os.remove(pqr_log_path)
+    os.remove(pqrpdbpath)
     return amino_types,atom_chain_id,atom_amino_id,atom_names,atom_types,atom_pos,atom_charge,atom_radius,res_sse
 # def parse_pdb_path(pdb_path):
 #     # amino_types, atom_amino_id, atom_names, atom_types, atom_pos=parse_pdb_path_Bio(pdb_path)
