@@ -10,6 +10,7 @@ if __name__ == '__main__':
 from atomsurf.protein.create_surface import get_surface
 from atomsurf.protein.create_operators import compute_operators
 from atomsurf.protein.surfaces import SurfaceObject
+from atomsurf.protein.graphs import parse_pdb_path
 from atomsurf.protein.atom_graph import AtomGraphBuilder
 from atomsurf.protein.residue_graph import ResidueGraphBuilder
 
@@ -20,14 +21,15 @@ def create_protein(pdb_path, dump_ply, dump_surf, dump_agraph, dump_rgraph):
     surface.add_geom_feats()
     surface.save_torch(dump_surf)
 
+    arrays = parse_pdb_path(pdb_path)
     # create atomgraph
     agraph_builder = AtomGraphBuilder()
-    agraph = agraph_builder.pdb_to_atomgraph(pdb_path)
+    agraph = agraph_builder.arrays_to_agraph(arrays)
     torch.save(agraph, open(dump_agraph, 'wb'))
 
     # create residuegraph
     rgraph_builder = ResidueGraphBuilder(add_esm=False)
-    rgraph = rgraph_builder.pdb_to_resgraph(pdb_path, esmpath := None)
+    rgraph = rgraph_builder.arrays_to_resgraph(arrays)
     torch.save(rgraph, open(dump_rgraph, 'wb'))
 
 

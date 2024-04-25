@@ -199,10 +199,15 @@ class ResidueGraphBuilder:
         self.add_esm = add_esm
         pass
 
-    def pdb_to_resgraph(self, pdb_path, esm_path=None):
-        # TODO: look into https://biopython.org/docs/1.75/api/Bio.PDB.DSSP.html
-        amino_types, atom_chain_id, atom_amino_id, atom_names, atom_types, atom_pos, atom_charge, atom_radius, res_sse = parse_pdb_path(
-            pdb_path)
+    def arrays_to_resgraph(self, arrays, pdb_path=None, esm_path=None):
+        """
+        Creation from array directly enables a speed up that originates from loading pdb once for both agraph anr rgraph
+        :param arrays:
+        :param pdb_path:
+        :param esm_path:
+        :return:
+        """
+        amino_types, atom_chain_id, atom_amino_id, atom_names, atom_types, atom_pos, atom_charge, atom_radius, res_sse = arrays
 
         mask_ca = np.char.equal(atom_names, 'CA')
         pos_ca = np.full((len(amino_types), 3), np.nan)
@@ -226,56 +231,9 @@ class ResidueGraphBuilder:
             res_graph.features.add_misc_features("pronet_features", pronet_features)
         return res_graph
 
-
-import time
-
-
-class Res_atom_GraphBuilder:
-    def __init__(self, add_pronet=True, add_esm=True):
-        self.add_pronet = add_pronet
-        self.add_esm = add_esm
-        pass
-
-    def pdb_to_graph(self, pdb_path, esm_path=None):
-        # TODO: look into https://biopython.org/docs/1.75/api/Bio.PDB.DSSP.html
-        try:
-            amino_types, atom_chain_id, atom_amino_id, atom_names, atom_types, atom_pos, atom_charge, atom_radius, res_sse = parse_pdb_path(
-                pdb_path)
-            # build atomgraph
-            edge_index, edge_dists = atom_coords_to_edges(atom_pos)
-            atom_graph = AtomGraph(node_pos=atom_pos,
-                                   res_map=atom_amino_id,
-                                   edge_index=edge_index,
-                                   edge_attr=edge_dists)
-            atom_graph.features.add_named_oh_features('amino_types', amino_types, nclasses=21)
-            atom_graph.features.add_named_oh_features('atom_types', atom_types, nclasses=12)
-            atom_graph.features.add_named_features('charge', atom_charge)
-            atom_graph.features.add_named_features('radius', atom_radius)
-            # build residuegraph
-            mask_ca = np.char.equal(atom_names, 'CA')
-            pos_ca = np.full((len(amino_types), 3), np.nan)
-            pos_ca[atom_amino_id[mask_ca]] = atom_pos[mask_ca]
-            pos_ca = torch.FloatTensor(pos_ca)
-            edge_index, edge_dists = atom_coords_to_edges(pos_ca)
-
-            res_graph = ResidueGraph(node_pos=pos_ca,
-                                     edge_index=edge_index,
-                                     edge_attr=edge_dists)
-            res_graph.features.add_named_oh_features('amino_types', amino_types, 21)
-            hphob = [res_type_to_hphob[amino_type] for amino_type in amino_types]
-            res_graph.features.add_named_features('hphobs', hphob)
-            res_graph.features.add_named_features('sse', res_sse)
-            if self.add_esm:
-                esm_embed = get_esm_embedding_single(pdb_path, esm_path)
-                res_graph.features.add_named_features('esm_embed', esm_embed)
-            if self.add_pronet:
-                pfc = PronetFeaturesComputer()
-                pronet_features = pfc.get_pronet_features(amino_types, atom_amino_id, atom_names, atom_pos)
-                res_graph.features.add_misc_features("pronet_features", pronet_features)
-            return atom_graph, res_graph
-        except:
-            print('failed to proces pdb ', pdb_path)
-            return None, None
+    def pdb_to_resgraph(self, pdb_path, esm_path=None):
+        arrays = parse_pdb_path(pdb_path)
+        return self.arrays_to_resgraph(arrays=arrays, pdb_path=pdb_path, esm_path=esm_path)
 
 
 if __name__ == "__main__":
