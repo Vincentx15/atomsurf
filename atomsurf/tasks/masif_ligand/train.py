@@ -46,7 +46,8 @@ def main(cfg=None):
         verbose=False,
     )
 
-    early_stop_callback = pl.callbacks.EarlyStopping(monitor='accuracy_val', patience=cfg.train.early_stoping_patience,
+    early_stop_callback = pl.callbacks.EarlyStopping(monitor='accuracy_val',
+                                                     patience=cfg.train.early_stoping_patience,
                                                      mode='max')
 
     callbacks = [lr_logger, checkpoint_callback, early_stop_callback, CommandLoggerCallback(command)]
@@ -62,21 +63,21 @@ def main(cfg=None):
         logger=loggers,
         # epochs, batch size and when to val
         max_epochs=cfg.epochs,
-        accumulate_grad_batches=cfg.accumulate_grad_batches,
-        check_val_every_n_epoch=cfg.check_val_every_n_epoch,
-        val_check_interval=cfg.val_check_interval,
+        accumulate_grad_batches=cfg.train.accumulate_grad_batches,
+        check_val_every_n_epoch=cfg.train.check_val_every_n_epoch,
+        val_check_interval=cfg.train.val_check_interval,
         # just verbose to maybe be used
-        limit_train_batches=cfg.limit_train_batches,
-        limit_val_batches=cfg.limit_val_batches,
-        auto_lr_find=cfg.auto_lr_find,
-        log_every_n_steps=cfg.log_every_n_steps,
-        max_steps=cfg.max_steps,
+        limit_train_batches=cfg.train.limit_train_batches,
+        limit_val_batches=cfg.train.limit_val_batches,
+        # auto_lr_find=cfg.train.auto_lr_find,
+        log_every_n_steps=cfg.train.log_every_n_steps,
+        max_steps=cfg.train.max_steps,
         # gradient clipping
-        gradient_clip_val=cfg.gradient_clip_val,
+        gradient_clip_val=cfg.train.gradient_clip_val,
         # detect NaNs
-        detect_anomaly=cfg.detect_anomaly,
+        detect_anomaly=cfg.train.detect_anomaly,
         # debugging
-        overfit_batches=cfg.overfit_batches,
+        overfit_batches=cfg.train.overfit_batches,
         # gpu
         **params,
     )

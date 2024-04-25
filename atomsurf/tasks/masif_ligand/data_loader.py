@@ -105,6 +105,7 @@ class MasifLigandDataModule(pl.LightningDataModule):
         script_dir = os.path.dirname(os.path.realpath(__file__))
         masif_ligand_data_dir = os.path.join(script_dir, '..', '..', '..', 'data', 'masif_ligand')
         splits_dir = os.path.join(masif_ligand_data_dir, 'raw_data_MasifLigand', 'splits')
+        ligands_path = os.path.join(masif_ligand_data_dir, 'raw_data_MasifLigand', 'ligand')
         self.systems = []
         for split in ['train', 'val', 'test']:
             splits_path = os.path.join(splits_dir, f'{split}-list.txt')
