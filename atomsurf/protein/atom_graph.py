@@ -146,8 +146,8 @@ class AtomGraph(Data):
         else:
             self.features = features
 
-    def expand_features(self, remove_feats=False):
-        self.x = self.features.build_expanded_features()
+    def expand_features(self, remove_feats=False,**kwargs):
+        self.x = self.features.build_expanded_features(**kwargs)
         if remove_feats:
             self.features = None
 

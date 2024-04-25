@@ -11,7 +11,6 @@ from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 if __name__ == '__main__':
     sys.path.append(str(Path(__file__).absolute().parents[3]))
 
-
 from atomsurf.utils.callbacks import CommandLoggerCallback
 from pl_model import MasifLigandModule
 from data_loader import MasifLigandDataModule
@@ -57,6 +56,17 @@ def main(cfg=None):
     else:
         params = {}
 
+    # datamodule
+    datamodule = MasifLigandDataModule(cfg)
+    # To debug while Trainer is buggy # TODO remove when trainer is fixed.
+    # train_loader = datamodule.train_dataloader()
+    # for i, batch in enumerate(train_loader):
+    #     if i > 2:
+    #         break
+    #     print(batch.graph[0].x.shape)
+    #     print(batch.surface[0].x.shape)
+    #     sys.exit()
+
     # init trainer
     trainer = pl.Trainer(
         callbacks=callbacks,
@@ -81,9 +91,6 @@ def main(cfg=None):
         # gpu
         **params,
     )
-
-    # datamodule
-    datamodule = MasifLigandDataModule(cfg)
 
     # train
     trainer.fit(model, datamodule=datamodule)

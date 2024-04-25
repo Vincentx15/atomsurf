@@ -150,11 +150,10 @@ class SurfaceObject(Data):
         verts, faces = get_surface(pdb_path, out_ply_path=out_ply_path)
         return cls.from_verts_faces(verts, faces)
 
-    def expand_features(self, remove_feats=False):
-        self.x = self.features.build_expanded_features()
+    def expand_features(self, remove_feats=False, **kwargs):
+        self.x = self.features.build_expanded_features(**kwargs)
         if remove_feats:
             self.features = None
-
 
     @staticmethod
     def batch_from_data_list(data_list):

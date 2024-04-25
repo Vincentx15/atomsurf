@@ -12,6 +12,7 @@ from collections import defaultdict
 from torch_geometric.data import Data
 from torch_geometric.utils import to_undirected
 from Bio.PDB.DSSP import DSSP
+
 if __name__ == '__main__':
     script_dir = os.path.dirname(os.path.realpath(__file__))
     sys.path.append(os.path.join(script_dir, '..', '..'))
@@ -66,6 +67,7 @@ res_type_to_hphob = {
 }
 SSE_type_dict = {'H': 0, 'B': 1, 'E': 2, 'G': 3, 'I': 4, 'T': 5, 'S': 6, '-': 7}
 
+
 # def parse_pdb_path_Bio(pdb_path, verbose=False):
 #     parser = MMCIFParser(QUIET=not verbose) if pdb_path.endswith('.cif') else PDBParser(QUIET=not verbose)
 #     structure = parser.get_structure("toto", pdb_path)
@@ -106,36 +108,36 @@ SSE_type_dict = {'H': 0, 'B': 1, 'E': 2, 'G': 3, 'I': 4, 'T': 5, 'S': 6, '-': 7}
 #     atom_pos = np.asarray(atom_pos)
 #     return amino_types, atom_amino_id, atom_names, atom_types, atom_pos
 
-def parse_pdb_path(pdb_path): #def parse_pdb_from_pqr(pdb_path)
+def parse_pdb_path(pdb_path):  # def parse_pdb_from_pqr(pdb_path)
     pdb2pqr_bin = shutil.which('pdb2pqr')
     if pdb2pqr_bin is None:
         raise RuntimeError('pdb2pqr executable not found')
 
     pdb_path = Path(pdb_path)
-    #process pqr
+    # process pqr
     out_dir = pdb_path.parent
     pdb_id = pdb_path.stem
     pqr_path = Path(out_dir / f'{pdb_id}.pqr')
     pqr_log_path = Path(out_dir / f'{pdb_id}.log')
     if not pqr_path.exists():
-        cmd = [pdb2pqr_bin, '--ff=AMBER', str(pdb_path), str(pqr_path),'--keep-chain']
+        cmd = [pdb2pqr_bin, '--ff=AMBER', str(pdb_path), str(pqr_path), '--keep-chain']
         proc = Popen(cmd, stdout=PIPE, stderr=PIPE)
         stdout, stderr = proc.communicate()
         err = stderr.decode('utf-8').strip('\n')
         if 'CRITICAL' in err:
             print(f'{pdb_id} pdb2pqr failed', flush=True)
-            return None,None,None,None,None,None,None,None,None
-    parser = PDBParser(QUIET=True,is_pqr=True)
-    structure = parser.get_structure("toto",pqr_path )
-    
+            return None, None, None, None, None, None, None, None, None
+    parser = PDBParser(QUIET=True, is_pqr=True)
+    structure = parser.get_structure("toto", pqr_path)
+
     amino_types = []  # size: (n_amino,)
-    atom_chain_id=[]#size:(n_atom,)
+    atom_chain_id = []  # size:(n_atom,)
     atom_amino_id = []  # size: (n_atom,)
     atom_names = []  # size: (n_atom,)
     atom_types = []  # size: (n_atom,)
     atom_pos = []  # size: (n_atom,3)
-    atom_charge=[]# size: (n_atom,1)
-    atom_radius=[]# size: (n_atom,1)
+    atom_charge = []  # size: (n_atom,1)
+    atom_radius = []  # size: (n_atom,1)
     res_id = 0
     for residue in structure.get_residues():
         # HETATM
@@ -147,7 +149,7 @@ def parse_pdb_path(pdb_path): #def parse_pdb_from_pqr(pdb_path)
             resname = 'UNK'
         resname = res_type_dict[resname.upper()]
         amino_types.append(resname)
-        
+
         for atom in residue.get_atoms():
             # Skip H
             element = atom.element
@@ -164,27 +166,29 @@ def parse_pdb_path(pdb_path): #def parse_pdb_from_pqr(pdb_path)
             atom_radius.append(atom.get_radius())
         res_id += 1
     amino_types = np.asarray(amino_types)
-    atom_chain_id=np.asarray(atom_chain_id)
+    atom_chain_id = np.asarray(atom_chain_id)
     atom_amino_id = np.asarray(atom_amino_id)
     atom_names = np.asarray(atom_names)
     atom_types = np.asarray(atom_types)
-    atom_pos = np.asarray(atom_pos)      
+    atom_pos = np.asarray(atom_pos)
     atom_charge = np.asarray(atom_charge)
     atom_radius = np.asarray(atom_radius)
-    #process DSSP
+    # process DSSP
     p = PDBParser(QUIET=True)
-    f=open(pqr_path,'r').readlines()
-    pqrpdbpath=str(pqr_path)+'pdb'
-    with open(pqrpdbpath,'w') as f1:
+    f = open(pqr_path, 'r').readlines()
+    pqrpdbpath = str(pqr_path) + 'pdb'
+    with open(pqrpdbpath, 'w') as f1:
         for line in f:
-            f1.write(line[0:56]+'\n')
-    structure = p.get_structure("test",pqrpdbpath)[0]
-    dssp = DSSP(structure,pqrpdbpath,file_type="PDB")
-    res_sse=np.array([SSE_type_dict[dssp[key][2]] for key in list(dssp.keys())])
+            f1.write(line[0:56] + '\n')
+    structure = p.get_structure("test", pqrpdbpath)[0]
+    dssp = DSSP(structure, pqrpdbpath, file_type="PDB")
+    res_sse = np.array([SSE_type_dict[dssp[key][2]] for key in list(dssp.keys())])
     os.remove(pqr_path)
     os.remove(pqr_log_path)
     os.remove(pqrpdbpath)
-    return amino_types,atom_chain_id,atom_amino_id,atom_names,atom_types,atom_pos,atom_charge,atom_radius,res_sse
+    return amino_types, atom_chain_id, atom_amino_id, atom_names, atom_types, atom_pos, atom_charge, atom_radius, res_sse
+
+
 # def parse_pdb_path(pdb_path):
 #     # amino_types, atom_amino_id, atom_names, atom_types, atom_pos=parse_pdb_path_Bio(pdb_path)
 #     amino_types_pqr,atom_chain_id_pqr,atom_amino_id_pqr,atom_names_pqr,atom_types_pqr,atom_pos_pqr,atom_charge_pqr,atom_radius_pqr=parse_pdb_from_pqr(pdb_path)

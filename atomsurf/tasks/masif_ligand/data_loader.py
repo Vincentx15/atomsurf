@@ -50,7 +50,7 @@ class SurfaceBuilder:
         if self.config.use_whole_surfaces:
             pocket_name = pocket_name.split('_patch_')[0]
         surface = torch.load(os.path.join(self.data_dir, f"{pocket_name}.pt"))
-        surface.expand_features(remove_feats=True)
+        surface.expand_features(remove_feats=True, feature_keys=self.config.feat_keys, oh_keys=self.config.oh_keys)
         return surface
 
 
@@ -58,13 +58,22 @@ class GraphBuilder:
     def __init__(self, config):
         self.config = config
         self.data_dir = config.data_dir
+        self.esm_dir = config.esm_dir
+        self.use_esm = config.use_esm
 
     def build(self, pocket_name):
         if not self.config.use_graphs:
             return Data()
         pocket_name = pocket_name.split('_patch_')[0]
         graph = torch.load(os.path.join(self.data_dir, f"{pocket_name}.pt"))
-        graph.expand_features(remove_feats=True)
+        feature_keys = self.config.feat_keys
+        if self.use_esm:
+            esm_feats_path = os.path.join(self.esm_dir, f"{pocket_name}_esm.pt")
+            esm_feats = torch.load(esm_feats_path)
+            graph.features.add_named_features('esm_feats', esm_feats)
+            if feature_keys != 'all':
+                feature_keys.append('esm_feats')
+        graph.expand_features(remove_feats=True, feature_keys=feature_keys, oh_keys=self.config.oh_keys)
         return graph
 
 

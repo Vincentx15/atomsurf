@@ -17,6 +17,7 @@ from atomsurf.protein.create_esm import get_esm_embedding_single
 from atomsurf.utils.helpers import safe_to_torch
 from atomsurf.protein.atom_graph import AtomGraph
 
+
 class PronetFeaturesComputer:
     """
     adapted from https://github.com/divelab/DIG/blob/dig-stable/dig/threedgraph/dataset/ECdataset.py
@@ -178,8 +179,8 @@ class ResidueGraph(Data):
         else:
             self.features = features
 
-    def expand_features(self, remove_feats=False):
-        self.x = self.features.build_expanded_features()
+    def expand_features(self, remove_feats=False, **kwargs):
+        self.x = self.features.build_expanded_features(**kwargs)
         if remove_feats:
             self.features = None
 
@@ -200,7 +201,8 @@ class ResidueGraphBuilder:
 
     def pdb_to_resgraph(self, pdb_path, esm_path=None):
         # TODO: look into https://biopython.org/docs/1.75/api/Bio.PDB.DSSP.html
-        amino_types,atom_chain_id,atom_amino_id,atom_names,atom_types,atom_pos,atom_charge,atom_radius,res_sse = parse_pdb_path(pdb_path)
+        amino_types, atom_chain_id, atom_amino_id, atom_names, atom_types, atom_pos, atom_charge, atom_radius, res_sse = parse_pdb_path(
+            pdb_path)
 
         mask_ca = np.char.equal(atom_names, 'CA')
         pos_ca = np.full((len(amino_types), 3), np.nan)
@@ -223,28 +225,33 @@ class ResidueGraphBuilder:
             pronet_features = pfc.get_pronet_features(amino_types, atom_amino_id, atom_names, atom_pos)
             res_graph.features.add_misc_features("pronet_features", pronet_features)
         return res_graph
+
+
 import time
+
+
 class Res_atom_GraphBuilder:
     def __init__(self, add_pronet=True, add_esm=True):
         self.add_pronet = add_pronet
         self.add_esm = add_esm
         pass
-    
+
     def pdb_to_graph(self, pdb_path, esm_path=None):
         # TODO: look into https://biopython.org/docs/1.75/api/Bio.PDB.DSSP.html
         try:
-            amino_types,atom_chain_id,atom_amino_id,atom_names,atom_types,atom_pos,atom_charge,atom_radius,res_sse = parse_pdb_path(pdb_path)
+            amino_types, atom_chain_id, atom_amino_id, atom_names, atom_types, atom_pos, atom_charge, atom_radius, res_sse = parse_pdb_path(
+                pdb_path)
             # build atomgraph
             edge_index, edge_dists = atom_coords_to_edges(atom_pos)
             atom_graph = AtomGraph(node_pos=atom_pos,
-                                    res_map=atom_amino_id,
-                                    edge_index=edge_index,
-                                    edge_attr=edge_dists)
+                                   res_map=atom_amino_id,
+                                   edge_index=edge_index,
+                                   edge_attr=edge_dists)
             atom_graph.features.add_named_oh_features('amino_types', amino_types, nclasses=21)
             atom_graph.features.add_named_oh_features('atom_types', atom_types, nclasses=12)
-            atom_graph.features.add_named_features('charge',atom_charge )
-            atom_graph.features.add_named_features('radius',atom_radius )
-            #build residuegraph
+            atom_graph.features.add_named_features('charge', atom_charge)
+            atom_graph.features.add_named_features('radius', atom_radius)
+            # build residuegraph
             mask_ca = np.char.equal(atom_names, 'CA')
             pos_ca = np.full((len(amino_types), 3), np.nan)
             pos_ca[atom_amino_id[mask_ca]] = atom_pos[mask_ca]
@@ -252,8 +259,8 @@ class Res_atom_GraphBuilder:
             edge_index, edge_dists = atom_coords_to_edges(pos_ca)
 
             res_graph = ResidueGraph(node_pos=pos_ca,
-                                        edge_index=edge_index,
-                                        edge_attr=edge_dists)
+                                     edge_index=edge_index,
+                                     edge_attr=edge_dists)
             res_graph.features.add_named_oh_features('amino_types', amino_types, 21)
             hphob = [res_type_to_hphob[amino_type] for amino_type in amino_types]
             res_graph.features.add_named_features('hphobs', hphob)
@@ -265,10 +272,11 @@ class Res_atom_GraphBuilder:
                 pfc = PronetFeaturesComputer()
                 pronet_features = pfc.get_pronet_features(amino_types, atom_amino_id, atom_names, atom_pos)
                 res_graph.features.add_misc_features("pronet_features", pronet_features)
-            return atom_graph,res_graph
+            return atom_graph, res_graph
         except:
-            print('failed to proces pdb ',pdb_path)
+            print('failed to proces pdb ', pdb_path)
             return None, None
+
 
 if __name__ == "__main__":
     pass
@@ -284,8 +292,6 @@ if __name__ == "__main__":
     residue_graph = residue_graph_builder.pdb_to_resgraph(pdb)
     print(residue_graph.features['named_features'])
 
-    #Use Res_atom_GraphBuilder
-    graph_builder=Res_atom_GraphBuilder(add_esm=True)
-    atom_graph,residue_graph = graph_builder.pdb_to_graph(pdb)
-    
-
+    # Use Res_atom_GraphBuilder
+    graph_builder = Res_atom_GraphBuilder(add_esm=True)
+    atom_graph, residue_graph = graph_builder.pdb_to_graph(pdb)

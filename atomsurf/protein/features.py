@@ -117,7 +117,9 @@ class Features(Data):
                     encoded_feat = self.expand_one(encoded_feat)
                 all_features.append(encoded_feat)
         all_features = [tensor[:, None] if len(tensor.shape) == 1 else tensor for tensor in all_features]
-        all_features = torch.hstack(all_features)
+        if len(all_features)>0:
+            all_features = torch.hstack(all_features)
+        else:all_features=torch.ones(self.num_nodes, 1)
         return all_features
 
     @staticmethod
