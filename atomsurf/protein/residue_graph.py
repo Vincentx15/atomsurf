@@ -200,7 +200,7 @@ class ResidueGraphBuilder:
 
     def pdb_to_resgraph(self, pdb_path, esm_path=None):
         # TODO: look into https://biopython.org/docs/1.75/api/Bio.PDB.DSSP.html
-        amino_types, atom_amino_id, atom_names, atom_elts, atom_pos = parse_pdb_path(pdb_path)
+        amino_types,atom_chain_id,atom_amino_id,atom_names,atom_types,atom_pos,atom_charge,atom_radius,res_sse = parse_pdb_path(pdb_path)
 
         mask_ca = np.char.equal(atom_names, 'CA')
         pos_ca = np.full((len(amino_types), 3), np.nan)
@@ -214,6 +214,7 @@ class ResidueGraphBuilder:
         res_graph.features.add_named_oh_features('amino_types', amino_types, 21)
         hphob = [res_type_to_hphob[amino_type] for amino_type in amino_types]
         res_graph.features.add_named_features('hphobs', hphob)
+        res_graph.features.add_named_features('sse', res_sse)
         if self.add_esm:
             esm_embed = get_esm_embedding_single(pdb_path, esm_path)
             res_graph.features.add_named_features('esm_embed', esm_embed)

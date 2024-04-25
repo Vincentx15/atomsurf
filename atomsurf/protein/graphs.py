@@ -11,7 +11,7 @@ import torch
 from collections import defaultdict
 from torch_geometric.data import Data
 from torch_geometric.utils import to_undirected
-
+from Bio.PDB.DSSP import DSSP
 if __name__ == '__main__':
     script_dir = os.path.dirname(os.path.realpath(__file__))
     sys.path.append(os.path.join(script_dir, '..', '..'))
@@ -64,7 +64,7 @@ hydrophob_dict = {
 res_type_to_hphob = {
     idx: hydrophob_dict[res_type] for res_type, idx in res_type_dict.items()
 }
-
+SSE_type_dict = {'H': 0, 'B': 1, 'E': 2, 'G': 3, 'I': 4, 'T': 5, 'S': 6, '-': 7}
 
 # def parse_pdb_path_Bio(pdb_path, verbose=False):
 #     parser = MMCIFParser(QUIET=not verbose) if pdb_path.endswith('.cif') else PDBParser(QUIET=not verbose)
@@ -112,6 +112,12 @@ def parse_pdb_path(pdb_path): #def parse_pdb_from_pqr(pdb_path)
         raise RuntimeError('pdb2pqr executable not found')
 
     pdb_path = Path(pdb_path)
+    #process DSSP
+    p = PDBParser(QUIET=True)
+    structure = p.get_structure("test",pdb_path )[0]
+    dssp = DSSP(structure,pdb_path)
+    res_sse=np.array([SSE_type_dict[dssp[key][2]] for key in list(dssp.keys())])
+    #process pqr
     out_dir = pdb_path.parent
     pdb_id = pdb_path.stem
     pqr_path = Path(out_dir / f'{pdb_id}.pqr')
@@ -123,9 +129,10 @@ def parse_pdb_path(pdb_path): #def parse_pdb_from_pqr(pdb_path)
         err = stderr.decode('utf-8').strip('\n')
         if 'CRITICAL' in err:
             print(f'{pdb_id} pdb2pqr failed', flush=True)
-            return None,None,None,None,None,None,None,None
+            return None,None,None,None,None,None,None,None,None
     parser = PDBParser(QUIET=True,is_pqr=True)
     structure = parser.get_structure("toto",pqr_path )
+    
     amino_types = []  # size: (n_amino,)
     atom_chain_id=[]#size:(n_atom,)
     atom_amino_id = []  # size: (n_atom,)
@@ -171,7 +178,7 @@ def parse_pdb_path(pdb_path): #def parse_pdb_from_pqr(pdb_path)
     atom_radius = np.asarray(atom_radius)
     os.remove(pqr_path)
     os.remove(pqr_log_path)
-    return amino_types,atom_chain_id,atom_amino_id,atom_names,atom_types,atom_pos,atom_charge,atom_radius
+    return amino_types,atom_chain_id,atom_amino_id,atom_names,atom_types,atom_pos,atom_charge,atom_radius,res_sse
 # def parse_pdb_path(pdb_path):
 #     # amino_types, atom_amino_id, atom_names, atom_types, atom_pos=parse_pdb_path_Bio(pdb_path)
 #     amino_types_pqr,atom_chain_id_pqr,atom_amino_id_pqr,atom_names_pqr,atom_types_pqr,atom_pos_pqr,atom_charge_pqr,atom_radius_pqr=parse_pdb_from_pqr(pdb_path)
