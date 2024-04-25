@@ -234,3 +234,7 @@ if __name__ == "__main__":
     torch.save(residue_graph, resgraph_path)
     residue_graph = torch.load(resgraph_path)
     a = 1
+    pdb = "./code/MasifLigand/raw_data_MasifLigand/pdb/2V1O_ACBEDF.pdb"
+    residue_graph_builder = ResidueGraphBuilder(add_esm=True)
+    residue_graph = residue_graph_builder.pdb_to_resgraph(pdb)
+    print(residue_graph.features['named_features'])
