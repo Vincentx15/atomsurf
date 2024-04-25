@@ -73,21 +73,21 @@ class SurfaceObject(Data):
             self.features = features
 
     def from_numpy(self, device='cpu', dtype=torch.float32):
-        for attr_name in ['verts', 'faces', 'mass', 'evals', 'evecs']:
+        for attr_name in ['verts', 'faces', 'evals', 'evecs']:
             attr_value = getattr(self, attr_name)
             setattr(self, attr_name, diff_utils.safe_to_torch(attr_value).to(device=device, dtype=dtype))
 
-        for attr_name in ['L', 'gradX', 'gradY']:
+        for attr_name in ['L', 'mass','gradX', 'gradY']:
             attr_value = getattr(self, attr_name)
             setattr(self, attr_name, diff_utils.sparse_np_to_torch(attr_value).to(device=device, dtype=dtype))
         return self
 
     def numpy(self, dtype_np=np.float32):
-        for attr_name in ['verts', 'faces', 'mass', 'evals', 'evecs']:
+        for attr_name in ['verts', 'faces', 'evals', 'evecs']:
             attr_value = getattr(self, attr_name)
             setattr(self, attr_name, diff_utils.toNP(attr_value, dtype_np))
 
-        for attr_name in ['L', 'gradX', 'gradY']:
+        for attr_name in ['L', 'mass', 'gradX', 'gradY']:
             attr_value = getattr(self, attr_name)
             setattr(self, attr_name, diff_utils.sparse_torch_to_np(attr_value, dtype_np))
         return self
@@ -97,7 +97,10 @@ class SurfaceObject(Data):
         np.savez(npz_path,
                  verts=self.verts,
                  faces=self.faces,
-                 mass=self.mass,
+                 mass_data=self.mass.data,
+                 mass_indices=self.mass.indices,
+                 mass_indptr=self.mass.indptr,
+                 mass_shape=self.mass.shape,
                  L_data=self.L.data,
                  L_indices=self.L.indices,
                  L_indptr=self.L.indptr,
@@ -135,11 +138,11 @@ class SurfaceObject(Data):
         self.features.add_named_features('geom_feats', geom_feats)
 
     @classmethod
-    def from_verts_faces(cls, verts, faces, use_hmr_decomp=False):
+    def from_verts_faces(cls, verts, faces, use_fem_decomp=False):
         from atomsurf.protein.create_operators import compute_operators
         verts = diff_utils.toNP(verts)
         faces = diff_utils.toNP(faces).astype(int)
-        frames, massvec, L, evals, evecs, gradX, gradY = compute_operators(verts, faces, use_hmr_decomp=use_hmr_decomp)
+        frames, massvec, L, evals, evecs, gradX, gradY = compute_operators(verts, faces, use_fem_decomp=use_fem_decomp)
         surface = cls(verts=verts, faces=faces, mass=massvec, L=L, evals=evals,
                       evecs=evecs, gradX=gradX, gradY=gradY)
         return surface
@@ -221,5 +224,5 @@ if __name__ == "__main__":
     # torch is MUCH faster : 4.34 vs 0.7...
 
     verts, faces = surface.verts, surface.faces
-    surface_hmr = SurfaceObject.from_verts_faces(verts, faces, use_hmr_decomp=True)
+    surface_hmr = SurfaceObject.from_verts_faces(verts, faces, use_fem_decomp=True)
     a = 1

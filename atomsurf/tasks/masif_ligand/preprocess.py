@@ -44,7 +44,7 @@ def get_patch_files():
             surface_ours.save_torch(surface_ours_dump)
 
             # Using HMR preproc
-            surface_ours_hmr = SurfaceObject.from_verts_faces(verts=verts, faces=faces, use_hmr_decomp=True)
+            surface_ours_hmr = SurfaceObject.from_verts_faces(verts=verts, faces=faces, use_fem_decomp=True)
             surface_ours_hmr.add_geom_feats()
             surface_ours_hmr.save_torch(surface_hmr_dump)
 

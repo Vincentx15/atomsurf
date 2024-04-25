@@ -95,7 +95,7 @@ class TriMesh(object):
         return mass
 
 
-def hmr_decomp(verts, faces, max_eigen_val=5, k=128):
+def fem_decomp(verts, faces, max_eigen_val=5, k=128):
     trimesh = TriMesh(verts=verts, faces=faces.astype(int))
 
     # HMR uses a growing and variable number of eigen vecs. This only makes sense for small surfaces such as pockets.
@@ -299,7 +299,7 @@ def build_grad(verts, edges, edge_tangent_vectors):
     return mat
 
 
-def compute_operators(verts, faces, k_eig=128, normals=None, use_hmr_decomp=False):
+def compute_operators(verts, faces, k_eig=128, normals=None, use_fem_decomp=False):
     """
     Builds spectral operators for a mesh/point cloud. Constructs mass matrix, eigenvalues/vectors for Laplacian, and gradient matrix.
     See get_operators() for a similar routine that wraps this one with a layer of caching.
@@ -324,24 +324,20 @@ def compute_operators(verts, faces, k_eig=128, normals=None, use_hmr_decomp=Fals
     eps = 1e-8
     # Build the scalar Laplacian
     L = pp3d.cotan_laplacian(verts, faces, denom_eps=1e-10)
-    massvec = pp3d.vertex_areas(verts, faces)
-    massvec += eps * np.mean(massvec)
+
 
     if np.isnan(L.data).any():
         raise RuntimeError("NaN Laplace matrix")
-    if np.isnan(massvec).any():
-        raise RuntimeError("NaN mass matrix")
-
-    # Read off neighbors & rotations from the Laplacian
-    L_coo = L.tocoo()
-    inds_row = L_coo.row
-    inds_col = L_coo.col
 
     # === Compute the eigenbasis
-    if not use_hmr_decomp:
+    if not use_fem_decomp:
+        massvec = pp3d.vertex_areas(verts, faces)
+        massvec += eps * np.mean(massvec)
+        if np.isnan(massvec).any():
+            raise RuntimeError("NaN mass matrix")
         # Prepare matrices
         L_eigsh = (L + scipy.sparse.identity(L.shape[0]) * eps).tocsc()
-        Mmat = scipy.sparse.diags(massvec)
+        massvec = scipy.sparse.diags(massvec)
         eigs_sigma = eps
 
         failcount = 0
@@ -349,7 +345,7 @@ def compute_operators(verts, faces, k_eig=128, normals=None, use_hmr_decomp=Fals
             try:
                 # We would be happy here to lower tol or maxiter since we don't need these to be super precise,
                 # but for some reason those parameters seem to have no effect
-                evals, evecs = sla.eigsh(L_eigsh, k=k_eig, M=Mmat, sigma=eigs_sigma)
+                evals, evecs = sla.eigsh(L_eigsh, k=k_eig, M=massvec, sigma=eigs_sigma)
 
                 # Clip off any eigenvalues that end up slightly negative due to numerical weirdness
                 evals = np.clip(evals, a_min=0.0, a_max=float("inf"))
@@ -362,8 +358,12 @@ def compute_operators(verts, faces, k_eig=128, normals=None, use_hmr_decomp=Fals
                 print("--- decomp failed; adding eps ===> count: " + str(failcount))
                 L_eigsh = L_eigsh + scipy.sparse.identity(L.shape[0]) * (eps * 10 ** failcount)
     else:
-        evals, evecs, massvec = hmr_decomp(verts=verts, faces=faces)
-        massvec = massvec.todense()
+        evals, evecs, massvec = fem_decomp(verts=verts, faces=faces)
+
+    # Read off neighbors & rotations from the Laplacian
+    L_coo = L.tocoo()
+    inds_row = L_coo.row
+    inds_col = L_coo.col
 
     # == Build gradient matrices
     # For meshes, we use the same edges as were used to build the Laplacian.
@@ -378,7 +378,7 @@ def compute_operators(verts, faces, k_eig=128, normals=None, use_hmr_decomp=Fals
     return frames, massvec, L, evals, evecs, gradX, gradY
 
 
-def get_operators(npz_path, verts, faces, k_eig=128, normals=None, recompute=False, use_hmr_decomp=False):
+def get_operators(npz_path, verts, faces, k_eig=128, normals=None, recompute=False, use_fem_decomp=False):
     """
     We remove the hashing util and add a filename for the npz instead.
     """
@@ -387,12 +387,15 @@ def get_operators(npz_path, verts, faces, k_eig=128, normals=None, recompute=Fal
                                                                         faces,
                                                                         k_eig,
                                                                         normals=normals,
-                                                                        use_hmr_decomp=use_hmr_decomp)
+                                                                        use_fem_decomp=use_fem_decomp)
         np.savez(npz_path,
                  verts=verts,
                  faces=faces,
                  k_eig=k_eig,
-                 mass=mass,
+                 mass_data=mass.data,
+                 mass_indices=mass.indices,
+                 mass_indptr=mass.indptr,
+                 mass_shape=mass.shape,
                  L_data=L.data,
                  L_indices=L.indices,
                  L_indptr=L.indptr,
@@ -416,7 +419,7 @@ def load_operators(npzfile):
     """
     if not isinstance(npzfile, np.lib.npyio.NpzFile):
         npzfile = np.load(npzfile, allow_pickle=True)
-    mass = npzfile["mass"]
+    mass = diff_utils.read_sp_mat(npzfile, "mass")
     L = diff_utils.read_sp_mat(npzfile, "L")
     evals = npzfile["evals"]
     evecs = npzfile["evecs"]
@@ -434,6 +437,6 @@ if __name__ == "__main__":
     faces = np.asarray(mesh.triangles, dtype=np.int32)
 
     operator_file = "../../data/example_files/example_operator.npz"
-    get_operators(operator_file, vertices, faces, k_eig=128, recompute=True, use_hmr_decomp=False)
-    # get_operators(operator_file, vertices, faces, k_eig=128, recompute=True, use_hmr_decomp=True)
+    get_operators(operator_file, vertices, faces, k_eig=128, recompute=True, use_fem_decomp=False)
+    # get_operators(operator_file, vertices, faces, k_eig=128, recompute=True, use_fem_decomp=True)
     operators = load_operators(operator_file)
