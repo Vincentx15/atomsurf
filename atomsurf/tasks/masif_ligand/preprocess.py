@@ -116,8 +116,7 @@ class PreProcessPDBDataset(Dataset):
             agraph_dump = os.path.join(self.out_agraph_dir, f'{name}.pt')
             rgraph_dump = os.path.join(self.out_rgraph_dir, f'{name}.pt')
 
-            # if self.recompute or not os.path.exists(surface_full_dump):
-            if False:
+            if self.recompute or not os.path.exists(surface_full_dump):
                 surface = SurfaceObject.from_pdb_path(pdb_path, out_ply_path=None, max_vert_number=self.max_vert_number)
                 surface.add_geom_feats()
                 surface.save_torch(surface_full_dump)
@@ -157,7 +156,9 @@ def do_all(dataset, num_workers=4):
 
 if __name__ == '__main__':
     pass
-    recompute = True
-    # dataset = PreprocessPatchDataset(recompute=recompute)
+    recompute = False
+    dataset = PreprocessPatchDataset(recompute=recompute)
+    do_all(dataset, num_workers=4)
+
     dataset = PreProcessPDBDataset(recompute=recompute, max_vert_number=100000)
     do_all(dataset, num_workers=4)
