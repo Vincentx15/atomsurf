@@ -129,6 +129,18 @@ class Features(Data):
     def save(self, save_path):
         torch.save(self, save_path)
 
+class FeaturesHolder:
+    """
+    A class to hold features on certain nodes, that can possibly be extended through one hot
+     encoding or residue-atom scattering
+    """
+
+    def expand_features(self, remove_feats=False, **kwargs):
+        self.x = self.features.build_expanded_features(**kwargs)
+        if remove_feats:
+            self.features = None
+
+
 
 if __name__ == "__main__":
     pass

@@ -13,7 +13,7 @@ if __name__ == '__main__':
     sys.path.append(os.path.join(script_dir, '..', '..'))
 
 import atomsurf.utils.helpers as diff_utils
-from atomsurf.protein.features import Features
+from atomsurf.protein.features import Features, FeaturesHolder
 
 
 def compute_HKS(evecs, evals, num_t, t_min=0.1, t_max=1000, scale=1000):
@@ -51,7 +51,7 @@ def get_geom_feats(verts, faces, evecs, evals, num_signatures=16):
     return geom_feats
 
 
-class SurfaceObject(Data):
+class SurfaceObject(Data, FeaturesHolder):
     def __init__(self, features=None, verts=None, faces=None,
                  mass=None, L=None, evals=None, evecs=None, gradX=None, gradY=None,
                  **kwargs):
@@ -152,11 +152,6 @@ class SurfaceObject(Data):
         from atomsurf.protein.create_surface import get_surface
         verts, faces = get_surface(pdb_path, out_ply_path=out_ply_path, max_vert_number=max_vert_number)
         return cls.from_verts_faces(verts, faces)
-
-    def expand_features(self, remove_feats=False, **kwargs):
-        self.x = self.features.build_expanded_features(**kwargs)
-        if remove_feats:
-            self.features = None
 
     @staticmethod
     def batch_from_data_list(data_list):
