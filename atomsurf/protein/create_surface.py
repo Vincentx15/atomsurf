@@ -225,9 +225,10 @@ def check_mesh_validity(mesh, check_triangles=False):
     return disconnected, has_isolated_verts, has_duplicate_verts, has_abnormal_triangles
 
 
-def mesh_simplification(verts, faces, out_ply, vert_number=2000):
+def mesh_simplification(verts, faces, out_ply,
+                        target_vert_number=2000, min_vert_number=256, max_vert_number=50000):
     # remeshing to have a target number of vertices
-    faces_num = int(vert_number * len(faces) / len(verts))
+    faces_num = int(target_vert_number * len(faces) / len(verts))
     mesh = o3d.geometry.TriangleMesh(o3d.utility.Vector3dVector(verts), o3d.utility.Vector3iVector(faces))
     mesh = mesh.simplify_quadric_decimation(target_number_of_triangles=faces_num)
     verts_out = np.asarray(mesh.vertices)
@@ -258,10 +259,10 @@ def mesh_simplification(verts, faces, out_ply, vert_number=2000):
                                                                                             check_triangles=True)
     is_valid_mesh = not (disconnected or isolated_verts or duplicate_verts or abnormal_triangles)
 
-    if verts.shape[0] > 50000:
+    if verts.shape[0] > max_vert_number:
         raise ValueError(f'Too many vertices in the mesh: {verts.shape[0]}')
 
-    if verts.shape[0] < 128:
+    if verts.shape[0] < min_vert_number:
         raise ValueError(f'Not enough vertices in the mesh: {verts.shape[0]}')
 
     if not is_valid_mesh:
@@ -277,13 +278,16 @@ def mesh_simplification(verts, faces, out_ply, vert_number=2000):
 
 def get_surface(pdb_path="../../data/example_files/4kt3.pdb",
                 out_ply_path=None,
-                min_number=256):
+                min_vert_number=256,
+                max_vert_number=50000):
     # # Check that msms and with_min gives the right output
-    verts, faces = pdb_to_surf_with_min(pdb_path, out_name=out_ply_path, min_number=min_number)
+    verts, faces = pdb_to_surf_with_min(pdb_path, out_name=out_ply_path, min_number=min_vert_number)
     verts, faces = mesh_simplification(verts=verts,
                                        faces=faces,
                                        out_ply=out_ply_path,
-                                       vert_number=1000)
+                                       target_vert_number=1000,
+                                       min_vert_number=min_vert_number,
+                                       max_vert_number=max_vert_number)
     return verts, faces
 
 
@@ -317,11 +321,11 @@ if __name__ == "__main__":
     mesh_simplification(verts=verts,
                         faces=faces,
                         out_ply=ply_file,
-                        vert_number=1000)
+                        target_vert_number=1000)
     mesh_reduced = o3d.io.read_triangle_mesh(ply_file)
     mesh_reduced.compute_triangle_normals()
     o3d.visualization.draw_geometries([mesh_reduced])
 
     verts, faces = get_surface(pdb_path="../../data/example_files/4kt3.pdb",
                                out_ply_path="../../data/example_files/example_mesh.ply",
-                               min_number=256)
+                               min_vert_number=256)

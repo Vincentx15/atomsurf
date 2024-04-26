@@ -148,9 +148,9 @@ class SurfaceObject(Data):
         return surface
 
     @classmethod
-    def from_pdb_path(cls, pdb_path, out_ply_path=None):
+    def from_pdb_path(cls, pdb_path, out_ply_path=None, max_vert_number=50000):
         from atomsurf.protein.create_surface import get_surface
-        verts, faces = get_surface(pdb_path, out_ply_path=out_ply_path)
+        verts, faces = get_surface(pdb_path, out_ply_path=out_ply_path, max_vert_number=max_vert_number)
         return cls.from_verts_faces(verts, faces)
 
     def expand_features(self, remove_feats=False, **kwargs):
