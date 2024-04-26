@@ -9,23 +9,22 @@ import torch.nn.functional as F
 from atomsurf.tasks.masif_ligand.model import MasifLigandNet
 from atomsurf.utils.metrics import compute_auroc, compute_accuracy
 
+
 class MasifLigandModule(pl.LightningModule):
     def __init__(self, hparams) -> None:
         super().__init__()
         self.save_hyperparameters()
         self.criterion = torch.nn.CrossEntropyLoss(reduction='mean')
-        self.encoder = MasifLigandNet(hparams)
+        self.model = MasifLigandNet(hparams_encoder=hparams.encoder, hparams_head=hparams.cfg_head)
 
     def forward(self, x):
         return self.model(x)
 
     def step(self, batch):
-        if not self.pronet and (not hasattr(batch, "surface") and
-                not hasattr(batch, "graph")):  # if no surface and no graph, then the full batch was filtered out
-            return None, None, None
+
         if batch is None:
             return None, None, None
-        labels = torch.concatenate(batch.labels)
+        labels = batch.label
         # return None, None, None
         outputs = torch.concatenate(self(batch)).flatten()
         loss = self.criterion(outputs, labels)
@@ -86,8 +85,11 @@ class MasifLigandModule(pl.LightningModule):
     def configure_optimizers(self):
         opt_params = self.hparams.hparams.optimizer
         optimizer = torch.optim.Adam(self.parameters(), lr=opt_params.lr)
-        scheduler = {'scheduler': torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=opt_params.patience,
-                                                                             factor=opt_params.factor, mode='max'),
+        scheduler_obj = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,
+                                                                   patience=opt_params.patience,
+                                                                   factor=opt_params.factor,
+                                                                   mode='max')
+        scheduler = {'scheduler': scheduler_obj,
                      'monitor': "auroc_val",
                      'interval': "epoch",
                      'frequency': 1,

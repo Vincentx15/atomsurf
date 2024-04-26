@@ -8,6 +8,7 @@ from atomsurf.protein.surfaces import SurfaceObject
 from atomsurf.protein.residue_graph import ResidueGraph
 from atomsurf.protein.atom_graph import AtomGraph
 
+
 class AtomBatch(Data):
     def __init__(self, batch=None, **kwargs):
         super().__init__(**kwargs)
@@ -17,6 +18,10 @@ class AtomBatch(Data):
 
     @staticmethod
     def from_data_list(data_list):
+        # Filter out None
+        data_list = [x for x in data_list if x is not None]
+        if len(data_list) == 0:
+            return None
         keys = [set(data.keys) for data in data_list]
         keys = list(set.union(*keys))
 
@@ -47,12 +52,12 @@ class AtomBatch(Data):
                     batch[key] = batch[key]
             elif isinstance(item, SurfaceObject):
                 batch[key] = SurfaceObject.batch_from_data_list(batch[key])
-            elif isinstance(item, ResidueGraph):
-                batch[key] = ResidueGraph.batch_from_data_list(batch[key])
-            elif isinstance(item, AtomGraph):
-                batch[key] = AtomGraph.batch_from_data_list(batch[key])
+            # elif isinstance(item, ResidueGraph):
+            #     batch[key] = ResidueGraph.batch_from_data_list(batch[key])
+            # elif isinstance(item, AtomGraph):
+            #     batch[key] = AtomGraph.batch_from_data_list(batch[key])
             elif isinstance(item, Data):
-                batch[key] = Batch.from_data_list([x for x in batch[key] if x is not None])
+                batch[key] = Batch.from_data_list(batch[key])
                 batch[key] = batch[key] if batch[key].num_graphs > 0 else None
             elif isinstance(item, list):
                 batch[key] = batch[key]
@@ -63,7 +68,8 @@ class AtomBatch(Data):
             else:
                 raise ValueError(f"Unsupported attribute type: {type(item)}, item : {item}, key : {key}")
 
-        return batch.contiguous()
+        batch = batch.contiguous()
+        return batch
 
     @property
     def num_graphs(self):

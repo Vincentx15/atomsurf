@@ -155,10 +155,10 @@ class SurfaceObject(Data, FeaturesHolder):
 
     @staticmethod
     def batch_from_data_list(data_list):
-        # filter out None
-        data_list = [data for data in data_list if data is not None]
-        if len(data_list) == 0:
-            return None
+        # # filter out None
+        # data_list = [data for data in data_list if data is not None]
+        # if len(data_list) == 0:
+        #     return None
         return data_list
 
     # @classmethod

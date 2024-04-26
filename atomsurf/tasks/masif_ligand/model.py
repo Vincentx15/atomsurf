@@ -4,11 +4,11 @@ from atomsurf.networks.protein_encoder import ProteinEncoder
 
 
 class MasifLigandNet(torch.nn.Module):
-    def __init__(self, hparams):
+    def __init__(self, hparams_encoder, hparams_head):
         super().__init__()
-        self.hparams = hparams
-        self.encoder = ProteinEncoder(hparams)
-        a=1
+        self.hparams_head = hparams_head
+        self.hparams_encoder = hparams_encoder
+        self.encoder = ProteinEncoder(hparams_encoder)
 
 
     def forward(self, batch):

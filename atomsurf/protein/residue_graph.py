@@ -170,8 +170,8 @@ class PronetFeaturesComputer:
 
 
 class ResidueGraph(Data, FeaturesHolder):
-    def __init__(self, node_pos, edge_index=None, features=None, **kwargs):
-        super(ResidueGraph, self).__init__(edge_index=edge_index, **kwargs)
+    def __init__(self, node_pos, edge_index=None, edge_attr=None, features=None, **kwargs):
+        super(ResidueGraph, self).__init__(edge_index=edge_index, edge_attr=edge_attr, **kwargs)
         self.node_pos = safe_to_torch(node_pos)
         self.num_res = len(node_pos)
         if features is None:
@@ -179,13 +179,13 @@ class ResidueGraph(Data, FeaturesHolder):
         else:
             self.features = features
 
-    @staticmethod
-    def batch_from_data_list(data_list):
-        # filter out None
-        data_list = [data for data in data_list if data is not None]
-        if len(data_list) == 0:
-            return None
-        return data_list
+    # @staticmethod
+    # def batch_from_data_list(data_list):
+    #     # filter out None
+    #     data_list = [data for data in data_list if data is not None]
+    #     if len(data_list) == 0:
+    #         return None
+    #     return data_list
 
 
 class ResidueGraphBuilder:
@@ -245,4 +245,3 @@ if __name__ == "__main__":
     residue_graph_builder = ResidueGraphBuilder(add_esm=True)
     residue_graph = residue_graph_builder.pdb_to_resgraph(pdb)
     print(residue_graph.features['named_features'])
-

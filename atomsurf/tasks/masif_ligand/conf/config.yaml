@@ -77,3 +77,6 @@ cfg_graph:
 #  oh_keys: 'all'
 #  esm_dir: ../../../data/masif_ligand/esm
 #  use_esm: false
+
+cfg_head:
+  toto: false

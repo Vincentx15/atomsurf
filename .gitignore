@@ -161,3 +161,6 @@ cython_debug/
 
 # ignore all files that has the path **/outputs/
 **/outputs/
+
+# ignore all files in data/
+data/
