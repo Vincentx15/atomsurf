@@ -112,8 +112,8 @@ def parse_pdb_path(pdb_path):  # def parse_pdb_from_pqr(pdb_path)
 
         for atom in residue.get_atoms():
             # Add occupancy to write as pdb
-            # atom.set_occupancy(1.0)
-            # atom.set_bfactor(1.0)
+            atom.set_occupancy(1.0)
+            atom.set_bfactor(1.0)
 
             # Skip H
             element = atom.element
@@ -141,27 +141,18 @@ def parse_pdb_path(pdb_path):  # def parse_pdb_from_pqr(pdb_path)
     atom_charge = np.asarray(atom_charge)
     atom_radius = np.asarray(atom_radius)
 
-    # process DSSP
 
-    # Cleaner version to dump pdb/cif;
-    # from Bio.PDB.PDBIO import PDBIO
-    # from Bio.PDB.mmcifio import MMCIFIO
-    # io = PDBIO()
-    # io = MMCIFIO()
-    # io.set_structure(structure)
-    # pqrpdbpath = str(pqr_path.with_name(pqr_path.stem)) + '.cif'
-    # io.save(pqrpdbpath)
-
+    # We need to dump this adapted pdb with new coordinates and missing atoms
+    from Bio.PDB.PDBIO import PDBIO
+    io = PDBIO()
+    io.set_structure(structure)
     pqrpdbpath = str(pqr_path) + 'pdb'
-    f = open(pqr_path, 'r').readlines()
-    with open(pqrpdbpath, 'w') as f1:
-        # f1.write('CRYST1    1.000    1.000    1.000  90.00  90.00  90.00 P 1           1          \n')
-        for line in f:
-            f1.write(line[0:54] + '\n')
+    io.save(pqrpdbpath)
+
+    # process DSSP
     p = PDBParser(QUIET=True)
     structure = p.get_structure("test", pqrpdbpath)[0]
     dssp = DSSP(structure, pqrpdbpath, file_type="PDB")
-    # dssp = DSSP(structure, pqrpdbpath)
     res_sse = np.array([SSE_type_dict[dssp[key][2]] for key in list(dssp.keys())])
     os.remove(pqr_path)
     os.remove(pqr_log_path)
