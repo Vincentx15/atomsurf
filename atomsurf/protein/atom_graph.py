@@ -24,8 +24,8 @@ class AtomGraph(Data, FeaturesHolder):
         super(AtomGraph, self).__init__(edge_index=edge_index, edge_attr=edge_attr, **kwargs)
         self.node_pos = safe_to_torch(node_pos)
         self.res_map = safe_to_torch(res_map)
-        self.num_atoms = len(node_pos)
-        self.num_res = res_map.max() + 1
+        self.num_atoms = len(node_pos) if node_pos is not None else 0
+        self.num_res = res_map.max() + 1 if res_map is not None else 0
         if features is None:
             self.features = Features(num_nodes=self.num_atoms, res_map=res_map)
         else:

@@ -12,7 +12,6 @@ from atomsurf.protein.atom_graph import AtomGraph
 class AtomBatch(Data):
     def __init__(self, batch=None, **kwargs):
         super().__init__(**kwargs)
-
         self.batch = batch
         self.__data_class__ = Data
 

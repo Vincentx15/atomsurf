@@ -138,6 +138,18 @@ class MasifLigandDataModule(pl.LightningDataModule):
                             'shuffle': self.cfg.loader.shuffle,
                             'collate_fn': lambda x: AtomBatch.from_data_list(x)}
 
+        # Useful to create a Model of the right input dims
+        train_dataset_temp = MasifLigandDataset(self.systems[0], self.surface_builder, self.graph_builder)
+        train_dataset_temp = iter(train_dataset_temp)
+        exemple = None
+        while exemple is None:
+            exemple = next(train_dataset_temp)
+        from omegaconf import open_dict
+        with open_dict(cfg):
+            feat_encoder_kwargs = cfg.encoder.blocks[0].kwargs
+            feat_encoder_kwargs['graph_feat_dim'] = exemple.graph.x.shape[1]
+            feat_encoder_kwargs['surface_feat_dim'] = exemple.surface.x.shape[1]
+
     def train_dataloader(self):
         dataset = MasifLigandDataset(self.systems[0], self.surface_builder, self.graph_builder)
         return DataLoader(dataset, **self.loader_args)

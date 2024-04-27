@@ -171,9 +171,11 @@ class PronetFeaturesComputer:
 
 class ResidueGraph(Data, FeaturesHolder):
     def __init__(self, node_pos, edge_index=None, edge_attr=None, features=None, **kwargs):
+        edge_index = safe_to_torch(edge_index)
+        edge_attr = safe_to_torch(edge_attr)
         super(ResidueGraph, self).__init__(edge_index=edge_index, edge_attr=edge_attr, **kwargs)
         self.node_pos = safe_to_torch(node_pos)
-        self.num_res = len(node_pos)
+        self.num_res = len(node_pos) if node_pos is not None else 0
         if features is None:
             self.features = Features(num_nodes=self.num_res)
         else:

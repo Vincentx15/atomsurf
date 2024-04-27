@@ -23,6 +23,17 @@ def main(cfg=None):
     seed = cfg.seed
     pl.seed_everything(seed, workers=True)
 
+    # init datamodule
+    datamodule = MasifLigandDataModule(cfg)
+    # To debug while Trainer is buggy # TODO remove when trainer is fixed.
+    # train_loader = datamodule.train_dataloader()
+    # for i, batch in enumerate(train_loader):
+    #     if i > 2:
+    #         break
+    #     print(batch.graph[0].x.shape)
+    #     print(batch.surface[0].x.shape)
+    #     sys.exit()
+
     # init model
     model = MasifLigandModule(cfg)
 
@@ -55,17 +66,6 @@ def main(cfg=None):
         params = {"accelerator": "gpu", "devices": [cfg.device]}
     else:
         params = {}
-
-    # datamodule
-    datamodule = MasifLigandDataModule(cfg)
-    # To debug while Trainer is buggy # TODO remove when trainer is fixed.
-    # train_loader = datamodule.train_dataloader()
-    # for i, batch in enumerate(train_loader):
-    #     if i > 2:
-    #         break
-    #     print(batch.graph[0].x.shape)
-    #     print(batch.surface[0].x.shape)
-    #     sys.exit()
 
     # init trainer
     trainer = pl.Trainer(

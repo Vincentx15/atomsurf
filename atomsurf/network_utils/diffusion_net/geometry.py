@@ -13,6 +13,9 @@ import scipy.spatial
 import torch
 import sklearn.neighbors
 
+import torch.sparse
+from torch_geometric.utils import to_torch_coo_tensor
+
 from .utils import toNP, sparse_np_to_torch, ensure_dir_exists, hash_arrays, sparse_torch_to_np
 
 
@@ -149,8 +152,8 @@ def vertex_normals(verts, faces, n_neighbors_cloud=30):
         bad_normals_mask = np.isnan(normals).any(axis=1)
         if bad_normals_mask.any():
             normals[bad_normals_mask, :] = (
-                np.random.RandomState(seed=777).rand(*verts.shape) - 0.5
-            )[bad_normals_mask, :]
+                                                   np.random.RandomState(seed=777).rand(*verts.shape) - 0.5
+                                           )[bad_normals_mask, :]
             normals = normals / np.linalg.norm(normals, axis=-1)[:, np.newaxis]
 
     normals = torch.from_numpy(normals).to(device=verts.device, dtype=verts.dtype)
@@ -162,7 +165,6 @@ def vertex_normals(verts, faces, n_neighbors_cloud=30):
 
 
 def build_tangent_frames(verts, faces, normals=None):
-
     V = verts.shape[0]
     dtype = verts.dtype
     device = verts.device
@@ -194,7 +196,6 @@ def build_tangent_frames(verts, faces, normals=None):
 
 
 def build_grad_point_cloud(verts, frames, n_neighbors_cloud=30):
-
     verts_np = toNP(verts)
 
     _, neigh_inds = find_knn(
@@ -375,7 +376,7 @@ def compute_operators(verts, faces, k_eig, normals=None):
                 failcount += 1
                 print("--- decomp failed; adding eps ===> count: " + str(failcount))
                 L_eigsh = L_eigsh + scipy.sparse.identity(L.shape[0]) * (
-                    eps * 10 ** failcount
+                        eps * 10 ** failcount
                 )
 
     else:  # k_eig == 0
@@ -443,13 +444,13 @@ def get_all_operators(verts_list, faces_list, k_eig, op_cache_dir=None):
 
 
 def get_operators(
-    verts,
-    faces,
-    k_eig=128,
-    op_cache_dir=None,
-    normals=None,
-    overwrite_cache=False,
-    truncate_cache=False,
+        verts,
+        faces,
+        k_eig=128,
+        op_cache_dir=None,
+        normals=None,
+        overwrite_cache=False,
+        truncate_cache=False,
 ):
     """
     See documentation for compute_operators(). This essentailly just wraps a call to compute_operators, using a cache if possible.
@@ -496,7 +497,7 @@ def get_operators(
 
                 # If the cache doesn't match, keep looking
                 if (not np.array_equal(verts, cache_verts)) or (
-                    not np.array_equal(faces, cache_faces)
+                        not np.array_equal(faces, cache_faces)
                 ):
                     i_cache_search += 1
                     print("hash collision! searching next.")
@@ -573,7 +574,6 @@ def get_operators(
 
         # Store it in the cache
         if op_cache_dir is not None:
-
             L_np = sparse_torch_to_np(L).astype(dtype_np)
             gradX_np = sparse_torch_to_np(gradX).astype(dtype_np)
             gradY_np = sparse_torch_to_np(gradY).astype(dtype_np)
@@ -615,7 +615,13 @@ def to_basis(values, basis, massvec):
       - (B,K,D) transformed values
     """
     basisT = basis.transpose(-2, -1)
-    return torch.matmul(basisT, values * massvec.unsqueeze(-1))
+    # x = massvec.x
+    # edge_index = massvec.edge_index
+    # edge_attr = massvec.edge_attr
+    # massvec_coo = torch.sparse_coo_tensor(edge_index, edge_attr, x.size(), dtype=x.dtype)
+    # scaled_values = torch.sparse.mm(massvec_coo, values[0])
+    scaled_values = torch.sparse.mm(massvec, values[0])
+    return torch.matmul(basisT, scaled_values)[None, ...]
 
 
 def from_basis(values, basis):
@@ -697,9 +703,8 @@ def normalize_positions(pos, method="mean"):
 # Finds the k nearest neighbors of source on target.
 # Return is two tensors (distances, indices). Returned points will be sorted in increasing order of distance.
 def find_knn(
-    points_source, points_target, k, largest=False, omit_diagonal=False, method="brute"
+        points_source, points_target, k, largest=False, omit_diagonal=False, method="brute"
 ):
-
     if omit_diagonal and points_source.shape[0] != points_target.shape[0]:
         raise ValueError(
             "omit_diagonal can only be used when source and target are same shape"
@@ -780,7 +785,6 @@ def farthest_point_sampling(points, n_sample):
     chosen_mask[i] = True
 
     for _ in range(n_sample - 1):
-
         # update distance
         dists = norm2(points[i, :].unsqueeze(0) - points)
         min_dists = torch.minimum(dists, min_dists)
