@@ -13,34 +13,31 @@ if __name__ == '__main__':
     sys.path.append(os.path.join(script_dir, '..', '..'))
 
 from atomsurf.protein.graphs import parse_pdb_path, atom_coords_to_edges
-from atomsurf.protein.features import Features
+from atomsurf.protein.features import Features, FeaturesHolder
 from atomsurf.utils.helpers import safe_to_torch
 
 
-class AtomGraph(Data):
-    def __init__(self, node_pos, res_map, edge_index=None, features=None, **kwargs):
-        super(AtomGraph, self).__init__(edge_index=edge_index, **kwargs)
+class AtomGraph(Data, FeaturesHolder):
+    def __init__(self, node_pos, res_map, edge_index=None, edge_attr=None, features=None, **kwargs):
+        edge_index = safe_to_torch(edge_index)
+        edge_attr = safe_to_torch(edge_attr)
+        super(AtomGraph, self).__init__(edge_index=edge_index, edge_attr=edge_attr, **kwargs)
         self.node_pos = safe_to_torch(node_pos)
         self.res_map = safe_to_torch(res_map)
-        self.num_atoms = len(node_pos)
-        self.num_res = res_map.max() + 1
+        self.num_atoms = len(node_pos) if node_pos is not None else 0
+        self.num_res = res_map.max() + 1 if res_map is not None else 0
         if features is None:
             self.features = Features(num_nodes=self.num_atoms, res_map=res_map)
         else:
             self.features = features
 
-    def expand_features(self, remove_feats=False, **kwargs):
-        self.x = self.features.build_expanded_features(**kwargs)
-        if remove_feats:
-            self.features = None
-
-    @staticmethod
-    def batch_from_data_list(data_list):
-        # filter out None
-        data_list = [data for data in data_list if data is not None]
-        if len(data_list) == 0:
-            return None
-        return data_list
+    # @staticmethod
+    # def batch_from_data_list(data_list):
+    #     # filter out None
+    #     data_list = [data for data in data_list if data is not None]
+    #     if len(data_list) == 0:
+    #         return None
+    #     return data_list
 
 
 class AtomGraphBuilder:

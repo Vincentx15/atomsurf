@@ -11,7 +11,7 @@ if __name__ == '__main__':
     sys.path.append(os.path.join(script_dir, '..', '..'))
 
 from atomsurf.protein.graphs import parse_pdb_path, atom_coords_to_edges, res_type_to_hphob
-from atomsurf.protein.features import Features
+from atomsurf.protein.features import Features, FeaturesHolder
 
 from atomsurf.protein.create_esm import get_esm_embedding_single
 from atomsurf.utils.helpers import safe_to_torch
@@ -169,32 +169,29 @@ class PronetFeaturesComputer:
         return data
 
 
-class ResidueGraph(Data):
-    def __init__(self, node_pos, edge_index=None, features=None, **kwargs):
-        super(ResidueGraph, self).__init__(edge_index=edge_index, **kwargs)
+class ResidueGraph(Data, FeaturesHolder):
+    def __init__(self, node_pos, edge_index=None, edge_attr=None, features=None, **kwargs):
+        edge_index = safe_to_torch(edge_index)
+        edge_attr = safe_to_torch(edge_attr)
+        super(ResidueGraph, self).__init__(edge_index=edge_index, edge_attr=edge_attr, **kwargs)
         self.node_pos = safe_to_torch(node_pos)
-        self.num_res = len(node_pos)
+        self.num_res = len(node_pos) if node_pos is not None else 0
         if features is None:
             self.features = Features(num_nodes=self.num_res)
         else:
             self.features = features
 
-    def expand_features(self, remove_feats=False, **kwargs):
-        self.x = self.features.build_expanded_features(**kwargs)
-        if remove_feats:
-            self.features = None
-
-    @staticmethod
-    def batch_from_data_list(data_list):
-        # filter out None
-        data_list = [data for data in data_list if data is not None]
-        if len(data_list) == 0:
-            return None
-        return data_list
+    # @staticmethod
+    # def batch_from_data_list(data_list):
+    #     # filter out None
+    #     data_list = [data for data in data_list if data is not None]
+    #     if len(data_list) == 0:
+    #         return None
+    #     return data_list
 
 
 class ResidueGraphBuilder:
-    def __init__(self, add_pronet=True, add_esm=True):
+    def __init__(self, add_pronet=True, add_esm=False):
         self.add_pronet = add_pronet
         self.add_esm = add_esm
         pass
@@ -245,11 +242,8 @@ if __name__ == "__main__":
     torch.save(residue_graph, resgraph_path)
     residue_graph = torch.load(resgraph_path)
     a = 1
+
     pdb = "./code/MasifLigand/raw_data_MasifLigand/pdb/2V1O_ACBEDF.pdb"
     residue_graph_builder = ResidueGraphBuilder(add_esm=True)
     residue_graph = residue_graph_builder.pdb_to_resgraph(pdb)
     print(residue_graph.features['named_features'])
-
-    # Use Res_atom_GraphBuilder
-    graph_builder = Res_atom_GraphBuilder(add_esm=True)
-    atom_graph, residue_graph = graph_builder.pdb_to_graph(pdb)

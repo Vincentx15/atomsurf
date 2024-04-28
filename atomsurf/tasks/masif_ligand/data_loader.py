@@ -49,9 +49,12 @@ class SurfaceBuilder:
             return Data()
         if self.config.use_whole_surfaces:
             pocket_name = pocket_name.split('_patch_')[0]
-        surface = torch.load(os.path.join(self.data_dir, f"{pocket_name}.pt"))
-        surface.expand_features(remove_feats=True, feature_keys=self.config.feat_keys, oh_keys=self.config.oh_keys)
-        return surface
+        try:
+            surface = torch.load(os.path.join(self.data_dir, f"{pocket_name}.pt"))
+            surface.expand_features(remove_feats=True, feature_keys=self.config.feat_keys, oh_keys=self.config.oh_keys)
+            return surface
+        except:
+            return None
 
 
 class GraphBuilder:
@@ -64,16 +67,19 @@ class GraphBuilder:
     def build(self, pocket_name):
         if not self.config.use_graphs:
             return Data()
-        pocket_name = pocket_name.split('_patch_')[0]
-        graph = torch.load(os.path.join(self.data_dir, f"{pocket_name}.pt"))
-        feature_keys = self.config.feat_keys
-        if self.use_esm:
-            esm_feats_path = os.path.join(self.esm_dir, f"{pocket_name}_esm.pt")
-            esm_feats = torch.load(esm_feats_path)
-            graph.features.add_named_features('esm_feats', esm_feats)
-            if feature_keys != 'all':
-                feature_keys.append('esm_feats')
-        graph.expand_features(remove_feats=True, feature_keys=feature_keys, oh_keys=self.config.oh_keys)
+        try:
+            pocket_name = pocket_name.split('_patch_')[0]
+            graph = torch.load(os.path.join(self.data_dir, f"{pocket_name}.pt"))
+            feature_keys = self.config.feat_keys
+            if self.use_esm:
+                esm_feats_path = os.path.join(self.esm_dir, f"{pocket_name}_esm.pt")
+                esm_feats = torch.load(esm_feats_path)
+                graph.features.add_named_features('esm_feats', esm_feats)
+                if feature_keys != 'all':
+                    feature_keys.append('esm_feats')
+            graph.expand_features(remove_feats=True, feature_keys=feature_keys, oh_keys=self.config.oh_keys)
+        except:
+            return None
         return graph
 
 
@@ -94,13 +100,15 @@ class MasifLigandDataset(Dataset):
         return len(self.systems)
 
     def __getitem__(self, idx):
-        # pocket = self.systems_keys[idx]
-        pocket = "1DW1_A_patch_0_HEM"
+        pocket = self.systems_keys[idx]
+        # pocket = "1DW1_A_patch_0_HEM"
         lig_coord, lig_type = self.systems[pocket]
         lig_coord = torch.from_numpy(lig_coord)
         # pocket = f'{pdb_chains}_patch_{ix}_{lig_type}'
         surface = self.surface_builder.build(pocket)
         graph = self.graph_builder.build(pocket)
+        if surface is None or graph is None:
+            return None
         # TODO GDF EXPAND
         item = Data(surface=surface, graph=graph, lig_coord=lig_coord, label=lig_type)
         return item
@@ -129,6 +137,18 @@ class MasifLigandDataModule(pl.LightningDataModule):
                             'prefetch_factor': self.cfg.loader.prefetch_factor,
                             'shuffle': self.cfg.loader.shuffle,
                             'collate_fn': lambda x: AtomBatch.from_data_list(x)}
+
+        # Useful to create a Model of the right input dims
+        train_dataset_temp = MasifLigandDataset(self.systems[0], self.surface_builder, self.graph_builder)
+        train_dataset_temp = iter(train_dataset_temp)
+        exemple = None
+        while exemple is None:
+            exemple = next(train_dataset_temp)
+        from omegaconf import open_dict
+        with open_dict(cfg):
+            feat_encoder_kwargs = cfg.encoder.blocks[0].kwargs
+            feat_encoder_kwargs['graph_feat_dim'] = exemple.graph.x.shape[1]
+            feat_encoder_kwargs['surface_feat_dim'] = exemple.surface.x.shape[1]
 
     def train_dataloader(self):
         dataset = MasifLigandDataset(self.systems[0], self.surface_builder, self.graph_builder)

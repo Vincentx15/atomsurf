@@ -10,6 +10,9 @@ def safe_to_torch(value):
     :param value:
     :return:
     """
+    # Needed to replicate Data default behavior of construction: Data(x=None) -> Data()
+    if value is None:
+        return None
     if not isinstance(value, torch.Tensor):
         value = np.asarray(value)
         value = torch.from_numpy(value)

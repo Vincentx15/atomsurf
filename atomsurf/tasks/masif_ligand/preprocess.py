@@ -158,6 +158,7 @@ def do_all(dataset, num_workers=4):
 
 if __name__ == '__main__':
     pass
-    # dataset = PreprocessPatchDataset()
-    dataset = PreProcessPDBDataset()
+    recompute = False
+
+    dataset = PreProcessPDBDataset(recompute=recompute, max_vert_number=100000)
     do_all(dataset, num_workers=4)

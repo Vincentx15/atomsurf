@@ -163,3 +163,5 @@ cython_debug/
 **/outputs/
 
 bin/
+# ignore all files in data/
+data/
