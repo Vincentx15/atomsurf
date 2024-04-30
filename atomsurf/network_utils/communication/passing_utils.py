@@ -15,7 +15,8 @@ class NoParamAggregate(MessagePassing):
     def forward(self, x, edge_index, edge_weights):
         # todo self loop added here, was not supported in the original code
         if self.add_self_loops:
-            edge_index, edge_weights = add_self_loops(edge_index, edge_weights, fill_value=self.fill_value, num_nodes=x.size(0))
+            edge_index, edge_weights = add_self_loops(edge_index, edge_weights, fill_value=self.fill_value,
+                                                      num_nodes=x.size(0))
 
         # Step 4-5: Start propagating messages.
         out = self.propagate(edge_index, x=x, edge_weights=edge_weights)
@@ -37,20 +38,21 @@ def compute_rbf_graph(surface, graph, sigma):
 
 
 # todo check if this valid (copy pasted)
-def compute_bipartite_graphs(surface, graph, neigh_th):
-    vertices = surface.vertices
+def compute_bipartite_graphs(surfaces, graphs, neigh_th):
+    verts_list = [surface.verts for surface in surfaces.to_data_list()]
+    nodepos_list = [graph.node_pos for graph in graphs.to_data_list()]
     sigma = neigh_th / 2  # todo is this the right way to do it?
     with torch.no_grad():
-        all_dists = [torch.cdist(vert, mini_graph.pos) for vert, mini_graph in zip(vertices, graph.to_data_list())]
+        all_dists = [torch.cdist(vert, nodepos) for vert, nodepos in zip(verts_list, nodepos_list)]
         neighbors = [torch.where(x < neigh_th) for x in all_dists]
         # Slicing requires tuple
         dists = [all_dist[neigh] for all_dist, neigh in zip(all_dists, neighbors)]
         dists = [torch.exp(-x / sigma) for x in dists]
         neighbors = [torch.stack(x).long() for x in neighbors]
         for i, neighbor in enumerate(neighbors):
-            neighbor[1] += len(vertices[i])
+            neighbor[1] += len(verts_list[i])
         reverse_neighbors = [torch.flip(neigh, dims=(0,)) for neigh in neighbors]
-        all_pos = [torch.cat((vert, mini_graph.pos)) for vert, mini_graph in zip(vertices, graph.to_data_list())]
+        all_pos = [torch.cat((vert, nodepos)) for vert, nodepos in zip(verts_list, nodepos_list)]
         bipartite_surfgraph = [Data(all_pos=pos, edge_index=neighbor, edge_weight=dist) for pos, neighbor, dist in
                                zip(all_pos, neighbors, dists)]
         bipartite_graphsurf = [Data(all_pos=pos, edge_index=rneighbor, edge_weight=dist) for pos, rneighbor, dist in
@@ -63,7 +65,7 @@ def compute_bipartite_graphs2(surface, graph, neigh_dist_th):
     # this function remove the multiple loops, so it is more efficient
     # make it more efficient by not computing `cdist`
     # todo: there is no self loop in the original code, should we add it? (we don't need it, does not make sense to add graph to surface features)
-    vertices = surface.vertices
+    vertices = surface.verts
     sigma = neigh_dist_th / 2
     with torch.no_grad():
         graph_list = graph.to_data_list()
@@ -86,6 +88,7 @@ def compute_bipartite_graphs2(surface, graph, neigh_dist_th):
             edge_weights = exp_dist[neighbor_indices[:, 0], neighbor_indices[:, 1] - len(vertices)]
 
             bipartite_graphs.append(Data(all_pos=pos, edge_index=neighbor_indices.t(), edge_weight=edge_weights))
-            bipartite_graphs.append(Data(all_pos=pos, edge_index=reverse_neighbor_indices.t(), edge_weight=edge_weights))
+            bipartite_graphs.append(
+                Data(all_pos=pos, edge_index=reverse_neighbor_indices.t(), edge_weight=edge_weights))
 
         return bipartite_graphs

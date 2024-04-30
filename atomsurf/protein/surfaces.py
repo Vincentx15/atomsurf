@@ -162,7 +162,10 @@ class SurfaceObject(Data, FeaturesHolder):
 
 
 class SurfaceBatch(Batch):
-    # This is needed for PyG Batching
+    """
+    This class is useful for PyG Batching
+
+    """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 

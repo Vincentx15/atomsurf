@@ -4,7 +4,7 @@ import sys
 import numpy as np
 import torch
 import torch.nn.functional as F
-from torch_geometric.data import Data
+from torch_geometric.data import Data, Batch
 
 if __name__ == '__main__':
     script_dir = os.path.dirname(os.path.realpath(__file__))
@@ -15,7 +15,6 @@ from atomsurf.protein.features import Features, FeaturesHolder
 
 from atomsurf.protein.create_esm import get_esm_embedding_single
 from atomsurf.utils.helpers import safe_to_torch
-from atomsurf.protein.atom_graph import AtomGraph
 
 
 class PronetFeaturesComputer:
@@ -180,6 +179,28 @@ class ResidueGraph(Data, FeaturesHolder):
             self.features = Features(num_nodes=self.num_res)
         else:
             self.features = features
+
+    @staticmethod
+    def batch_from_data_list(data_list):
+        return RGraphBatch.batch_from_data_list(data_list=data_list)
+
+
+class RGraphBatch(Batch):
+    """
+    This class is useful for PyG Batching
+
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    @classmethod
+    def batch_from_data_list(cls, data_list):
+        batch = Batch.from_data_list(data_list)
+        batch = batch.contiguous()
+        surface_batch = cls()
+        surface_batch.__dict__.update(batch.__dict__)
+        return surface_batch
 
     # @staticmethod
     # def batch_from_data_list(data_list):

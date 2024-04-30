@@ -40,24 +40,26 @@ class SurfaceGraphCommunication(nn.Module):
 
         # prepare the communication graph
         self.compute_graph(surface, graph)
-        vertices = surface.vertices
 
         # get input features and apply preprocessing
-        surface = self.s_pre_block(surface)
-        graph = self.g_pre_block(graph)
+        surface.x = self.s_pre_block(surface.x)
+        graph.x = self.g_pre_block(graph.x)
 
         # apply the message passing
         if self.use_bp:
             # concatenate the features for the graph structure
-            x = [torch.cat((xs_b, graph_b.x)) for xs_b, graph_b in zip(surface.x, graph.to_data_list())]
+            x = [torch.cat((xs_b.x, graph_b.x)) for xs_b, graph_b in zip(surface.to_data_list(), graph.to_data_list())]
 
             # apply the message passing
-            xs_out = [self.bp_gs_block(x_b, bp_gs_b.edge_index, bp_gs_b.edge_weight) for x_b, bp_gs_b in zip(x, self.bp_gs)]
-            xg_out = [self.bp_sg_block(x_b, bp_sg_b.edge_index, bp_sg_b.edge_weight) for x_b, bp_sg_b in zip(x, self.bp_sg)]
+            xs_out = [self.bp_gs_block(x_b, bp_gs_b.edge_index, bp_gs_b.edge_weight) for x_b, bp_gs_b in
+                      zip(x, self.bp_gs)]
+            xg_out = [self.bp_sg_block(x_b, bp_sg_b.edge_index, bp_sg_b.edge_weight) for x_b, bp_sg_b in
+                      zip(x, self.bp_sg)]
 
+            verts_list = [surf.verts for surf in surface.to_data_list()]
             # extract the projected features
-            xs_out = [out[:len(vert)] for out, vert in zip(xs_out, vertices)]
-            xg_out = torch.cat([out[len(vert):] for out, vert in zip(xg_out, vertices)], dim=0)
+            xs_out = torch.cat([out[:len(vert)] for out, vert in zip(xs_out, verts_list)], dim=0)
+            xg_out = torch.cat([out[len(vert):] for out, vert in zip(xg_out, verts_list)], dim=0)
         else:
             # project features from one representation to the other
             xs_out = [torch.mm(rbf_w, graph_b.x) for rbf_w, graph_b in zip(self.rbf_weights, graph.to_data_list())]
@@ -76,7 +78,8 @@ class SurfaceGraphCommunication(nn.Module):
         if self.use_bp:
             if "bp_gs" not in surface or "bp_sg" not in surface:
                 self.bp_gs, self.bp_sg = compute_bipartite_graphs(surface, graph, neigh_th=self.neigh_thresh)
-                surface["bp_gs"], surface["bp_sg"] = self.bp_gs.clone(), self.bp_sg.clone()
+                surface["bp_gs"], surface[
+                    "bp_sg"] = self.bp_gs, self.bp_sg  # Previously included a clone which I think was unnecessary
             else:
                 self.bp_gs, self.bp_sg = surface.bp_gs, surface.bp_sg
         else:

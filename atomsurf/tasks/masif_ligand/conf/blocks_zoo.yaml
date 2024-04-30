@@ -102,8 +102,8 @@ diffusion12|gcn12|concurent:
         _target_: atomsurf.network_utils.ConcurrentCommunication
       kwargs:
         use_bp: true
-        pre_s_block: identity
-        pre_g_block: identity
+        pre_s_block: linear
+        pre_g_block: linear
         pre_s_dim_in: 12
         pre_s_dim_out: 6
         pre_g_dim_in: 12

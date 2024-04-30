@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from torch.nn import Linear
 from torch_geometric.nn import GCNConv, GATConv, GATv2Conv
 from torch_geometric.nn import MessagePassing
 from torch_geometric.utils import add_self_loops
@@ -8,6 +9,8 @@ from torch_geometric.utils import add_self_loops
 def init_block(name, use_gat=False, use_v2=False, add_self_loops=False, fill_value="mean", aggr='add', dim_in=128, dim_out=64):
     if name == "identity":
         return IdentityLayer()
+    if name == "linear":
+        return torch.nn.Linear(dim_in, dim_out)
     elif name == "no_param_aggregate":
         return NoParamAggregate(aggr=aggr, add_self_loops=add_self_loops, fill_value=fill_value)
     elif name == "cat_post_process":

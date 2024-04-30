@@ -51,10 +51,10 @@ class AtomBatch(Data):
                     batch[key] = batch[key]
             elif isinstance(item, SurfaceObject):
                 batch[key] = SurfaceObject.batch_from_data_list(batch[key])
-            # elif isinstance(item, ResidueGraph):
-            #     batch[key] = ResidueGraph.batch_from_data_list(batch[key])
-            # elif isinstance(item, AtomGraph):
-            #     batch[key] = AtomGraph.batch_from_data_list(batch[key])
+            elif isinstance(item, ResidueGraph):
+                batch[key] = ResidueGraph.batch_from_data_list(batch[key])
+            elif isinstance(item, AtomGraph):
+                batch[key] = AtomGraph.batch_from_data_list(batch[key])
             elif isinstance(item, Data):
                 batch[key] = Batch.from_data_list(batch[key])
                 batch[key] = batch[key] if batch[key].num_graphs > 0 else None

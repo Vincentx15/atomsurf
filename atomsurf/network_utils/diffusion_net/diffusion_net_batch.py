@@ -43,8 +43,8 @@ class DiffusionNetBlockBatch(nn.Module):
     def forward(self, surfaces):
         x_in, mass, L, evals, evecs, gradX, gradY = surfaces.to_lists()
 
-        x_in_batch = torch.cat(x_in, dim=0)
-        split_sizes = [tensor.size(0) for tensor in x_in]
+        # x_in_batch = torch.cat(x_in, dim=0)
+        # split_sizes = [tensor.size(0) for tensor in x_in]
 
         # Manage dimensions
         B = len(x_in)
@@ -73,24 +73,25 @@ class DiffusionNetBlockBatch(nn.Module):
             x_grad_features_batch = self.gradient_features(x_grad_batch)
 
             # Stack inputs to mlp
-            feature_combined = torch.cat((x_in_batch, x_diffuse_batch, x_grad_features_batch), dim=-1)
+            feature_combined = torch.cat((surfaces.x, x_diffuse_batch, x_grad_features_batch), dim=-1)
         else:
             # Stack inputs to mlp
-            feature_combined = torch.cat((x_in_batch, x_diffuse_batch), dim=-1)
+            feature_combined = torch.cat((surfaces.x, x_diffuse_batch), dim=-1)
 
         # Apply the mlp
         x0_out_batch = self.mlp(feature_combined)
 
         # Skip connection
-        x0_out_batch = x0_out_batch + x_in_batch
+        x0_out_batch = x0_out_batch + surfaces.x
 
         # # apply batch norm # todo: is this needed?
         # x0_out_batch = self.bn(x0_out_batch)
 
         # Split batch back into list
-        x0_out = torch.split(x0_out_batch, split_sizes, dim=0)
+        # x0_out = torch.split(x0_out_batch, split_sizes, dim=0)
 
-        return x0_out
+        surfaces.x = x0_out_batch
+        return surfaces
 
 
 class DiffusionNetBatch(nn.Module):
@@ -143,7 +144,7 @@ class DiffusionNetBatch(nn.Module):
             self.blocks.append(block)
             self.add_module("block_" + str(i_block), self.blocks[-1])
 
-    def forward(self, surface, graph=None):
+    def forward(self, surface):
         """
         all the inputs are in list format
         A forward pass on the DiffusionNet.

@@ -6,7 +6,7 @@ from pathlib import Path
 import shutil
 from subprocess import Popen, PIPE
 import torch
-from torch_geometric.data import Data
+from torch_geometric.data import Data, Batch
 
 if __name__ == '__main__':
     script_dir = os.path.dirname(os.path.realpath(__file__))
@@ -60,6 +60,28 @@ class AtomGraphBuilder:
     def pdb_to_atomgraph(self, pdb_path):
         arrays = parse_pdb_path(pdb_path)
         return self.arrays_to_agraph(arrays)
+
+    @staticmethod
+    def batch_from_data_list(data_list):
+        return AGraphBatch.batch_from_data_list(data_list=data_list)
+
+
+class AGraphBatch(Batch):
+    """
+    This class is useful for PyG Batching
+
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    @classmethod
+    def batch_from_data_list(cls, data_list):
+        batch = Batch.from_data_list(data_list)
+        batch = batch.contiguous()
+        agraph_batch = cls()
+        agraph_batch.__dict__.update(batch.__dict__)
+        return agraph_batch
 
 
 if __name__ == "__main__":

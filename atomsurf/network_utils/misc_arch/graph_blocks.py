@@ -17,9 +17,9 @@ class GCNx2Block(torch.nn.Module):
             self.bn2 = nn.BatchNorm1d(dim_out)
         self.dropout = dropout
 
-    def forward(self, data):
-        x, edge_index = data.x, data.edge_index
-        edge_weight = data.edge_attr if self.use_weighted_edge_distance else None
+    def forward(self, graph):
+        x, edge_index = graph.x, graph.edge_index
+        edge_weight = graph.edge_attr if self.use_weighted_edge_distance else None
         x = self.conv1(x, edge_index, edge_weight)
         if self.use_bn:
             x = self.bn1(x)
@@ -29,4 +29,5 @@ class GCNx2Block(torch.nn.Module):
         x = self.conv2(x, edge_index, edge_weight)
         if self.use_bn:
             x = self.bn2(x)
-        return x
+        graph.x = x
+        return graph
