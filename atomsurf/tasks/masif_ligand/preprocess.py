@@ -87,10 +87,13 @@ class PreprocessPatchDataset(Dataset):
 
 class PreProcessPDBDataset(Dataset):
 
-    def __init__(self, recompute=True, max_vert_number=50000):
+    def __init__(self, recompute=True,data_dir=None):
 
         script_dir = os.path.dirname(os.path.realpath(__file__))
-        masif_ligand_data_dir = os.path.join(script_dir, '..', '..', '..', 'data', 'masif_ligand')
+        if data_dir==None:
+            masif_ligand_data_dir = os.path.join(script_dir, '..', '..', '..', 'data', 'masif_ligand')
+        else:
+            masif_ligand_data_dir=data_dir
         self.pdb_dir = os.path.join(masif_ligand_data_dir, 'raw_data_MasifLigand', 'pdb')
         self.out_surf_dir_full = os.path.join(masif_ligand_data_dir, 'surf_full')
         self.out_rgraph_dir = os.path.join(masif_ligand_data_dir, 'rgraph')
@@ -102,7 +105,6 @@ class PreProcessPDBDataset(Dataset):
 
         self.all_pdbs = os.listdir(self.pdb_dir)  # TODO filter
         self.recompute = recompute
-        self.max_vert_number = max_vert_number
 
     def __len__(self):
         return len(self.all_pdbs)
@@ -117,7 +119,7 @@ class PreProcessPDBDataset(Dataset):
             rgraph_dump = os.path.join(self.out_rgraph_dir, f'{name}.pt')
 
             if self.recompute or not os.path.exists(surface_full_dump):
-                surface = SurfaceObject.from_pdb_path(pdb_path, out_ply_path=None, max_vert_number=self.max_vert_number)
+                surface = SurfaceObject.from_pdb_path(pdb_path, out_ply_path=None)
                 surface.add_geom_feats()
                 surface.save_torch(surface_full_dump)
 
@@ -162,8 +164,6 @@ def do_all(dataset, num_workers=4, prefetch_factor=100):
 if __name__ == '__main__':
     pass
     recompute = False
-    dataset = PreprocessPatchDataset(recompute=recompute)
-    do_all(dataset, num_workers=4)
 
     dataset = PreProcessPDBDataset(recompute=recompute, max_vert_number=100000)
     do_all(dataset, num_workers=4)
