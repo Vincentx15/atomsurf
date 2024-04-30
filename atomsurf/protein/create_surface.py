@@ -29,7 +29,7 @@ def parse_verts(vert_file, face_file, keep_normals=False):
     :param keep_normals:
     :return:
     """
-    with open(vert_file, 'r') as f:
+    with open(vert_file, 'r', errors='ignore') as f:
         # Parse the file and ensure it looks sound
         lines = f.readlines()
         n_vert = int(lines[2].split()[0])
@@ -43,7 +43,7 @@ def parse_verts(vert_file, face_file, keep_normals=False):
         if keep_normals:
             normals = lines[:, 3:6]
 
-    with open(face_file, 'r') as f:
+    with open(face_file, 'r', errors='ignore') as f:
         # Parse the file and ensure it looks sound
         lines = f.readlines()
         n_faces = int(lines[2].split()[0])
@@ -70,7 +70,7 @@ def pdb_to_surf(pdb_path, out_name=None, density=1.):
     :return:
     """
     if out_name is None:
-        out_name=pdb_path
+        out_name = pdb_path
     out_name = str(Path(out_name).with_suffix(''))
     vert_file = out_name + '.vert'
     face_file = out_name + '.face'

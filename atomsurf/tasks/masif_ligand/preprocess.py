@@ -142,8 +142,13 @@ class PreProcessPDBDataset(Dataset):
         return success
 
 
-def do_all(dataset, num_workers=4):
-    dataloader = DataLoader(dataset, num_workers=num_workers, batch_size=1, collate_fn=lambda x: x[0])
+def do_all(dataset, num_workers=4, prefetch_factor=100):
+    prefetch_factor = prefetch_factor if num_workers > 0 else 2
+    dataloader = DataLoader(dataset,
+                            num_workers=num_workers,
+                            batch_size=1,
+                            prefetch_factor=prefetch_factor,
+                            collate_fn=lambda x: x[0])
     total_success = 0
     t0 = time.time()
     for i, success in enumerate(dataloader):
