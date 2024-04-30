@@ -16,3 +16,7 @@ The code to obtain graphs is split into three files:
 
 Finally, a factorized routine to create all these representations for all graphs is provided in `create_all.py`
 
+## Batching
+The objects are mostly Graphs. 
+However, we cannot batch torch.sparse_tensors, so we need to cast them as pyg.Data() instances.
+

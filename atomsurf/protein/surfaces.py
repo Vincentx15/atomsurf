@@ -6,6 +6,7 @@ import igl
 import numpy as np
 import torch
 from torch_geometric.data import Data
+from torch_geometric.data import Batch
 from torch_sparse import SparseTensor
 
 if __name__ == '__main__':
@@ -58,17 +59,19 @@ class SurfaceObject(Data, FeaturesHolder):
         super().__init__(**kwargs)
 
         self.verts = verts
+        self.n_verts = len(self.verts) if verts is not None else 0
         self.faces = faces
+
         self.mass = mass
         self.L = L
         self.evals = evals
         self.evecs = evecs
         self.gradX = gradX
         self.gradY = gradY
-        self.k_eig = len(evals)
+        self.k_eig = len(evals) if evals is not None else 0
 
         if features is None:
-            self.features = Features(num_nodes=len(self.verts))
+            self.features = Features(num_nodes=self.n_verts)
         else:
             self.features = features
 
@@ -77,7 +80,7 @@ class SurfaceObject(Data, FeaturesHolder):
             attr_value = getattr(self, attr_name)
             setattr(self, attr_name, diff_utils.safe_to_torch(attr_value).to(device=device, dtype=dtype))
 
-        for attr_name in ['L', 'mass','gradX', 'gradY']:
+        for attr_name in ['L', 'mass', 'gradX', 'gradY']:
             attr_value = getattr(self, attr_name)
             setattr(self, attr_name, diff_utils.sparse_np_to_torch(attr_value).to(device=device, dtype=dtype))
         return self
@@ -155,44 +158,36 @@ class SurfaceObject(Data, FeaturesHolder):
 
     @staticmethod
     def batch_from_data_list(data_list):
-        # # filter out None
-        # data_list = [data for data in data_list if data is not None]
-        # if len(data_list) == 0:
-        #     return None
-        return data_list
+        return SurfaceBatch.batch_from_data_list(data_list=data_list)
 
-    # @classmethod
-    # def batch_from_data_list(cls, data_list):
-    #     # filter out None
-    #     data_list = [data for data in data_list if data is not None]
-    #     if len(data_list) == 0:
-    #         return None
-    #     data_list = [data.from_numpy() for data in data_list]
-    #
-    #     # create batch
-    #     keys = [set(data.keys) for data in data_list]
-    #     keys = list(set.union(*keys))
-    #
-    #     batch = cls()
-    #     batch.__data_class__ = data_list[0].__class__
-    #
-    #     for key in keys:
-    #         batch[key] = []
-    #
-    #     for _, data in enumerate(data_list):
-    #         for key in data.keys:
-    #             item = data[key]
-    #             batch[key].append(item)
-    #
-    #     for key in batch.keys:
-    #         item = batch[key][0]
-    #         if isinstance(item, int) or isinstance(item, float):
-    #             batch[key] = torch.tensor(batch[key])
-    #         elif torch.is_tensor(item):
-    #             batch[key] = batch[key]
-    #         elif isinstance(item, SparseTensor):
-    #             batch[key] = batch[key]
-    #     return batch.contiguous()
+
+class SurfaceBatch(Batch):
+    # This is needed for PyG Batching
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    @classmethod
+    def batch_from_data_list(cls, data_list):
+        for surface in data_list:
+            for key in {'L', 'mass', 'gradX', 'gradY'}:
+                torch_sparse = getattr(surface, key)
+                surface[key] = Data(torch_sparse)
+        batch = Batch.from_data_list(data_list)
+        batch = batch.contiguous()
+        surface_batch = cls()
+        surface_batch.__dict__.update(batch.__dict__)
+        return surface_batch
+
+    def to_lists(self):
+        surfaces = self.to_data_list()
+        x_in = [mini_surface.x for mini_surface in surfaces]
+        mass = [mini_surface.mass.x for mini_surface in surfaces]
+        L = [mini_surface.L.x for mini_surface in surfaces]
+        evals = [mini_surface.evals for mini_surface in surfaces]
+        evecs = [mini_surface.evecs for mini_surface in surfaces]
+        gradX = [mini_surface.gradX.x for mini_surface in surfaces]
+        gradY = [mini_surface.gradY.x for mini_surface in surfaces]
+        return x_in, mass, L, evals, evecs, gradX, gradY
 
 
 if __name__ == "__main__":

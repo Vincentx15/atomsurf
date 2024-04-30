@@ -68,8 +68,9 @@ class ChemGeomFeatEncoder(nn.Module):
 
     def forward(self, surface, graph):
         # chem_feats, geom_feats, nbr_vids = graph.chem_feats, surface.geom_feats, surface.nbr_vids
-        surface_in = [mini_surface.x for mini_surface in surface]
-        chem_feats, geom_feats = graph.x, torch.concatenate(surface_in, dim=-2)
+        # surface_in = [mini_surface.x for mini_surface in surface]
+        # chem_feats, geom_feats = graph.x, torch.concatenate(surface_in, dim=-2)
+        chem_feats, geom_feats = graph.x, surface.x
         chem_feats = chem_feats.float()  # TODO FIX from loading ?
         geom_feats = geom_feats.float()
 
@@ -92,8 +93,9 @@ class ChemGeomFeatEncoder(nn.Module):
             h_geom = h_geom
             h_chem = nbr_filter
 
-        surface_out = torch.split(h_geom, [len(x) for x in surface_in], dim=-2)
-        for mini_surf_out, mini_surf in zip(surface_out, surface):
-            mini_surf.x = mini_surf_out
+        # surface_out = torch.split(h_geom, [len(x) for x in surface_in], dim=-2)
+        # for mini_surf_out, mini_surf in zip(surface_out, surface):
+        #     mini_surf.x = mini_surf_out
         graph.x = h_chem
+        surface.x = h_geom
         return surface, graph

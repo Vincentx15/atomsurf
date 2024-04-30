@@ -615,11 +615,6 @@ def to_basis(values, basis, massvec):
       - (B,K,D) transformed values
     """
     basisT = basis.transpose(-2, -1)
-    # x = massvec.x
-    # edge_index = massvec.edge_index
-    # edge_attr = massvec.edge_attr
-    # massvec_coo = torch.sparse_coo_tensor(edge_index, edge_attr, x.size(), dtype=x.dtype)
-    # scaled_values = torch.sparse.mm(massvec_coo, values[0])
     scaled_values = torch.sparse.mm(massvec, values[0])
     return torch.matmul(basisT, scaled_values)[None, ...]
 

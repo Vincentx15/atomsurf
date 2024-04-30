@@ -41,13 +41,7 @@ class DiffusionNetBlockBatch(nn.Module):
 
     # def forward(self, x_in, mass, L, evals, evecs, gradX, gradY):
     def forward(self, surfaces):
-        x_in = [mini_surface.x for mini_surface in surfaces]
-        mass = [mini_surface.mass for mini_surface in surfaces]
-        L = [mini_surface.L for mini_surface in surfaces]
-        evals = [mini_surface.evals for mini_surface in surfaces]
-        evecs = [mini_surface.evecs for mini_surface in surfaces]
-        gradX = [mini_surface.gradX for mini_surface in surfaces]
-        gradY= [mini_surface.gradY for mini_surface in surfaces]
+        x_in, mass, L, evals, evecs, gradX, gradY = surfaces.to_lists()
 
         x_in_batch = torch.cat(x_in, dim=0)
         split_sizes = [tensor.size(0) for tensor in x_in]
@@ -71,8 +65,6 @@ class DiffusionNetBlockBatch(nn.Module):
                 # gradient after diffusion
                 x_gradX = torch.mm(gradX[b], x_diffuse[b])
                 x_gradY = torch.mm(gradY[b], x_diffuse[b])
-                # x_gradX = torch.mm(gradX[b].to_torch_sparse_coo_tensor(), x_diffuse[b])
-                # x_gradY = torch.mm(gradY[b].to_torch_sparse_coo_tensor(), x_diffuse[b])
                 x_grads.append(torch.stack((x_gradX, x_gradY), dim=-1))
 
             x_grad_batch = torch.cat(x_grads, dim=0)

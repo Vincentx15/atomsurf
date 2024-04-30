@@ -45,7 +45,7 @@ class AtomBatch(Data):
                 batch[key] = torch.cat(batch[key])
             elif torch.is_tensor(item):
                 try:
-                    # If they are all of the same size
+                    # If they are all the same size
                     batch[key] = torch.stack(batch[key])
                 except:
                     batch[key] = batch[key]
