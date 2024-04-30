@@ -26,7 +26,7 @@ class MasifLigandModule(pl.LightningModule):
             return None, None, None
         labels = batch.label
         # return None, None, None
-        outputs = torch.concatenate(self(batch)).flatten()
+        outputs = self(batch)
         loss = self.criterion(outputs, labels)
         # if torch.isnan(loss).any():
         #     print('Nan loss')
@@ -51,9 +51,9 @@ class MasifLigandModule(pl.LightningModule):
             return None
         self.log_dict({"loss/train": loss.item()},
                       on_step=True, on_epoch=True, prog_bar=False, batch_size=len(logits))
-        acc = compute_accuracy(logits, labels)
-        auroc = compute_auroc(logits, labels)
-        self.log_dict({"acc/train": acc, "auroc/train": auroc}, on_epoch=True, batch_size=len(logits))
+        # acc = compute_accuracy(logits, labels)
+        # auroc = compute_auroc(logits, labels)
+        # self.log_dict({"acc/train": acc, "auroc/train": auroc}, on_epoch=True, batch_size=len(logits))
         return loss
 
     def validation_step(self, batch, batch_idx: int):
@@ -65,10 +65,10 @@ class MasifLigandModule(pl.LightningModule):
             return None
         self.log_dict({"loss/val": loss.item()},
                       on_step=False, on_epoch=True, prog_bar=True, batch_size=len(logits))
-        acc = compute_accuracy(logits, labels)
-        auroc = compute_auroc(logits, labels)
-        self.log_dict({"acc/val": acc, "auroc/val": auroc}, on_epoch=True, batch_size=len(logits))
-        self.log("auroc_val", auroc, prog_bar=True, on_step=False, on_epoch=True, logger=False, batch_size=len(logits))
+        # acc = compute_accuracy(logits, labels) # TODO FIX
+        # auroc = compute_auroc(logits, labels)
+        # self.log_dict({"acc/val": acc, "auroc/val": auroc}, on_epoch=True, batch_size=len(logits))
+        # self.log("auroc_val", auroc, prog_bar=True, on_step=False, on_epoch=True, logger=False, batch_size=len(logits))
 
     def test_step(self, batch, batch_idx: int):
         self.model.train()
@@ -78,9 +78,9 @@ class MasifLigandModule(pl.LightningModule):
             return None
         self.log_dict({"loss/test": loss.item()},
                       on_step=False, on_epoch=True, prog_bar=True, batch_size=len(logits))
-        acc = compute_accuracy(logits, labels)
-        auroc = compute_auroc(logits, labels)
-        self.log_dict({"acc/test": acc, "auroc/test": auroc}, on_epoch=True, batch_size=len(logits))
+        # acc = compute_accuracy(logits, labels) # TODO FIX
+        # auroc = compute_auroc(logits, labels)
+        # self.log_dict({"acc/test": acc, "auroc/test": auroc}, on_epoch=True, batch_size=len(logits))
 
     def configure_optimizers(self):
         opt_params = self.hparams.hparams.optimizer
