@@ -29,12 +29,13 @@ def get_systems_from_ligands(split_list_path, ligands_path, out_path=None, recom
         pdb = pdb_chains.split('_')[0]
         ligand_coords = np.load(os.path.join(ligands_path, f"{pdb}_ligand_coords.npy"),
                                 allow_pickle=True,
-                                encoding='bytes')
+                                encoding='bytes')  # .astype(np.float32)
         ligand_types = np.load(os.path.join(ligands_path, f"{pdb}_ligand_types.npy"))
         ligand_types = [lig.decode() for lig in ligand_types]
         for ix, (lig_type, lig_coord) in enumerate(zip(ligand_types, ligand_coords)):
+            lig_coord = lig_coord.astype(np.float32)
             pocket = f'{pdb_chains}_patch_{ix}_{lig_type}'
-            all_pockets[pocket] = np.reshape(lig_coord, (-1, 3)), type_idx[lig_type]  # TODO fix for floats
+            all_pockets[pocket] = np.reshape(lig_coord, (-1, 3)), type_idx[lig_type]
     if out_path is not None:
         pickle.dump(all_pockets, open(out_path, "wb"))
     return all_pockets
