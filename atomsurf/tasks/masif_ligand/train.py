@@ -25,14 +25,6 @@ def main(cfg=None):
 
     # init datamodule
     datamodule = MasifLigandDataModule(cfg)
-    # To debug while Trainer is buggy # TODO remove when trainer is fixed.
-    # train_loader = datamodule.train_dataloader()
-    # for i, batch in enumerate(train_loader):
-    #     if i > 2:
-    #         break
-    #     print(batch.graph[0].x.shape)
-    #     print(batch.surface[0].x.shape)
-    #     sys.exit()
 
     # init model
     model = MasifLigandModule(cfg)
@@ -45,7 +37,6 @@ def main(cfg=None):
 
     # callbacks
     lr_logger = pl.callbacks.LearningRateMonitor()
-
     checkpoint_callback = pl.callbacks.ModelCheckpoint(
         filename="{epoch}-{accuracy_val:.2f}",
         dirpath=Path(tb_logger.log_dir) / "checkpoints",
@@ -59,7 +50,6 @@ def main(cfg=None):
     early_stop_callback = pl.callbacks.EarlyStopping(monitor='accuracy_val',
                                                      patience=cfg.train.early_stoping_patience,
                                                      mode='max')
-
     callbacks = [lr_logger, checkpoint_callback, early_stop_callback, CommandLoggerCallback(command)]
 
     if torch.cuda.is_available():
