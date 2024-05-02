@@ -96,16 +96,20 @@ class Features(Data):
         :return:
         """
         all_features = []
+        # Add flat features, default ones
         if "flat_features" in self.keys:
             all_features.append(self.flat_features)
+        # Add named features that are requested
         if "named_features" in self.keys:
             if feature_keys == 'all':
                 feature_keys = list(self.named_features.keys())
             for feature_key in feature_keys:
                 named_feature = self.named_features[feature_key]
+                # If this is not of the right shape, it means it's a res for atom feature, so we expand it with resmap
                 if len(named_feature) != self.num_nodes:
                     named_feature = self.expand_one(named_feature)
                 all_features.append(named_feature)
+        # Follow the same steps for one-hot encoded features
         if "named_one_hot_features" in self.keys:
             if oh_keys == 'all':
                 oh_keys = list(self.named_one_hot_features.keys())

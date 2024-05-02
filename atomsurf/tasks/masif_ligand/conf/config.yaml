@@ -58,7 +58,7 @@ cfg_surface:
   use_surfaces: true
   use_whole_surfaces: False
 #  data_dir: ../../../data/masif_ligand/surf_full
-  data_dir: ../../../data/masif_ligand/surf_ours_2
+  data_dir: ../../../data/masif_ligand/surf_ours
   feat_keys: 'all'
   oh_keys: 'all'
 
@@ -80,4 +80,5 @@ cfg_graph:
 #  use_esm: false
 
 cfg_head:
-  toto: false
+  encoded_dims: 12
+  output_dims:  7

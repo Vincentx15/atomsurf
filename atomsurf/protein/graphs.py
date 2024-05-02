@@ -132,14 +132,14 @@ def parse_pdb_path(pdb_path):  # def parse_pdb_from_pqr(pdb_path)
 
 
         res_id += 1
-    amino_types = np.asarray(amino_types)
+    amino_types = np.asarray(amino_types, dtype=np.int32)
     atom_chain_id = np.asarray(atom_chain_id)
-    atom_amino_id = np.asarray(atom_amino_id)
+    atom_amino_id = np.asarray(atom_amino_id, dtype=np.int32)
     atom_names = np.asarray(atom_names)
-    atom_types = np.asarray(atom_types)
-    atom_pos = np.asarray(atom_pos)
-    atom_charge = np.asarray(atom_charge)
-    atom_radius = np.asarray(atom_radius)
+    atom_types = np.asarray(atom_types, dtype=np.int32)
+    atom_pos = np.asarray(atom_pos, dtype=np.float32)
+    atom_charge = np.asarray(atom_charge, dtype=np.float32)
+    atom_radius = np.asarray(atom_radius, dtype=np.float32)
 
 
     # We need to dump this adapted pdb with new coordinates and missing atoms
