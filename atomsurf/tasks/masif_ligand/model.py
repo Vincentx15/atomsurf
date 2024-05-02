@@ -5,18 +5,18 @@ from atomsurf.networks.protein_encoder import ProteinEncoder
 
 
 class MasifLigandNet(torch.nn.Module):
-    def __init__(self, hparams_encoder, hparams_head):
+    def __init__(self, cfg_encoder, cfg_head):
         super().__init__()
-        self.hparams_head = hparams_head
-        self.hparams_encoder = hparams_encoder
-        self.encoder = ProteinEncoder(hparams_encoder)
+        self.hparams_head = cfg_head
+        self.hparams_encoder = cfg_encoder
+        self.encoder = ProteinEncoder(cfg_encoder)
 
         self.top_net = nn.Sequential(*[
-            nn.Linear(hparams_head.encoded_dims, hparams_head.encoded_dims),
+            nn.Linear(cfg_head.encoded_dims, cfg_head.encoded_dims),
             nn.Dropout(p=0.1),
-            nn.BatchNorm1d(hparams_head.encoded_dims),
+            nn.BatchNorm1d(cfg_head.encoded_dims),
             nn.SiLU(),
-            nn.Linear(hparams_head.encoded_dims, out_features=hparams_head.output_dims)
+            nn.Linear(cfg_head.encoded_dims, out_features=cfg_head.output_dims)
         ])
 
     def pool_lig(self, pos, processed, lig_coords):

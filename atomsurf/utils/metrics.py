@@ -46,6 +46,5 @@ def multi_class_eval(scores, labels, K):
         f1_micro = f1_score(preds=scores, target=labels, average='micro', task='multiclass', num_classes=K).item()
 
         auroc_macro = auroc(preds=scores, target=labels, average='macro', task='multiclass', num_classes=K).item()
-
     return (accuracy_macro, accuracy_micro, accuracy_balanced, precision_macro, precision_micro, recall_macro,
             recall_micro, f1_macro, f1_micro, auroc_macro,)
