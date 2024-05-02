@@ -26,7 +26,7 @@ class PreprocessPatchDataset(Dataset):
         masif_ligand_data_dir = os.path.join(script_dir, '..', '..', '..', 'data', 'masif_ligand')
         self.patch_dir = os.path.join(masif_ligand_data_dir, 'dataset_MasifLigand')
         self.out_surf_dir_hmr = os.path.join(masif_ligand_data_dir, 'surf_hmr')
-        self.out_surf_dir_ours = os.path.join(masif_ligand_data_dir, 'surf_ours')
+        self.out_surf_dir_ours = os.path.join(masif_ligand_data_dir, 'surf_ours_2')
         self.patches = list(os.listdir(self.patch_dir))
         self.recompute = recompute
         os.makedirs(self.out_surf_dir_ours, exist_ok=True)
@@ -168,5 +168,5 @@ if __name__ == '__main__':
     dataset = PreprocessPatchDataset(recompute=recompute)
     do_all(dataset, num_workers=4)
 
-    dataset = PreProcessPDBDataset(recompute=recompute, max_vert_number=100000)
-    do_all(dataset, num_workers=4)
+    # dataset = PreProcessPDBDataset(recompute=recompute, max_vert_number=100000)
+    # do_all(dataset, num_workers=4)

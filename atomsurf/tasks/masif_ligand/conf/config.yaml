@@ -56,8 +56,9 @@ train:
 
 cfg_surface:
   use_surfaces: true
-  use_whole_surfaces: true
-  data_dir: ../../../data/masif_ligand/surf_full
+  use_whole_surfaces: False
+#  data_dir: ../../../data/masif_ligand/surf_full
+  data_dir: ../../../data/masif_ligand/surf_ours_2
   feat_keys: 'all'
   oh_keys: 'all'
 

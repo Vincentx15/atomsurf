@@ -117,10 +117,11 @@ class Features(Data):
                     encoded_feat = self.expand_one(encoded_feat)
                 all_features.append(encoded_feat)
         all_features = [tensor[:, None] if len(tensor.shape) == 1 else tensor for tensor in all_features]
-        if len(all_features)>0:
+        if len(all_features) > 0:
             all_features = torch.hstack(all_features)
-        else:all_features=torch.ones(self.num_nodes, 1)
-        return all_features
+        else:
+            all_features = torch.ones(self.num_nodes, 1)
+        return all_features.float()
 
     @staticmethod
     def load(save_path):
@@ -128,6 +129,7 @@ class Features(Data):
 
     def save(self, save_path):
         torch.save(self, save_path)
+
 
 class FeaturesHolder:
     """
@@ -139,7 +141,6 @@ class FeaturesHolder:
         self.x = self.features.build_expanded_features(**kwargs)
         if remove_feats:
             self.features = None
-
 
 
 if __name__ == "__main__":
