@@ -89,7 +89,7 @@ def pdb_to_surf(pdb_path, out_name=None, density=1.):
         # Then run msms on this file
         cline = f"{msms_path} -if {xyzr_name} -of {out_name} -density {density}"
         with open(log_name, "w") as f:
-            result = subprocess.run(cline.split(), stdout=f, stderr=f, timeout=10)
+            result = subprocess.run(cline.split(), stdout=f, stderr=f, timeout=30)
         if result.returncode != 0:
             print(f"*** An error occurred while executing the command: {cline}, see log file for details. *** ")
             raise RuntimeError(f"MSMS failed with return code {result.returncode}")
