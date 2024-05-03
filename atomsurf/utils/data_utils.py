@@ -1,3 +1,4 @@
+import os
 import re
 import torch
 from torch_geometric.data import Data
@@ -7,6 +8,62 @@ from torch_sparse import SparseTensor
 from atomsurf.protein.surfaces import SurfaceObject
 from atomsurf.protein.residue_graph import ResidueGraph
 from atomsurf.protein.atom_graph import AtomGraph
+
+
+class SurfaceLoader:
+    def __init__(self, config):
+        self.config = config
+        self.data_dir = config.data_dir
+
+    def load(self, pocket_name):
+        if not self.config.use_surfaces:
+            return Data()
+        try:
+            surface = torch.load(os.path.join(self.data_dir, f"{pocket_name}.pt"))
+            surface.expand_features(remove_feats=True, feature_keys=self.config.feat_keys, oh_keys=self.config.oh_keys)
+            return surface
+        except Exception as e:
+            return None
+
+
+class GraphLoader:
+    def __init__(self, config):
+        self.config = config
+        self.data_dir = config.data_dir
+        self.esm_dir = config.esm_dir
+        self.use_esm = config.use_esm
+
+    def load(self, pocket_name):
+        if not self.config.use_graphs:
+            return Data()
+        try:
+            graph = torch.load(os.path.join(self.data_dir, f"{pocket_name}.pt"))
+            feature_keys = self.config.feat_keys
+            if self.use_esm:
+                esm_feats_path = os.path.join(self.esm_dir, f"{pocket_name}_esm.pt")
+                esm_feats = torch.load(esm_feats_path)
+                graph.features.add_named_features('esm_feats', esm_feats)
+                if feature_keys != 'all':
+                    feature_keys.append('esm_feats')
+            graph.expand_features(remove_feats=True, feature_keys=feature_keys, oh_keys=self.config.oh_keys)
+        except Exception as e:
+            return None
+        return graph
+
+
+def update_model_input_dim(cfg, dataset_temp):
+    # Useful to create a Model of the right input dims
+    try:
+        from omegaconf import open_dict
+        for example in dataset_temp:
+            if example is not None:
+                with open_dict(cfg):
+                    feat_encoder_kwargs = cfg.encoder.blocks[0].kwargs
+                    feat_encoder_kwargs['graph_feat_dim'] = example.graph.x.shape[1]
+                    feat_encoder_kwargs['surface_feat_dim'] = example.surface.x.shape[1]
+                break
+    except Exception as e:
+        print('Could not update model input dims because of error: ', e)
 
 
 class AtomBatch(Data):
