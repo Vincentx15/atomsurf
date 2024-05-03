@@ -3,9 +3,9 @@ defaults:
   - blocks_zoo
   - encoder: debug
   - dataset: vanilla
-  #  - dataset@trainset: [ masif_ligand_hmr ]
-  #  - dataset@valset: [ masif_ligand_hmr ]
-  #  - dataset@testset: [ masif_ligand_hmr ]
+  #  - dataset@trainset: [ masif_site_hmr ]
+  #  - dataset@valset: [ masif_site_hmr ]
+  #  - dataset@testset: [ masif_site_hmr ]
   - optimizer: adam
   - scheduler: reduce_lr_on_plateau
   - override hydra/job_logging: colorlog
@@ -18,7 +18,7 @@ hydra:
 # general params
 seed: 2024
 run_name: default
-out_dir: ../../../outputs/masif_ligand/out_dir
+out_dir: ../../../outputs/masif_site/out_dir
 test_freq: 5
 epochs: 100
 device: 0
@@ -27,7 +27,7 @@ path_model: "version_x/checkpoints/last.ckpt"
 
 # loader params
 loader:
-  num_workers: 4
+  num_workers: 0
   batch_size: 8
   pin_memory: False
   prefetch_factor: 2
@@ -57,29 +57,27 @@ train:
 
 cfg_surface:
   use_surfaces: true
-  use_whole_surfaces: False
-  #  data_dir: ../../../data/masif_ligand/surf_full
-  data_dir: ../../../data/masif_ligand/surf_ours
+  data_dir: ../../../data/masif_site/surfaces
   feat_keys: 'all'
   oh_keys: 'all'
 
 # python train.py 'cfg_graph.feat_keys=[hphobs]' 'cfg_graph.oh_keys=[amino_types]' cfg_graph.use_esm=True
 cfg_graph:
   use_graphs: true
-  data_dir: ../../../data/masif_ligand/rgraph
+  data_dir: ../../../data/masif_site/rgraph
   feat_keys: 'all'
   oh_keys: 'all'
-  esm_dir: ../../../data/masif_ligand/esm
+  esm_dir: ../../../data/masif_site/esm
   use_esm: false
 
 #cfg_graph:
 #  use_graphs: true
-#  data_dir: ../../../data/masif_ligand/agraph
+#  data_dir: ../../../data/masif_site/agraph
 #  feat_keys: 'all'
 #  oh_keys: 'all'
-#  esm_dir: ../../../data/masif_ligand/esm
+#  esm_dir: ../../../data/masif_site/esm
 #  use_esm: false
 
 cfg_head:
   encoded_dims: 12
-  output_dims: 7
+  output_dims: 1
