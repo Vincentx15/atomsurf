@@ -202,14 +202,6 @@ class RGraphBatch(Batch):
         surface_batch.__dict__.update(batch.__dict__)
         return surface_batch
 
-    # @staticmethod
-    # def batch_from_data_list(data_list):
-    #     # filter out None
-    #     data_list = [data for data in data_list if data is not None]
-    #     if len(data_list) == 0:
-    #         return None
-    #     return data_list
-
 
 class ResidueGraphBuilder:
     def __init__(self, add_pronet=True, add_esm=False):
@@ -225,8 +217,7 @@ class ResidueGraphBuilder:
         :param esm_path:
         :return:
         """
-        amino_types, atom_chain_id, atom_amino_id, atom_names, atom_types, atom_pos, atom_charge, atom_radius, res_sse = arrays
-
+        amino_types, atom_chain_id, atom_amino_id, atom_names, _, atom_pos, atom_charge, atom_radius, res_sse = arrays
         mask_ca = np.char.equal(atom_names, 'CA')
         pos_ca = np.full((len(amino_types), 3), np.nan)
         pos_ca[atom_amino_id[mask_ca]] = atom_pos[mask_ca]
@@ -237,9 +228,9 @@ class ResidueGraphBuilder:
                                  edge_index=edge_index,
                                  edge_attr=edge_dists)
         res_graph.features.add_named_oh_features('amino_types', amino_types, 21)
-        hphob = [res_type_to_hphob[amino_type] for amino_type in amino_types]
+        res_graph.features.add_named_oh_features('sse', res_sse, nclasses=8)
+        hphob = np.asarray([res_type_to_hphob[amino_type] for amino_type in amino_types], dtype=np.float32)
         res_graph.features.add_named_features('hphobs', hphob)
-        res_graph.features.add_named_features('sse', res_sse)
         if self.add_esm:
             esm_embed = get_esm_embedding_single(pdb_path, esm_path)
             res_graph.features.add_named_features('esm_embed', esm_embed)

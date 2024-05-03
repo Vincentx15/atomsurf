@@ -45,7 +45,7 @@ class AtomGraphBuilder:
         pass
 
     def arrays_to_agraph(self, arrays):
-        amino_types, atom_chain_id, atom_amino_id, atom_names, atom_types, atom_pos, atom_charge, atom_radius, res_sse = arrays
+        amino_types, _, atom_amino_id, _, atom_types, atom_pos, atom_charge, atom_radius, res_sse = arrays
         edge_index, edge_dists = atom_coords_to_edges(atom_pos)
         atom_graph = AtomGraph(node_pos=atom_pos,
                                res_map=atom_amino_id,
@@ -53,6 +53,7 @@ class AtomGraphBuilder:
                                edge_attr=edge_dists)
         atom_graph.features.add_named_oh_features('amino_types', amino_types, nclasses=21)
         atom_graph.features.add_named_oh_features('atom_types', atom_types, nclasses=12)
+        atom_graph.features.add_named_oh_features('sse', atom_types, nclasses=8)
         atom_graph.features.add_named_features('charge', atom_charge)
         atom_graph.features.add_named_features('radius', atom_radius)
         return atom_graph

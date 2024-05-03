@@ -236,8 +236,8 @@ def mesh_simplification(verts, faces, out_ply,
 
     # cleaning the mesh
     mesh = pymesh.form_mesh(verts_out, faces_out)
-    mesh, _ = pymesh.remove_duplicated_vertices(mesh, 1E-6)
-    mesh, _ = pymesh.remove_degenerated_triangles(mesh, 100)
+    mesh, _ = pymesh.remove_duplicated_vertices(mesh, 1E-6)  # duplicate
+    mesh, _ = pymesh.remove_degenerated_triangles(mesh, 100)  # colinear vertices
     num_verts = mesh.num_vertices
     iteration = 0
     while iteration < 10:
@@ -249,11 +249,11 @@ def mesh_simplification(verts, faces, out_ply,
         iteration += 1
 
     mesh = pymesh.resolve_self_intersection(mesh)
-    mesh, _ = pymesh.remove_duplicated_faces(mesh)
+    mesh, _ = pymesh.remove_duplicated_faces(mesh) # easy
     # mesh = pymesh.compute_outer_hull(mesh) (Is this needed?)
     mesh, _ = pymesh.remove_obtuse_triangles(mesh, 179.0, 100)
     mesh = remove_abnormal_triangles(mesh)
-    mesh_py, _ = pymesh.remove_isolated_vertices(mesh)
+    mesh_py, _ = pymesh.remove_isolated_vertices(mesh) # vertices not in faces, easy with index
 
     disconnected, isolated_verts, duplicate_verts, abnormal_triangles = check_mesh_validity(mesh_py,
                                                                                             check_triangles=True)

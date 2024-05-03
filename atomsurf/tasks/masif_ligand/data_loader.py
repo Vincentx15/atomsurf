@@ -12,7 +12,7 @@ if __name__ == '__main__':
     script_dir = os.path.dirname(os.path.realpath(__file__))
     sys.path.append(os.path.join(script_dir, '..', '..', '..'))
 
-from atomsurf.utils.data_utils import AtomBatch
+from atomsurf.utils.data_utils import SurfaceLoader, GraphLoader, AtomBatch, update_model_input_dim
 
 ligands = ["ADP", "COA", "FAD", "HEM", "NAD", "NAP", "SAM"]
 type_idx = {type_: ix for ix, type_ in enumerate(ligands)}
@@ -27,11 +27,13 @@ def get_systems_from_ligands(split_list_path, ligands_path, out_path=None, recom
     split_list = open(split_list_path).read().splitlines()
     for pdb_chains in split_list:
         pdb = pdb_chains.split('_')[0]
-        ligand_coords = np.load(os.path.join(ligands_path, f"{pdb}_ligand_coords.npy"), allow_pickle=True,
-                                encoding='bytes')
+        ligand_coords = np.load(os.path.join(ligands_path, f"{pdb}_ligand_coords.npy"),
+                                allow_pickle=True,
+                                encoding='bytes')  # .astype(np.float32)
         ligand_types = np.load(os.path.join(ligands_path, f"{pdb}_ligand_types.npy"))
         ligand_types = [lig.decode() for lig in ligand_types]
         for ix, (lig_type, lig_coord) in enumerate(zip(ligand_types, ligand_coords)):
+            lig_coord = lig_coord.astype(np.float32)
             pocket = f'{pdb_chains}_patch_{ix}_{lig_type}'
             all_pockets[pocket] = np.reshape(lig_coord, (-1, 3)), type_idx[lig_type]
     if out_path is not None:
@@ -39,62 +41,31 @@ def get_systems_from_ligands(split_list_path, ligands_path, out_path=None, recom
     return all_pockets
 
 
-class SurfaceBuilder:
+class SurfaceLoaderMasifLigand(SurfaceLoader):
     def __init__(self, config):
-        self.config = config
-        self.data_dir = config.data_dir
+        super().__init__(config)
 
-    def build(self, pocket_name):
-        if not self.config.use_surfaces:
-            return Data()
+    def load(self, pocket_name):
         if self.config.use_whole_surfaces:
             pocket_name = pocket_name.split('_patch_')[0]
-        try:
-            surface = torch.load(os.path.join(self.data_dir, f"{pocket_name}.pt"))
-            surface.expand_features(remove_feats=True, feature_keys=self.config.feat_keys, oh_keys=self.config.oh_keys)
-            return surface
-        except:
-            return None
+        return super().load(pocket_name)
 
 
-class GraphBuilder:
+class GraphLoaderMasifLigand(GraphLoader):
     def __init__(self, config):
-        self.config = config
-        self.data_dir = config.data_dir
-        self.esm_dir = config.esm_dir
-        self.use_esm = config.use_esm
+        super().__init__(config)
 
-    def build(self, pocket_name):
-        if not self.config.use_graphs:
-            return Data()
-        try:
-            pocket_name = pocket_name.split('_patch_')[0]
-            graph = torch.load(os.path.join(self.data_dir, f"{pocket_name}.pt"))
-            feature_keys = self.config.feat_keys
-            if self.use_esm:
-                esm_feats_path = os.path.join(self.esm_dir, f"{pocket_name}_esm.pt")
-                esm_feats = torch.load(esm_feats_path)
-                graph.features.add_named_features('esm_feats', esm_feats)
-                if feature_keys != 'all':
-                    feature_keys.append('esm_feats')
-            graph.expand_features(remove_feats=True, feature_keys=feature_keys, oh_keys=self.config.oh_keys)
-        except:
-            return None
-        return graph
+    def load(self, pocket_name):
+        pocket_name = pocket_name.split('_patch_')[0]
+        return super().load(pocket_name)
 
 
 class MasifLigandDataset(Dataset):
-
     def __init__(self, systems, surface_builder, graph_builder):
         self.systems = systems
         self.systems_keys = list(systems.keys())
         self.surface_builder = surface_builder
         self.graph_builder = graph_builder
-
-    # @staticmethod
-    # def collate_wrapper(unbatched_list):
-    #     unbatched_list = [elt for elt in unbatched_list if elt is not None]
-    #     return AtomBatch.from_data_list(unbatched_list)
 
     def __len__(self):
         return len(self.systems)
@@ -105,8 +76,8 @@ class MasifLigandDataset(Dataset):
         lig_coord, lig_type = self.systems[pocket]
         lig_coord = torch.from_numpy(lig_coord)
         # pocket = f'{pdb_chains}_patch_{ix}_{lig_type}'
-        surface = self.surface_builder.build(pocket)
-        graph = self.graph_builder.build(pocket)
+        surface = self.surface_builder.load(pocket)
+        graph = self.graph_builder.load(pocket)
         if surface is None or graph is None:
             return None
         # TODO GDF EXPAND
@@ -117,8 +88,8 @@ class MasifLigandDataset(Dataset):
 class MasifLigandDataModule(pl.LightningDataModule):
     def __init__(self, cfg):
         super().__init__()
-        self.surface_builder = SurfaceBuilder(cfg.cfg_surface)
-        self.graph_builder = GraphBuilder(cfg.cfg_graph)
+        self.surface_loader = SurfaceLoaderMasifLigand(cfg.cfg_surface)
+        self.graph_loader = GraphLoaderMasifLigand(cfg.cfg_graph)
         script_dir = os.path.dirname(os.path.realpath(__file__))
         masif_ligand_data_dir = os.path.join(script_dir, '..', '..', '..', 'data', 'masif_ligand')
         splits_dir = os.path.join(masif_ligand_data_dir, 'raw_data_MasifLigand', 'splits')
@@ -137,29 +108,19 @@ class MasifLigandDataModule(pl.LightningDataModule):
                             'prefetch_factor': self.cfg.loader.prefetch_factor,
                             'shuffle': self.cfg.loader.shuffle,
                             'collate_fn': lambda x: AtomBatch.from_data_list(x)}
-
-        # Useful to create a Model of the right input dims
-        train_dataset_temp = MasifLigandDataset(self.systems[0], self.surface_builder, self.graph_builder)
-        train_dataset_temp = iter(train_dataset_temp)
-        exemple = None
-        while exemple is None:
-            exemple = next(train_dataset_temp)
-        from omegaconf import open_dict
-        with open_dict(cfg):
-            feat_encoder_kwargs = cfg.encoder.blocks[0].kwargs
-            feat_encoder_kwargs['graph_feat_dim'] = exemple.graph.x.shape[1]
-            feat_encoder_kwargs['surface_feat_dim'] = exemple.surface.x.shape[1]
+        dataset_temp = MasifLigandDataset(self.systems[0], self.surface_loader, self.graph_loader)
+        update_model_input_dim(cfg, dataset_temp=dataset_temp)
 
     def train_dataloader(self):
-        dataset = MasifLigandDataset(self.systems[0], self.surface_builder, self.graph_builder)
+        dataset = MasifLigandDataset(self.systems[0], self.surface_loader, self.graph_loader)
         return DataLoader(dataset, **self.loader_args)
 
     def val_dataloader(self):
-        dataset = MasifLigandDataset(self.systems[1], self.surface_builder, self.graph_builder)
+        dataset = MasifLigandDataset(self.systems[1], self.surface_loader, self.graph_loader)
         return DataLoader(dataset, **self.loader_args)
 
     def test_dataloader(self):
-        dataset = MasifLigandDataset(self.systems[2], self.surface_builder, self.graph_builder)
+        dataset = MasifLigandDataset(self.systems[2], self.surface_loader, self.graph_loader)
         return DataLoader(dataset, **self.loader_args)
 
 
@@ -177,22 +138,30 @@ if __name__ == '__main__':
     #                                        out_path=out_path,
     #                                        recompute=True)
 
+    # SURFACE
     script_dir = os.path.dirname(os.path.realpath(__file__))
     masif_ligand_data_dir = os.path.join(script_dir, '..', '..', '..', 'data', 'masif_ligand')
     cfg_surface = Data()
     cfg_surface.use_surfaces = True
-    # cfg_surface.use_whole_surfaces = False
+    cfg_surface.feat_keys = 'all'
+    cfg_surface.oh_keys = 'all'
+    cfg_surface.use_whole_surfaces = False
     # cfg_surface.data_dir = os.path.join(masif_ligand_data_dir, 'surf_hmr')
-    # cfg_surface.data_dir = os.path.join(masif_ligand_data_dir, 'surf_ours')
-    cfg_surface.use_whole_surfaces = True
-    cfg_surface.data_dir = os.path.join(masif_ligand_data_dir, 'surf_full')
-    surface_builder = SurfaceBuilder(cfg_surface)
+    cfg_surface.data_dir = os.path.join(masif_ligand_data_dir, 'surf_ours')
+    # cfg_surface.use_whole_surfaces = True
+    # cfg_surface.data_dir = os.path.join(masif_ligand_data_dir, 'surf_full')
+    surface_loader = SurfaceLoaderMasifLigand(cfg_surface)
 
+    # GRAPHS
     cfg_graph = Data()
-    cfg_graph.use_graphs = True
+    cfg_graph.use_graphs = False
+    cfg_graph.feat_keys = 'all'
+    cfg_graph.oh_keys = 'all'
+    cfg_graph.esm_dir = 'toto'
+    cfg_graph.use_esm = False
     cfg_graph.data_dir = os.path.join(masif_ligand_data_dir, 'rgraph')
     # cfg_graph.data_dir= os.path.join(masif_ligand_data_dir, 'agraph')
-    graph_builder = GraphBuilder(cfg_graph)
+    graph_loader = GraphLoaderMasifLigand(cfg_graph)
 
     split = 'train'
     splits_path = os.path.join(splits_dir, f'{split}-list.txt')
@@ -200,7 +169,7 @@ if __name__ == '__main__':
     systems = get_systems_from_ligands(splits_path,
                                        ligands_path=ligands_path,
                                        out_path=out_path)
-    dataset = MasifLigandDataset(systems, surface_builder, graph_builder)
+    dataset = MasifLigandDataset(systems, surface_loader, graph_loader)
     a = dataset[0]
 
     loader_cfg = Data(num_workers=0, batch_size=4, pin_memory=False, prefetch_factor=2, shuffle=False)

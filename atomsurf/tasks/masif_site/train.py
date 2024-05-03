@@ -12,8 +12,8 @@ if __name__ == '__main__':
     sys.path.append(str(Path(__file__).absolute().parents[3]))
 
 from atomsurf.utils.callbacks import CommandLoggerCallback
-from pl_model import MasifLigandModule
-from data_loader import MasifLigandDataModule
+from pl_model import MasifSiteModule
+from data_loader import MasifSiteDataModule
 
 
 @hydra.main(config_path="conf", config_name="config")
@@ -24,10 +24,10 @@ def main(cfg=None):
     pl.seed_everything(seed, workers=True)
 
     # init datamodule
-    datamodule = MasifLigandDataModule(cfg)
+    datamodule = MasifSiteDataModule(cfg)
 
     # init model
-    model = MasifLigandModule(cfg)
+    model = MasifSiteModule(cfg)
 
     # init logger
     version = TensorBoardLogger(save_dir=cfg.log_dir).version

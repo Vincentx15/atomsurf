@@ -71,16 +71,14 @@ class ChemGeomFeatEncoder(nn.Module):
         # surface_in = [mini_surface.x for mini_surface in surface]
         # chem_feats, geom_feats = graph.x, torch.concatenate(surface_in, dim=-2)
         chem_feats, geom_feats = graph.x, surface.x
-        chem_feats = chem_feats.float()  # TODO FIX from loading ?
-        geom_feats = geom_feats.float()
 
         # geometric features
         h_geom = self.geom_mlp(geom_feats)
 
         # chemical features
         h_chem = self.chem_mlp(chem_feats)
-        nbr_filter, nbr_core = h_chem.chunk(2, dim=-1)
 
+        nbr_filter, nbr_core = h_chem.chunk(2, dim=-1)
         # If self-filter
         if self.use_neigh:
             nbr_vids = surface.nbr_vid  # TODO: implement/fix

@@ -289,12 +289,12 @@ def build_grad(verts, edges, edge_tangent_vectors):
             data_vals.append(sol_coefs[i_neigh])
 
     # build the sparse matrix
-    row_inds = np.array(row_inds)
-    col_inds = np.array(col_inds)
+    row_inds = np.array(row_inds, dtype=np.int32)
+    col_inds = np.array(col_inds, dtype=np.int32)
     data_vals = np.array(data_vals)
-    mat = scipy.sparse.coo_matrix(
-        (data_vals, (row_inds, col_inds)), shape=(N, N)
-    ).tocsc()
+
+    # data_vals = np.array(data_vals, dtype=np.float32)
+    mat = scipy.sparse.coo_matrix((data_vals, (row_inds, col_inds)), shape=(N, N)).tocsc()
 
     return mat
 
@@ -325,9 +325,11 @@ def compute_operators(verts, faces, k_eig=128, normals=None, use_fem_decomp=Fals
     # Build the scalar Laplacian
     L = pp3d.cotan_laplacian(verts, faces, denom_eps=1e-10)
 
-
     if np.isnan(L.data).any():
         raise RuntimeError("NaN Laplace matrix")
+
+    # Make L csc just out of coherence with the rest; arrays are the same since L is symmetric
+    L = L.tocsc()
 
     # === Compute the eigenbasis
     if not use_fem_decomp:
@@ -360,6 +362,10 @@ def compute_operators(verts, faces, k_eig=128, normals=None, use_fem_decomp=Fals
     else:
         evals, evecs, massvec = fem_decomp(verts=verts, faces=faces)
 
+    evals = evals.astype(np.float32)
+    evecs = evecs.astype(np.float32)
+    massvec = massvec.tocsc().astype(np.float32)
+
     # Read off neighbors & rotations from the Laplacian
     L_coo = L.tocoo()
     inds_row = L_coo.row
@@ -373,8 +379,8 @@ def compute_operators(verts, faces, k_eig=128, normals=None, use_fem_decomp=Fals
     grad_mat = build_grad(verts, edges, edge_vecs)
 
     # Split complex gradient in to two real sparse mats (torch doesn't like complex sparse matrices)
-    gradX = np.real(grad_mat)
-    gradY = np.imag(grad_mat)
+    gradX = np.real(grad_mat).astype(np.int32)
+    gradY = np.imag(grad_mat).astype(np.int32)
     return frames, massvec, L, evals, evecs, gradX, gradY
 
 
@@ -388,6 +394,7 @@ def get_operators(npz_path, verts, faces, k_eig=128, normals=None, recompute=Fal
                                                                         k_eig,
                                                                         normals=normals,
                                                                         use_fem_decomp=use_fem_decomp)
+
         np.savez(npz_path,
                  verts=verts,
                  faces=faces,
@@ -437,6 +444,6 @@ if __name__ == "__main__":
     faces = np.asarray(mesh.triangles, dtype=np.int32)
 
     operator_file = "../../data/example_files/example_operator.npz"
-    get_operators(operator_file, vertices, faces, k_eig=128, recompute=True, use_fem_decomp=False)
-    # get_operators(operator_file, vertices, faces, k_eig=128, recompute=True, use_fem_decomp=True)
+    # get_operators(operator_file, vertices, faces, k_eig=128, recompute=True, use_fem_decomp=False)
+    get_operators(operator_file, vertices, faces, k_eig=128, recompute=True, use_fem_decomp=True)
     operators = load_operators(operator_file)

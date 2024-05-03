@@ -46,9 +46,6 @@ class PreprocessPatchDataset(Dataset):
             data = np.load(patch_in, allow_pickle=True)
             verts = data['pkt_verts']
             faces = data['pkt_faces'].astype(int)
-            # eigen_vals = data['eigen_vals']
-            # eigen_vecs = data['eigen_vecs']
-            # mass = data['mass'].item().todense()
 
             # Compare different ways to produce surface, our, using HMR preprocs, HMR eigenvecs cached...
             # Ours from verts faces (pdb further)
@@ -63,14 +60,17 @@ class PreprocessPatchDataset(Dataset):
                 surface_ours_hmr.add_geom_feats()
                 surface_ours_hmr.save_torch(surface_hmr_dump)
 
-            # These are close, but not identical. Usually there is a max difference of about 0.003
+            # # These are close, but not identical. Usually there is a max difference of about 0.003
             # for a_hmr, a_ours in zip(surface_ours.evecs.T, surface_ours_hmr.evecs[:, :40].T):
             #     max_diff = torch.max(a_hmr - a_ours)
             #     max_diff_opp = torch.max(a_hmr + a_ours)
             #     a = 1
 
-            # SANITY CHECK, our recomputation is the same as cached vectors => OK, evecs are the same or opposite
-            # Using HMR cached, we still need our processing to get grads operators
+            # # SANITY CHECK, our recomputation is the same as cached vectors => OK, evecs are the same or opposite
+            # # Using HMR cached, we still need our processing to get grads operators
+            # eigen_vals = data['eigen_vals']
+            # eigen_vecs = data['eigen_vecs']
+            # mass = data['mass'].item()
             # surface_hmr = SurfaceObject(verts=verts, faces=faces, mass=mass, L=surface_ours_hmr.L,
             #                             evals=eigen_vals, evecs=eigen_vecs,
             #                             gradX=surface_ours_hmr.gradX, gradY=surface_ours_hmr.gradY)
@@ -124,7 +124,7 @@ class PreProcessPDBDataset(Dataset):
                 surface.add_geom_feats()
                 surface.save_torch(surface_full_dump)
 
-            if self.recompute or not os.path.exists(surface_full_dump) or not os.path.exists(surface_full_dump):
+            if self.recompute or not os.path.exists(agraph_dump) or not os.path.exists(rgraph_dump):
                 arrays = parse_pdb_path(pdb_path)
 
                 # create atomgraph

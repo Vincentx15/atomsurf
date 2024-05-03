@@ -23,14 +23,14 @@ def compute_HKS(evecs, evals, num_t, t_min=0.1, t_max=1000, scale=1000):
     assert np.min(evals) > -1E-6
     assert np.array_equal(evals, sorted(evals))
 
-    t_list = np.geomspace(t_min, t_max, num_t)
+    t_list = np.geomspace(t_min, t_max, num_t, dtype=np.float32)
     phase = np.exp(-np.outer(t_list, evals[1:]))
     wphi = phase[:, None, :] * evecs[None, :, 1:]
-    HKS = np.einsum('tnk,nk->nt', wphi, evecs[:, 1:]) * scale
+    hks = np.einsum('tnk,nk->nt', wphi, evecs[:, 1:]) * scale
     heat_trace = np.sum(phase, axis=1)
-    HKS /= heat_trace
+    hks /= heat_trace
 
-    return HKS
+    return hks
 
 
 def get_geom_feats(verts, faces, evecs, evals, num_signatures=16):
@@ -46,7 +46,7 @@ def get_geom_feats(verts, faces, evecs, evals, num_signatures=16):
     si = si.reshape(-1, 1)
 
     # HKS:
-    hks = compute_HKS(evecs, evals, num_signatures)
+    hks = compute_HKS(evecs, evals, num_signatures) # TODO (?) use float evals/evecs here to be lighter ?
     vnormals = igl.per_vertex_normals(verts, faces)
     geom_feats = np.concatenate([gauss_curvs, mean_curvs, si, hks, vnormals], axis=-1)
     return geom_feats
@@ -75,24 +75,24 @@ class SurfaceObject(Data, FeaturesHolder):
         else:
             self.features = features
 
-    def from_numpy(self, device='cpu', dtype=torch.float32):
+    def from_numpy(self, device='cpu'):
         for attr_name in ['verts', 'faces', 'evals', 'evecs']:
             attr_value = getattr(self, attr_name)
-            setattr(self, attr_name, diff_utils.safe_to_torch(attr_value).to(device=device, dtype=dtype))
+            setattr(self, attr_name, diff_utils.safe_to_torch(attr_value).to(device=device))
 
         for attr_name in ['L', 'mass', 'gradX', 'gradY']:
             attr_value = getattr(self, attr_name)
-            setattr(self, attr_name, diff_utils.sparse_np_to_torch(attr_value).to(device=device, dtype=dtype))
+            setattr(self, attr_name, diff_utils.sparse_np_to_torch(attr_value).to(device=device))
         return self
 
-    def numpy(self, dtype_np=np.float32):
+    def numpy(self):
         for attr_name in ['verts', 'faces', 'evals', 'evecs']:
             attr_value = getattr(self, attr_name)
-            setattr(self, attr_name, diff_utils.toNP(attr_value, dtype_np))
+            setattr(self, attr_name, diff_utils.toNP(attr_value))
 
         for attr_name in ['L', 'mass', 'gradX', 'gradY']:
             attr_value = getattr(self, attr_name)
-            setattr(self, attr_name, diff_utils.sparse_torch_to_np(attr_value, dtype_np))
+            setattr(self, attr_name, diff_utils.sparse_torch_to_np(attr_value))
         return self
 
     def save(self, npz_path):
@@ -197,6 +197,8 @@ if __name__ == "__main__":
     pass
     surface_file = "../../data/example_files/example_operator.npz"
     surface = SurfaceObject.load(surface_file)
+    surface = surface.from_numpy()
+    surface = surface.numpy()
     surface.add_geom_feats()
 
     # Save as np
