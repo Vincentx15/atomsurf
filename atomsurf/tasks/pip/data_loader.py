@@ -20,15 +20,15 @@ from atomsurf.tasks.pip.preprocess import get_subunits
 
 
 class SurfaceBuilder:
-    def __init__(self, config):
+    def __init__(self, config,mode):
         self.config = config
         self.data_dir = config.data_dir
-
+        self.mode= mode
     def build(self, name):
         if not self.config.use_surfaces:
             return Data()
         try:
-            surface = torch.load(os.path.join(self.data_dir,'surf_full', f"{name}.pt"))
+            surface = torch.load(os.path.join(self.data_dir,self.mode,'surf_full', f"{name}.pt"))
             surface.expand_features(remove_feats=True, feature_keys=self.config.feat_keys, oh_keys=self.config.oh_keys)
             return surface
         except:
@@ -36,17 +36,17 @@ class SurfaceBuilder:
 
 
 class GraphBuilder:
-    def __init__(self, config):
+    def __init__(self, config,mode):
         self.config = config
         self.data_dir = config.data_dir
         self.esm_dir = config.esm_dir
         self.use_esm = config.use_esm
-
+        self.mode= mode
     def build(self, name):
         if not self.config.use_graphs:
             return Data()
         try:
-            graph = torch.load(os.path.join(self.data_dir,'rgraph', f"{name}.pt"))
+            graph = torch.load(os.path.join(self.data_dir,self.mode,'rgraph', f"{name}.pt"))
             feature_keys = self.config.feat_keys
             if self.use_esm:
                 esm_feats_path = os.path.join(self.esm_dir, f"{name}_esm.pt")
@@ -95,8 +95,8 @@ class PIPDataset(Dataset):
         protein_pair= self.systems[idx]
         pos_pairs = protein_pair['atoms_neighbors']
         names,dfs=get_subunits(protein_pair['atoms_pairs'])
-        pdbca1=dfs[0][dfs[0]['name']=='CA']
-        pdbca2=dfs[1][dfs[1]['name']=='CA']
+        pdbca1=dfs[0][(dfs[0]['name']=='CA') & (dfs[0]['hetero']==' ')& (dfs[0]['resname']!='UNK')]
+        pdbca2=dfs[1][(dfs[1]['name']=='CA') & (dfs[1]['hetero']==' ')& (dfs[1]['resname']!='UNK')]
         pos_pairs_res=pos_pairs[(pos_pairs['residue0'].isin(pdbca1.residue))&(pos_pairs['residue1'].isin(pdbca2.residue))]
 
         mapping_1 = {resindex: i for i, resindex in enumerate(pdbca1.residue.values)}
@@ -126,13 +126,16 @@ class PIPDataset(Dataset):
         surface_2 = self.surface_builder.build(names[1])
         graph_1 = self.graph_builder.build(names[0])
         graph_2 = self.graph_builder.build(names[1])
+        
+        import pdb
+        pdb.set_trace()
         if surface_1 is None or surface_2 is None or graph_1 is None or graph_2 is None:
             return None
         # TODO GDF EXPAND
+        print(names,len(pdbca1),len(pdbca2),graph_1.node_pos.shape,graph_2.node_pos.shape)
         locs_left= graph_1.node_pos[idx_left]
         locs_right= graph_2.node_pos[idx_right]
         #TODO MISS transform and normalize
-        print(idx_left)
         # item = Data(surface_1=surface_1, graph_1=graph_1,surface_2=surface_2, graph_2=graph_2, idx_left=idx_left,idx_right=idx_right, label=labels)
         item = Data(surface_1=surface_1, graph_1=graph_1,surface_2=surface_2, graph_2=graph_2, locs_left=locs_left,locs_right=locs_right, label=labels)
         return item
@@ -141,8 +144,7 @@ class PIPDataset(Dataset):
 class PIPDataModule(pl.LightningDataModule):
     def __init__(self, cfg):
         super().__init__()
-        self.surface_builder = SurfaceBuilder(cfg.cfg_surface)
-        self.graph_builder = GraphBuilder(cfg.cfg_graph)
+
         script_dir = os.path.dirname(os.path.realpath(__file__))
         data_dir=cfg.data_dir
         self.systems = []
@@ -155,9 +157,14 @@ class PIPDataModule(pl.LightningDataModule):
                             'prefetch_factor': self.cfg.loader.prefetch_factor,
                             'shuffle': self.cfg.loader.shuffle,
                             'collate_fn': lambda x: AtomBatch.from_data_list(x)}
-
+        self.surface_builder_train = SurfaceBuilder(self.cfg.cfg_surface,mode='train')
+        self.graph_builder_train = GraphBuilder(self.cfg.cfg_graph,mode='train')
+        self.surface_builder_test = SurfaceBuilder(self.cfg.cfg_surface,mode='test')
+        self.graph_builder_test = GraphBuilder(self.cfg.cfg_graph,mode='test')        
+        self.surface_builder_val = SurfaceBuilder(self.cfg.cfg_surface,mode='val')
+        self.graph_builder_val = GraphBuilder(self.cfg.cfg_graph,mode='val')
         # Useful to create a Model of the right input dims
-        train_dataset_temp = PIPDataset(self.systems[0], self.surface_builder, self.graph_builder)
+        train_dataset_temp = PIPDataset(self.systems[0], self.surface_builder_train, self.graph_builder_train)
         train_dataset_temp = iter(train_dataset_temp)
         exemple = None
         while exemple is None:
@@ -169,15 +176,15 @@ class PIPDataModule(pl.LightningDataModule):
             feat_encoder_kwargs['surface_feat_dim'] = exemple.surface_1.x.shape[1]
 
     def train_dataloader(self):
-        dataset = PIPDataset(self.systems[0], self.surface_builder, self.graph_builder)
+        dataset = PIPDataset(self.systems[0], self.surface_builder_train, self.graph_builder_train)
         return DataLoader(dataset, **self.loader_args)
 
     def val_dataloader(self):
-        dataset = PIPDataset(self.systems[1], self.surface_builder, self.graph_builder)
+        dataset = PIPDataset(self.systems[1], self.surface_builder_val, self.graph_builder_val)
         return DataLoader(dataset, **self.loader_args)
 
     def test_dataloader(self):
-        dataset = PIPDataset(self.systems[2], self.surface_builder, self.graph_builder)
+        dataset = PIPDataset(self.systems[2], self.surface_builder_test, self.graph_builder_test)
         return DataLoader(dataset, **self.loader_args)
 
 
