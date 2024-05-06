@@ -126,13 +126,10 @@ class PIPDataset(Dataset):
         surface_2 = self.surface_builder.build(names[1])
         graph_1 = self.graph_builder.build(names[0])
         graph_2 = self.graph_builder.build(names[1])
-        
-        import pdb
-        pdb.set_trace()
+
         if surface_1 is None or surface_2 is None or graph_1 is None or graph_2 is None:
             return None
         # TODO GDF EXPAND
-        print(names,len(pdbca1),len(pdbca2),graph_1.node_pos.shape,graph_2.node_pos.shape)
         locs_left= graph_1.node_pos[idx_left]
         locs_right= graph_2.node_pos[idx_right]
         #TODO MISS transform and normalize

@@ -145,7 +145,6 @@ class PreprocessPIPDataset(Dataset):
 
             if self.recompute or not os.path.exists(surface_full_dump) or not os.path.exists(surface_full_dump):
                 arrays = parse_pdb_path(pdb_path)
-
                 # create atomgraph
                 if self.recompute or not os.path.exists(agraph_dump):
                     agraph_builder = AtomGraphBuilder()
