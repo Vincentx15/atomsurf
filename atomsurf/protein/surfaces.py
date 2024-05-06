@@ -13,7 +13,7 @@ if __name__ == '__main__':
     script_dir = os.path.dirname(os.path.realpath(__file__))
     sys.path.append(os.path.join(script_dir, '..', '..'))
 
-import atomsurf.utils.helpers as diff_utils
+import atomsurf.utils.torch_utils as diff_utils
 from atomsurf.protein.features import Features, FeaturesHolder
 
 
@@ -46,7 +46,7 @@ def get_geom_feats(verts, faces, evecs, evals, num_signatures=16):
     si = si.reshape(-1, 1)
 
     # HKS:
-    hks = compute_HKS(evecs, evals, num_signatures) # TODO (?) use float evals/evecs here to be lighter ?
+    hks = compute_HKS(evecs, evals, num_signatures)
     vnormals = igl.per_vertex_normals(verts, faces)
     geom_feats = np.concatenate([gauss_curvs, mean_curvs, si, hks, vnormals], axis=-1)
     return geom_feats
@@ -166,6 +166,7 @@ class SurfaceBatch(Batch):
     This class is useful for PyG Batching
 
     """
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 

@@ -27,7 +27,7 @@ path_model: "version_x/checkpoints/last.ckpt"
 
 # loader params
 loader:
-  num_workers: 4
+  num_workers: 2
   batch_size: 8
   pin_memory: False
   prefetch_factor: 2

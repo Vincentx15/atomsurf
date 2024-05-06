@@ -14,7 +14,7 @@ if __name__ == '__main__':
 
 from atomsurf.protein.graphs import parse_pdb_path, atom_coords_to_edges
 from atomsurf.protein.features import Features, FeaturesHolder
-from atomsurf.utils.helpers import safe_to_torch
+from atomsurf.utils.torch_utils import safe_to_torch
 
 
 class AtomGraph(Data, FeaturesHolder):

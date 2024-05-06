@@ -14,7 +14,7 @@ from atomsurf.protein.graphs import parse_pdb_path, atom_coords_to_edges, res_ty
 from atomsurf.protein.features import Features, FeaturesHolder
 
 from atomsurf.protein.create_esm import get_esm_embedding_single
-from atomsurf.utils.helpers import safe_to_torch
+from atomsurf.utils.torch_utils import safe_to_torch
 
 
 class PronetFeaturesComputer:

@@ -10,4 +10,5 @@ tensorboard
 tqdm
 omegaconf==2.1.2
 hydra-core==1.1.1
+hydra_colorlog
 deltaconv==1.0.2

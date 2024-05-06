@@ -53,7 +53,7 @@ train:
   detect_anomaly: False
   # # debugging
   overfit_batches: 0
-  to_monitor: accuracy_balanced/val
+  to_monitor: auroc/val
 
 cfg_surface:
   use_surfaces: true

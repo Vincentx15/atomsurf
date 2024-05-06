@@ -1,12 +1,8 @@
 import os
 import sys
 import time
-import numpy as np
 import torch
-from atom3d.util.formats import df_to_bp
-import Bio.PDB as bio
-import pandas as pd
-import scipy.spatial as spa
+from atom3d.datasets import LMDBDataset
 from torch.utils.data import Dataset, DataLoader
 
 if __name__ == '__main__':
@@ -17,12 +13,10 @@ from atomsurf.protein.graphs import parse_pdb_path
 from atomsurf.protein.surfaces import SurfaceObject
 from atomsurf.protein.atom_graph import AtomGraphBuilder
 from atomsurf.protein.residue_graph import ResidueGraphBuilder
-from atom3d.datasets import LMDBDataset
+from atomsurf.utils.atom_utils import df_to_pdb
 
 torch.multiprocessing.set_sharing_strategy('file_system')
 torch.set_num_threads(1)
-
-
 
 index_columns = ['ensemble', 'subunit', 'structure', 'model', 'chain', 'residue']
 
@@ -50,70 +44,39 @@ def get_subunits(ensemble):
     return names, (bdf0, bdf1, udf0, udf1)
 
 
-def df_to_pdb(df, out_file_name, discard_hetatm=True):
-    """
-    Utility function to go from a df object to a PDB file
-    :param df:
-    :param out_file_name:
-    :return:
-    """
-
-    def filter_notaa(struct):
-        """
-        Discard Hetatm, copied from biopython as as_protein() method is not in biopython 2.78
-        :param struct:
-        :return:
-        """
-        remove_list = []
-        for model in struct:
-            for chain in model:
-                for residue in chain:
-                    if residue.get_id()[0] != ' ' or not bio.Polypeptide.is_aa(residue):
-                        remove_list.append(residue)
-
-        for residue in remove_list:
-            residue.parent.detach_child(residue.id)
-
-        for chain in struct.get_chains():  # Remove empty chains
-            if not len(chain.child_list):
-                chain.parent.detach_child(chain.id)
-        return struct
-    structure = df_to_bp(df)
-    structure = filter_notaa(structure) if discard_hetatm else structure
-    io = bio.PDBIO()
-    io.set_structure(structure)
-    io.save(out_file_name)
-
 class ExtractPIPpdbDataset(Dataset):
-    def __init__(self, datadir=None,mode='train'):
+    def __init__(self, datadir=None, mode='train'):
         script_dir = os.path.dirname(os.path.realpath(__file__))
-        if datadir==None:
-            datadir = os.path.join(script_dir, '..', '..', '..', 'data', 'DIPS-split','data',mode)
+        if datadir == None:
+            datadir = os.path.join(script_dir, '..', '..', '..', 'data', 'DIPS-split', 'data', mode)
         else:
-            datadir= os.path.join(datadir,mode)
+            datadir = os.path.join(datadir, mode)
         self.pdb_dir = os.path.join(datadir, 'pdb')
-        os.makedirs(self.pdb_dir, exist_ok=True)        
+        os.makedirs(self.pdb_dir, exist_ok=True)
         self.dataset = LMDBDataset(datadir)
-        self.pdb_list=[]
+        self.pdb_list = []
+
     def __len__(self):
         return len(self.dataset)
-    def __getitem__(self,idx):
-        protein_pair= self.dataset[idx]
+
+    def __getitem__(self, idx):
+        protein_pair = self.dataset[idx]
         names, dfs = get_subunits(protein_pair['atoms_pairs'])
-        for name,df in zip(names,dfs):
-            if name!=None and name+'.pdb' not in self.pdb_list:
-                pdb_path = os.path.join(self.pdb_dir, name+'.pdb')
-                df_to_pdb(df,pdb_path)
-                self.pdb_list.append(name+'.pdb')  
-        return 1     
-             
+        for name, df in zip(names, dfs):
+            if name is not None and name + '.pdb' not in self.pdb_list:
+                pdb_path = os.path.join(self.pdb_dir, name + '.pdb')
+                df_to_pdb(df, pdb_path)
+                self.pdb_list.append(name + '.pdb')
+        return 1
+
+
 class PreprocessPIPDataset(Dataset):
-    def __init__(self, datadir=None,recompute=False,mode='train',extract=True,max_vert_number=100000):
+    def __init__(self, datadir=None, recompute=False, mode='train', extract=True, max_vert_number=100000):
         script_dir = os.path.dirname(os.path.realpath(__file__))
-        if datadir==None:
-            datadir = os.path.join(script_dir, '..', '..', '..', 'data', 'DIPS-split','data',mode)
+        if datadir == None:
+            datadir = os.path.join(script_dir, '..', '..', '..', 'data', 'DIPS-split', 'data', mode)
         else:
-            datadir= os.path.join(datadir,mode)
+            datadir = os.path.join(datadir, mode)
 
         self.recompute = recompute
         self.pdb_dir = os.path.join(datadir, 'pdb')
@@ -124,15 +87,15 @@ class PreprocessPIPDataset(Dataset):
         os.makedirs(self.out_rgraph_dir, exist_ok=True)
         os.makedirs(self.out_agraph_dir, exist_ok=True)
         self.pdb_list = os.listdir(self.pdb_dir)
-        self.max_vert_number=max_vert_number
+        self.max_vert_number = max_vert_number
 
     def __len__(self):
         return len(self.pdb_list)
 
     def __getitem__(self, idx):
         protein = self.pdb_list[idx]
-        name=protein[0:-4]
-        pdb_path=os.path.join(self.pdb_dir,protein)
+        name = protein[0:-4]
+        pdb_path = os.path.join(self.pdb_dir, protein)
         try:
             surface_full_dump = os.path.join(self.out_surf_dir_full, f'{name}.pt')
             agraph_dump = os.path.join(self.out_agraph_dir, f'{name}.pt')
@@ -158,10 +121,9 @@ class PreprocessPIPDataset(Dataset):
                     torch.save(rgraph, open(rgraph_dump, 'wb'))
             success = 1
         except Exception as e:
-            print('*******failed******',protein, e)
+            print('*******failed******', protein, e)
             success = 0
         return success
-
 
 
 def do_all(dataset, num_workers=4, prefetch_factor=100):
@@ -186,4 +148,3 @@ if __name__ == '__main__':
     recompute = True
     dataset = PreprocessPIPDataset(recompute=recompute)
     do_all(dataset, num_workers=4)
-

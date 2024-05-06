@@ -138,6 +138,7 @@ class AtomPLModule(pl.LightningModule):
     """
     A generic PL module to subclass
     """
+
     def __init__(self, cfg) -> None:
         super().__init__()
         self.save_hyperparameters()
