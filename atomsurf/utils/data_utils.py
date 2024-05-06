@@ -158,22 +158,22 @@ class AtomPLModule(pl.LightningModule):
         # return None, None, None
         outputs = self(batch)
         loss = self.criterion(outputs, labels)
-        # if torch.isnan(loss).any():
-        #     print('Nan loss')
-        #     return None, None, None
+        if torch.isnan(loss).any():
+            print('Nan loss')
+            return None, None, None
         return loss, outputs, labels
 
-    # def on_after_backward(self):
-    #     valid_gradients = True
-    #     for name, param in self.named_parameters():
-    #         if param.grad is not None:
-    #             valid_gradients = not (torch.isnan(param.grad).any() or torch.isinf(param.grad).any())
-    #             if not valid_gradients:
-    #                 break
-    #
-    #     if not valid_gradients:
-    #         print(f'Detected inf or nan values in gradients. not updating model parameters')
-    #         self.zero_grad()
+    def on_after_backward(self):
+        valid_gradients = True
+        for name, param in self.named_parameters():
+            if param.grad is not None:
+                valid_gradients = not (torch.isnan(param.grad).any() or torch.isinf(param.grad).any())
+                if not valid_gradients:
+                    break
+
+        if not valid_gradients:
+            print(f'Detected inf or nan values in gradients. not updating model parameters')
+            self.zero_grad()
 
     def forward(self, x):
         return self.model(x)
