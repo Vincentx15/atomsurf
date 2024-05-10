@@ -92,6 +92,8 @@ class PIPDataset(Dataset):
         num_neg_to_use = int(math.ceil(num_neg_to_use))
         return num_pos_to_use, num_neg_to_use
     def __getitem__(self, idx):
+        # import time
+        # t0=time.time()
         protein_pair= self.systems[idx]
         pos_pairs = protein_pair['atoms_neighbors']
         names,dfs=get_subunits(protein_pair['atoms_pairs'])
@@ -119,22 +121,25 @@ class PIPDataset(Dataset):
 
         idx_left = torch.cat((pos_array_sampled[0],neg_array_sampled[0]))
         idx_right = torch.cat((pos_array_sampled[1],neg_array_sampled[1]))
-        
         labels = torch.cat((torch.ones(num_pos_to_use), torch.zeros(num_neg_to_use)))
-
         surface_1 = self.surface_builder.build(names[0])
         surface_2 = self.surface_builder.build(names[1])
         graph_1 = self.graph_builder.build(names[0])
         graph_2 = self.graph_builder.build(names[1])
-
         if surface_1 is None or surface_2 is None or graph_1 is None or graph_2 is None:
             return None
+        if idx_left.dtype!= torch.int64 and idx_right.dtype!= torch.int64:
+            return None
         # TODO GDF EXPAND
+        if idx_left.max()> len(graph_1.node_pos) or idx_right.max()> len(graph_2.node_pos):
+            print('idx error',names)
+            return None
         locs_left= graph_1.node_pos[idx_left]
         locs_right= graph_2.node_pos[idx_right]
         #TODO MISS transform and normalize
         # item = Data(surface_1=surface_1, graph_1=graph_1,surface_2=surface_2, graph_2=graph_2, idx_left=idx_left,idx_right=idx_right, label=labels)
-        item = Data(surface_1=surface_1, graph_1=graph_1,surface_2=surface_2, graph_2=graph_2, locs_left=locs_left,locs_right=locs_right, label=labels)
+        item = Data(surface_1=surface_1, graph_1=graph_1,surface_2=surface_2, graph_2=graph_2, locs_left=locs_left,locs_right=locs_right, labels_pip=labels)
+        # print('process one data ',time.time()-t0)
         return item
 
 

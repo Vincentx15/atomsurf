@@ -88,6 +88,8 @@ def main(cfg=None):
         detect_anomaly=cfg.train.detect_anomaly,
         # debugging
         overfit_batches=cfg.train.overfit_batches,
+        #monitor time
+        profiler="simple",
         # gpu
         **params,
     )

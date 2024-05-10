@@ -1,7 +1,7 @@
 defaults:
   - _self_
   - blocks_zoo
-  - encoder: debug
+  - encoder: vanilla
   - dataset: vanilla
 #  - dataset@trainset: [ masif_ligand_hmr ]
 #  - dataset@valset: [ masif_ligand_hmr ]
@@ -19,7 +19,7 @@ defaults:
 seed: 2024
 run_name: default
 data_dir: /work/lpdi/users/ymiao/atom2D/data/DIPS-split/data/
-out_dir: ../../data/MasifLigand2/out_dir
+out_dir:  /work/lpdi/users/ymiao/code/pip_out_dir
 test_freq: 5
 epochs: 100
 device: 0
@@ -29,10 +29,10 @@ path_model: "version_x/checkpoints/last.ckpt"
 # loader params
 loader:
   num_workers: 0
-  batch_size: 4
+  batch_size: 256
   pin_memory: False
   prefetch_factor: 2
-  shuffle: true
+  shuffle: false
 
 train:
   save_top_k: 2

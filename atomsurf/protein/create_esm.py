@@ -11,7 +11,7 @@ def get_esm_embedding_single(pdb_path, esm_path=None):
         embed = torch.load(esm_path + '/' + name + '_esm.pt')
         return embed
     except:
-        name = pdb_path.split('/')[-1][0:4]
+        name = pdb_path.split('/')[-1][0:-4]
         seq = parse_pdb_path(pdb_path)[0]
         seq = ''.join([res_type_idx_to_1[i] for i in seq])
         model, alphabet = esm.pretrained.esm2_t33_650M_UR50D()

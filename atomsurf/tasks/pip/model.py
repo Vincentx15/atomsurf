@@ -44,7 +44,7 @@ class PIPNet(torch.nn.Module):
         self.sigma=2.5
         self.use_graph_only=use_graph_only
         if self.use_graph_only:
-            in_features=12*2
+            in_features=128*2# 12 
             self.top_net = nn.Sequential(*[
                 nn.Linear(in_features, in_features),
                 nn.ReLU(),
@@ -52,7 +52,7 @@ class PIPNet(torch.nn.Module):
                 nn.Linear(in_features, 1)
             ])
         else:
-            in_features = 12*2+13*2
+            in_features = 128*2+129*2# 12 
             self.top_net = nn.Sequential(*[
                 nn.Linear(in_features, in_features),
                 nn.ReLU(),

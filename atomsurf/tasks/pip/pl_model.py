@@ -46,8 +46,7 @@ class PIPModule(pl.LightningModule):
 
         if batch is None:
             return None, None, None
-        labels = batch.label
-        labels= labels.reshape(-1,1)
+        labels = batch.labels_pip.reshape(-1,1)
         # return None, None, None
         outputs = self(batch)
         loss = self.criterion(outputs, labels)
@@ -55,6 +54,7 @@ class PIPModule(pl.LightningModule):
         #     print('Nan loss')
         #     return None, None, None
         return loss, outputs, labels
+
 
     def training_step(self, batch, batch_idx):
         loss, logits, labels = self.step(batch)

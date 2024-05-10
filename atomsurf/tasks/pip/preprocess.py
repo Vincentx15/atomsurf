@@ -14,7 +14,7 @@ from atomsurf.protein.surfaces import SurfaceObject
 from atomsurf.protein.atom_graph import AtomGraphBuilder
 from atomsurf.protein.residue_graph import ResidueGraphBuilder
 from atomsurf.utils.atom_utils import df_to_pdb
-
+from atomsurf.protein.create_esm import get_esm_embedding_single
 torch.multiprocessing.set_sharing_strategy('file_system')
 torch.set_num_threads(1)
 
@@ -119,6 +119,34 @@ class PreprocessPIPDataset(Dataset):
                     rgraph_builder = ResidueGraphBuilder(add_pronet=True, add_esm=False)
                     rgraph = rgraph_builder.arrays_to_resgraph(arrays)
                     torch.save(rgraph, open(rgraph_dump, 'wb'))
+            success = 1
+        except Exception as e:
+            print('*******failed******', protein, e)
+            success = 0
+        return success
+
+class PreprocessESM(Dataset):
+    def __init__(self, datadir=None,outputdir=None,mode='Train'):
+        script_dir = os.path.dirname(os.path.realpath(__file__))
+        if datadir == None:
+            datadir = os.path.join(script_dir, '..', '..', '..', 'data', 'DIPS-split', 'data', mode)
+        else:
+            datadir = os.path.join(datadir, mode)
+
+        self.pdb_dir = os.path.join(datadir, 'pdb')
+        self.out_esm_dir = os.path.join(datadir, 'esm')
+        os.makedirs(self.out_esm_dir, exist_ok=True)
+        self.pdb_list = os.listdir(self.pdb_dir)
+
+    def __len__(self):
+        return len(self.pdb_list)
+
+    def __getitem__(self, idx):
+        protein = self.pdb_list[idx]
+        pdb_path = os.path.join(self.pdb_dir, protein)
+        name = protein[0:-4]
+        try:
+            embed=get_esm_embedding_single(pdb_path,self.out_esm_dir)
             success = 1
         except Exception as e:
             print('*******failed******', protein, e)
