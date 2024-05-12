@@ -6,7 +6,7 @@ diffusion128|gcn128|concurent:
     surface_encoder:
       name: DiffusionNetBlockBatch
       instanciate:
-        _target_: atomsurf.network_utils.DiffusionNetBlockBatch
+        _target_: atomsurf.network_utils.DiffusionNetBlockBatch  # diffusion_net.DiffusionNet
       kwargs:
         C_width: 128
         mlp_hidden_dims: [128, 128]
