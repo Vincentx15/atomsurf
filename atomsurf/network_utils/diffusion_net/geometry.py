@@ -614,7 +614,10 @@ def to_basis(values, basis, massvec):
     Outputs:
       - (B,K,D) transformed values
     """
+    from torch_sparse import SparseTensor
     basisT = basis.transpose(-2, -1)
+    if isinstance(massvec, SparseTensor):
+        massvec = SparseTensor.to_torch_sparse_csr_tensor(massvec)
     scaled_values = torch.sparse.mm(massvec, values[0])
     return torch.matmul(basisT, scaled_values)[None, ...]
 

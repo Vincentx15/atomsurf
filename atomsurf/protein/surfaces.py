@@ -156,6 +156,12 @@ class SurfaceObject(Data, FeaturesHolder):
         verts, faces = get_surface(pdb_path, out_ply_path=out_ply_path, max_vert_number=max_vert_number)
         return cls.from_verts_faces(verts, faces)
 
+    def __cat_dim__(self, key, value, *args, **kwargs):
+        if key in ["mass", "L", "gradX", "gradY"]:
+            return (0, 1)
+        else:
+            return super().__cat_dim__(key, value, *args, **kwargs)
+
     @staticmethod
     def batch_from_data_list(data_list):
         return SurfaceBatch.batch_from_data_list(data_list=data_list)
@@ -174,23 +180,30 @@ class SurfaceBatch(Batch):
     def batch_from_data_list(cls, data_list):
         for surface in data_list:
             for key in {'L', 'mass', 'gradX', 'gradY'}:
-                torch_sparse = getattr(surface, key)
-                surface[key] = Data(torch_sparse)
-        batch = Batch.from_data_list(data_list)
+                tensor_coo = getattr(surface, key)
+                tensor_sparse = SparseTensor.from_torch_sparse_coo_tensor(tensor_coo)
+                surface[key] = tensor_sparse
+        batch = Batch.from_data_list(data_list, follow_batch=('L', 'mass', 'gradX', 'gradY'))
         batch = batch.contiguous()
         surface_batch = cls()
         surface_batch.__dict__.update(batch.__dict__)
         return surface_batch
 
+    def __cat_dim__(self, key, value, *args, **kwargs):
+        if key in ["mass", "L", "gradX", "gradY"]:
+            return (0, 1)
+        else:
+            return Data.__cat_dim__(None, key, value, *args, **kwargs)
+
     def to_lists(self):
         surfaces = self.to_data_list()
         x_in = [mini_surface.x for mini_surface in surfaces]
-        mass = [mini_surface.mass.x for mini_surface in surfaces]
-        L = [mini_surface.L.x for mini_surface in surfaces]
+        mass = [mini_surface.mass for mini_surface in surfaces]
+        L = [mini_surface.L for mini_surface in surfaces]
         evals = [mini_surface.evals for mini_surface in surfaces]
         evecs = [mini_surface.evecs for mini_surface in surfaces]
-        gradX = [mini_surface.gradX.x for mini_surface in surfaces]
-        gradY = [mini_surface.gradY.x for mini_surface in surfaces]
+        gradX = [mini_surface.gradX for mini_surface in surfaces]
+        gradY = [mini_surface.gradY for mini_surface in surfaces]
         return x_in, mass, L, evals, evecs, gradX, gradY
 
 

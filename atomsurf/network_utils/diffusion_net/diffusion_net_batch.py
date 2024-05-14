@@ -63,6 +63,10 @@ class DiffusionNetBlockBatch(nn.Module):
             x_grads = []
             for b in range(B):
                 # gradient after diffusion
+                from torch_sparse import SparseTensor
+                if isinstance(gradX[b], SparseTensor):
+                    gradX[b] = SparseTensor.to_torch_sparse_csr_tensor(gradX[b])
+                    gradY[b] = SparseTensor.to_torch_sparse_csr_tensor(gradY[b])
                 x_gradX = torch.mm(gradX[b], x_diffuse[b])
                 x_gradY = torch.mm(gradY[b], x_diffuse[b])
                 x_grads.append(torch.stack((x_gradX, x_gradY), dim=-1))
