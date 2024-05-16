@@ -10,7 +10,7 @@ import pytorch_lightning as pl
 from atomsurf.protein.surfaces import SurfaceObject, SurfaceBatch
 from atomsurf.protein.residue_graph import ResidueGraph, RGraphBatch
 from atomsurf.protein.atom_graph import AtomGraph, AGraphBatch
-
+from torch.optim.lr_scheduler import _LRScheduler, LinearLR, CosineAnnealingLR, SequentialLR, LambdaLR
 
 class GaussianDistance(object):
     def __init__(self, start, stop, num_centers):
@@ -314,7 +314,7 @@ class AtomPLModule(pl.LightningModule):
                      'name': "epoch/lr"}
         # return optimizer
         return [optimizer], [scheduler]
-        
+
 def get_lr_scheduler(scheduler, optimizer, warmup_epochs, total_epochs, eta_min=1E-8):
     warmup_scheduler = LinearLR(optimizer,
                                 start_factor=1E-3,
