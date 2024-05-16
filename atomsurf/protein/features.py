@@ -141,9 +141,11 @@ class FeaturesHolder:
      encoding or residue-atom scattering
     """
 
-    def expand_features(self, remove_feats=False, **kwargs):
+    def expand_features(self, remove_feats=False, keep_misc=True, **kwargs):
         self.x = self.features.build_expanded_features(**kwargs)
         if remove_feats:
+            if keep_misc and "misc_features" in self.features.keys:
+                self.misc_features = self.features.misc_features
             self.features = None
 
 

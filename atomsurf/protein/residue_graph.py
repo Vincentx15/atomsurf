@@ -180,10 +180,6 @@ class ResidueGraph(Data, FeaturesHolder):
         else:
             self.features = features
 
-    @staticmethod
-    def batch_from_data_list(data_list):
-        return RGraphBatch.batch_from_data_list(data_list=data_list)
-
 
 class RGraphBatch(Batch):
     """

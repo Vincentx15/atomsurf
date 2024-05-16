@@ -129,8 +129,6 @@ def parse_pdb_path(pdb_path):  # def parse_pdb_from_pqr(pdb_path)
             atom_charge.append(atom.get_charge())
             atom_radius.append(atom.get_radius())
 
-
-
         res_id += 1
     amino_types = np.asarray(amino_types, dtype=np.int32)
     atom_chain_id = np.asarray(atom_chain_id)
@@ -140,7 +138,6 @@ def parse_pdb_path(pdb_path):  # def parse_pdb_from_pqr(pdb_path)
     atom_pos = np.asarray(atom_pos, dtype=np.float32)
     atom_charge = np.asarray(atom_charge, dtype=np.float32)
     atom_radius = np.asarray(atom_radius, dtype=np.float32)
-
 
     # We need to dump this adapted pdb with new coordinates and missing atoms
     from Bio.PDB.PDBIO import PDBIO
