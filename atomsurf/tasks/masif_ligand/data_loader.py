@@ -93,7 +93,10 @@ class MasifLigandDataModule(pl.LightningDataModule):
         self.surface_loader = SurfaceLoaderMasifLigand(cfg.cfg_surface)
         self.graph_loader = GraphLoaderMasifLigand(cfg.cfg_graph)
         script_dir = os.path.dirname(os.path.realpath(__file__))
-        masif_ligand_data_dir = os.path.join(script_dir, '..', '..', '..', 'data', 'masif_ligand')
+        if cfg.data_dir==None:
+            masif_ligand_data_dir = os.path.join(script_dir, '..', '..', '..', 'data', 'masif_ligand')
+        else:
+            masif_ligand_data_dir = cfg.data_dir
         splits_dir = os.path.join(masif_ligand_data_dir, 'raw_data_MasifLigand', 'splits')
         ligands_path = os.path.join(masif_ligand_data_dir, 'raw_data_MasifLigand', 'ligand')
         self.systems = []

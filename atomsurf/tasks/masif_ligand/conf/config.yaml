@@ -19,13 +19,13 @@ defaults:
 seed: 2024
 run_name: default
 out_dir: ../../../outputs/masif_ligand/out_dir
+data_dir: None
 test_freq: 5
 epochs: 100
 device: 0
 log_dir: "./"
 path_model: "version_x/checkpoints/last.ckpt"
 min_batch_size: 2
-
 lr_scheduler: PolynomialLRWithWarmup
 warmup_epochs: 10
 lr_eta_min: 1E-8
