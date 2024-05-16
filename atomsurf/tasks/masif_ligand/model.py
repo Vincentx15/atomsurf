@@ -16,7 +16,7 @@ class MasifLigandNet(torch.nn.Module):
             nn.Dropout(p=0.1),
             nn.BatchNorm1d(cfg_head.encoded_dims),
             nn.SiLU(),
-            nn.Linear(cfg_head.encoded_dims, out_features=cfg_head.output_dims)
+            nn.Linear(cfg_head.encoded_dims, out_features=cfg_head.output_dims),
         ])
 
     def pool_lig(self, pos, processed, lig_coords):

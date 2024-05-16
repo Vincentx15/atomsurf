@@ -1,7 +1,7 @@
 defaults:
   - _self_
   - blocks_zoo
-  - encoder: debug
+  - encoder: vanilla #debug
   - dataset: vanilla
   #  - dataset@trainset: [ masif_ligand_hmr ]
   #  - dataset@valset: [ masif_ligand_hmr ]
@@ -11,24 +11,27 @@ defaults:
   - override hydra/job_logging: colorlog
   - override hydra/hydra_logging: colorlog
 
-hydra:
-  job:
-    chdir: False
+#hydra:
+#job:
+#chdir: False
 
 # general params
 seed: 2024
 run_name: default
-out_dir: ../../../outputs/masif_ligand/out_dir
+data_dir: /home/ymiao/data/MasifLigand/
+out_dir: /home/ymiao/data/out_dir
 test_freq: 5
-epochs: 100
+epochs: 400
 device: 0
 log_dir: "./"
 path_model: "version_x/checkpoints/last.ckpt"
-
+lr_scheduler: PolynomialLRWithWarmup
+warmup_epochs: 10
+lr_eta_min: 1E-8
 # loader params
 loader:
-  num_workers: 2
-  batch_size: 8
+  num_workers: 20
+  batch_size: 32
   pin_memory: False
   prefetch_factor: 2
   shuffle: true
@@ -58,8 +61,7 @@ train:
 cfg_surface:
   use_surfaces: true
   use_whole_surfaces: False
-  #  data_dir: ../../../data/masif_ligand/surf_full
-  data_dir: ../../../data/masif_ligand/surf_ours
+  data_dir: /home/ymiao/data/MasifLigand/surf_ours
   feat_keys: 'all'
   oh_keys: 'all'
   gdf_expand: true
@@ -67,10 +69,10 @@ cfg_surface:
 # python train.py 'cfg_graph.feat_keys=[hphobs]' 'cfg_graph.oh_keys=[amino_types]' cfg_graph.use_esm=True
 cfg_graph:
   use_graphs: true
-  data_dir: ../../../data/masif_ligand/rgraph
+  data_dir: /home/ymiao/data/MasifLigand/rgraph
   feat_keys: 'all'
   oh_keys: 'all'
-  esm_dir: ../../../data/masif_ligand/esm
+  esm_dir: /home/ymiao/data/MasifLigand/esm
   use_esm: false
 
 #cfg_graph:
@@ -82,5 +84,5 @@ cfg_graph:
 #  use_esm: false
 
 cfg_head:
-  encoded_dims: 12
+  encoded_dims: 128 #12
   output_dims: 7
