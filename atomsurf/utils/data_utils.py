@@ -13,6 +13,7 @@ from atomsurf.protein.atom_graph import AtomGraph, AGraphBatch
 
 from torch.optim.lr_scheduler import _LRScheduler, LinearLR, CosineAnnealingLR, SequentialLR, LambdaLR
 
+
 class GaussianDistance(object):
     def __init__(self, start, stop, num_centers):
         self.filters = torch.linspace(start, stop, num_centers)
