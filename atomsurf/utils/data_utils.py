@@ -1,6 +1,5 @@
 import os
 import re
-from typing import Any
 
 import torch
 from torch_geometric.data import Data
@@ -8,9 +7,6 @@ from torch_geometric.data import Batch
 from torch_sparse import SparseTensor
 import pytorch_lightning as pl
 
-from atomsurf.protein.surfaces import SurfaceObject
-from atomsurf.protein.residue_graph import ResidueGraph
-from atomsurf.protein.atom_graph import AtomGraph
 from atomsurf.protein.surfaces import SurfaceObject, SurfaceBatch
 from atomsurf.protein.residue_graph import ResidueGraph, RGraphBatch
 from atomsurf.protein.atom_graph import AtomGraph, AGraphBatch
@@ -35,6 +31,7 @@ class SurfaceLoader:
     Based on the config it's given, it will load the corresponding features, optionnally expand them and
     populate a .x key with them.
     """
+
     def __init__(self, config):
         self.config = config
         self.data_dir = config.data_dir
@@ -45,7 +42,7 @@ class SurfaceLoader:
             self.feature_expander = {'geom_feats': self.gdf_expand}
 
     def gdf_expand(self, geom_features):
-        gauss_curvs, mean_curvs, others = torch.split(geom_features, (1, 1, 20), dim=-1)
+        gauss_curvs, mean_curvs, others = torch.split(geom_features, [1, 1, 20], dim=-1)
         gauss_curvs_gdf = self.gauss_curv_gdf(gauss_curvs)
         mean_curvs_gdf = self.mean_curv_gdf(mean_curvs)
         return torch.cat([gauss_curvs_gdf, mean_curvs_gdf, others], dim=-1)
@@ -72,6 +69,7 @@ class GraphLoader:
     It is similar to the Surface one, but can also be extended with ESM or ProNet features
     Based on the config it's given, it will load the corresponding features and populate a .x key with them.
     """
+
     def __init__(self, config):
         self.config = config
         self.data_dir = config.data_dir
@@ -104,16 +102,24 @@ class GraphLoader:
 
 def update_model_input_dim(cfg, dataset_temp):
     # Useful to create a Model of the right input dims
+    success = False
+    e = None
     try:
         from omegaconf import open_dict
-        for example in dataset_temp:
+        for i, example in enumerate(dataset_temp):
             if example is not None:
                 with open_dict(cfg):
                     feat_encoder_kwargs = cfg.encoder.blocks[0].kwargs
                     feat_encoder_kwargs['graph_feat_dim'] = example.graph.x.shape[1]
                     feat_encoder_kwargs['surface_feat_dim'] = example.surface.x.shape[1]
+                success = True
+                break
+            if i > 50:
+                e = 'all data is None'
                 break
     except Exception as e:
+        pass
+    if not success:
         print('Could not update model input dims because of error: ', e)
 
 
@@ -153,56 +159,6 @@ class AtomBatch(Data):
             batch[key] = batch[key]
         else:
             raise ValueError(f"Unsupported attribute type: {type(item)}, item : {item}, key : {key}")
-    def from_data_list(data_list):
-        # Filter out None
-        data_list = [x for x in data_list if x is not None]
-        if len(data_list) == 0:
-            return None
-        keys = [set(data.keys) for data in data_list]
-        keys = list(set.union(*keys))
-
-        batch = AtomBatch()
-        batch.__data_class__ = data_list[0].__class__
-
-        for key in keys:
-            batch[key] = []
-
-        for _, data in enumerate(data_list):
-            for key in data.keys:
-                item = data[key]
-                batch[key].append(item)
-
-        for key in batch.keys:
-            item = batch[key][0]
-            if isinstance(item, int) or isinstance(item, float):
-                batch[key] = torch.tensor(batch[key])
-            elif bool(re.search('(locs_left|locs_right|neg_stack|pos_stack)', key)):
-                batch[key] = batch[key]
-            elif key == 'labels_pip':
-                batch[key] = torch.cat(batch[key])
-            elif torch.is_tensor(item):
-                try:
-                    # If they are all the same size
-                    batch[key] = torch.stack(batch[key])
-                except:
-                    batch[key] = batch[key]
-            elif isinstance(item, SurfaceObject):
-                batch[key] = SurfaceObject.batch_from_data_list(batch[key])
-            elif isinstance(item, ResidueGraph):
-                batch[key] = ResidueGraph.batch_from_data_list(batch[key])
-            elif isinstance(item, AtomGraph):
-                batch[key] = AtomGraph.batch_from_data_list(batch[key])
-            elif isinstance(item, Data):
-                batch[key] = Batch.from_data_list(batch[key])
-                batch[key] = batch[key] if batch[key].num_graphs > 0 else None
-            elif isinstance(item, list):
-                batch[key] = batch[key]
-            elif isinstance(item, str):
-                batch[key] = batch[key]
-            elif isinstance(item, SparseTensor):
-                batch[key] = batch[key]
-            else:
-                raise ValueError(f"Unsupported attribute type: {type(item)}, item : {item}, key : {key}")
 
     @classmethod
     def from_data_list(cls, data_list):
@@ -247,8 +203,8 @@ class AtomPLModule(pl.LightningModule):
         self.test_res = list()
 
     def get_metrics(self, logits, labels, prefix):
+        # Do something like: self.log_dict({f"accuracy_balanced/{prefix}": 0, }, on_epoch=True, batch_size=len(logits))
         pass
-        # self.log_dict({f"accuracy_balanced/{prefix}": 0, }, on_epoch=True, batch_size=len(logits))
 
     def step(self, batch):
         raise NotImplementedError("Each subclass of AtomPLModule must implement the `step` method")
@@ -268,6 +224,8 @@ class AtomPLModule(pl.LightningModule):
         return self.model(x)
 
     def training_step(self, batch, batch_idx):
+        if batch.num_graphs < self.hparams.cfg.min_batch_size:
+            return None
         loss, logits, labels = self.step(batch)
         if loss is None:
             return None
@@ -277,6 +235,8 @@ class AtomPLModule(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx: int):
+        if batch.num_graphs < 1:
+            return None
         self.model.train()
         loss, logits, labels = self.step(batch)
         if loss is None or logits.isnan().any() or labels.isnan().any():
@@ -287,6 +247,8 @@ class AtomPLModule(pl.LightningModule):
         self.val_res.append((logits, labels))
 
     def test_step(self, batch, batch_idx: int):
+        if batch.num_graphs < 1:
+            return None
         self.model.train()
         loss, logits, labels = self.step(batch)
         if loss is None or logits.isnan().any() or labels.isnan().any():
@@ -330,7 +292,5 @@ class AtomPLModule(pl.LightningModule):
         return [optimizer], [scheduler]
 
     def transfer_batch_to_device(self, batch, device, dataloader_idx):
-        if batch is None:
-            return None
         batch = batch.to(device)
         return batch

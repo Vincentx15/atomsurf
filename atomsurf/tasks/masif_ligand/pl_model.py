@@ -19,8 +19,6 @@ class MasifLigandModule(AtomPLModule):
         self.model = MasifLigandNet(cfg_encoder=cfg.encoder, cfg_head=cfg.cfg_head)
 
     def step(self, batch):
-        if batch is None:
-            return None, None, None
         labels = batch.label
         outputs = self(batch)
         loss = self.criterion(outputs, labels)
