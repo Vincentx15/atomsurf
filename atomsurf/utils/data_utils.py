@@ -1,5 +1,7 @@
 import os
 import re
+from typing import Any
+
 import torch
 from torch_geometric.data import Data
 from torch_geometric.data import Batch
@@ -10,6 +12,11 @@ from atomsurf.protein.surfaces import SurfaceObject
 from atomsurf.protein.residue_graph import ResidueGraph
 from atomsurf.protein.atom_graph import AtomGraph
 from torch.optim.lr_scheduler import _LRScheduler, LinearLR, CosineAnnealingLR, SequentialLR, LambdaLR
+from atomsurf.protein.surfaces import SurfaceObject, SurfaceBatch
+from atomsurf.protein.residue_graph import ResidueGraph, RGraphBatch
+from atomsurf.protein.atom_graph import AtomGraph, AGraphBatch
+
+from torch_geometric.loader.dataloader import DataLoader, Collater
 
 
 class SurfaceLoader:
@@ -17,12 +24,16 @@ class SurfaceLoader:
         self.config = config
         self.data_dir = config.data_dir
 
-    def load(self, pocket_name):
+    def load(self, surface_name):
         if not self.config.use_surfaces:
             return Data()
         try:
-            surface = torch.load(os.path.join(self.data_dir, f"{pocket_name}.pt"))
-            surface.expand_features(remove_feats=True, feature_keys=self.config.feat_keys, oh_keys=self.config.oh_keys)
+            surface = torch.load(os.path.join(self.data_dir, f"{surface_name}.pt"))
+            surface.expand_features(remove_feats=True,
+                                    feature_keys=self.config.feat_keys,
+                                    oh_keys=self.config.oh_keys)
+            if torch.isnan(surface.x).any() or torch.isnan(surface.verts).any():
+                return None
             return surface
         except Exception as e:
             return None
@@ -35,19 +46,21 @@ class GraphLoader:
         self.esm_dir = config.esm_dir
         self.use_esm = config.use_esm
 
-    def load(self, pocket_name):
+    def load(self, graph_name):
         if not self.config.use_graphs:
             return Data()
         try:
-            graph = torch.load(os.path.join(self.data_dir, f"{pocket_name}.pt"))
+            graph = torch.load(os.path.join(self.data_dir, f"{graph_name}.pt"))
             feature_keys = self.config.feat_keys
             if self.use_esm:
-                esm_feats_path = os.path.join(self.esm_dir, f"{pocket_name}_esm.pt")
+                esm_feats_path = os.path.join(self.esm_dir, f"{graph_name}_esm.pt")
                 esm_feats = torch.load(esm_feats_path)
                 graph.features.add_named_features('esm_feats', esm_feats)
                 if feature_keys != 'all':
                     feature_keys.append('esm_feats')
             graph.expand_features(remove_feats=True, feature_keys=feature_keys, oh_keys=self.config.oh_keys)
+            if torch.isnan(graph.x).any() or torch.isnan(graph.node_pos).any():
+                return None
         except Exception as e:
             return None
         return graph
@@ -69,12 +82,41 @@ def update_model_input_dim(cfg, dataset_temp):
 
 
 class AtomBatch(Data):
-    def __init__(self, batch=None, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.batch = batch
-        self.__data_class__ = Data
 
     @staticmethod
+    def batch_keys(batch, key):
+        item = batch[key][0]
+        if isinstance(item, int) or isinstance(item, float):
+            batch[key] = torch.tensor(batch[key])
+        elif bool(re.search('(locs_left|locs_right|neg_stack|pos_stack)', key)):
+            batch[key] = batch[key]
+        elif key == 'labels_pip':
+            batch[key] = torch.cat(batch[key])
+        elif torch.is_tensor(item):
+            try:
+                # If they are all the same size
+                batch[key] = torch.stack(batch[key])
+            except:
+                batch[key] = batch[key]
+        elif isinstance(item, SurfaceObject):
+            batch[key] = SurfaceBatch.batch_from_data_list(batch[key])
+        elif isinstance(item, ResidueGraph):
+            batch[key] = RGraphBatch.batch_from_data_list(batch[key])
+        elif isinstance(item, AtomGraph):
+            batch[key] = AGraphBatch.batch_from_data_list(batch[key])
+        elif isinstance(item, Data):
+            batch[key] = Batch.from_data_list(batch[key])
+            batch[key] = batch[key] if batch[key].num_graphs > 0 else None
+        elif isinstance(item, list):
+            batch[key] = batch[key]
+        elif isinstance(item, str):
+            batch[key] = batch[key]
+        elif isinstance(item, SparseTensor):
+            batch[key] = batch[key]
+        else:
+            raise ValueError(f"Unsupported attribute type: {type(item)}, item : {item}, key : {key}")
     def from_data_list(data_list):
         # Filter out None
         data_list = [x for x in data_list if x is not None]
@@ -126,13 +168,34 @@ class AtomBatch(Data):
             else:
                 raise ValueError(f"Unsupported attribute type: {type(item)}, item : {item}, key : {key}")
 
-        batch = batch.contiguous()
-        return batch
+    @classmethod
+    def from_data_list(cls, data_list):
+        # Filter out None
+        data_list = [x for x in data_list if x is not None]
 
-    @property
-    def num_graphs(self):
-        """Returns the number of graphs in the batch."""
-        return self.batch[-1].item() + 1
+        batch = cls()
+        if len(data_list) == 0:
+            batch.num_graphs = 0
+            return batch
+
+        # Get all keys
+        keys = [set(data.keys) for data in data_list]
+        keys = list(set.union(*keys))
+
+        # Create a data containing lists of items for every key
+        for key in keys:
+            batch[key] = []
+        for _, data in enumerate(data_list):
+            for key in data.keys:
+                item = data[key]
+                batch[key].append(item)
+
+        # Organize the keys together
+        for key in batch.keys:
+            cls.batch_keys(batch, key)
+        batch = batch.contiguous()
+        batch.num_graphs = len(data_list)
+        return batch
 
 
 class AtomPLModule(pl.LightningModule):
@@ -152,17 +215,7 @@ class AtomPLModule(pl.LightningModule):
         # self.log_dict({f"accuracy_balanced/{prefix}": 0, }, on_epoch=True, batch_size=len(logits))
 
     def step(self, batch):
-
-        if batch is None:
-            return None, None, None
-        labels = batch.label
-        # return None, None, None
-        outputs = self(batch)
-        loss = self.criterion(outputs, labels)
-        if torch.isnan(loss).any():
-            print('Nan loss')
-            return None, None, None
-        return loss, outputs, labels
+        raise NotImplementedError("Each subclass of AtomPLModule must implement the `step` method")
 
     def on_after_backward(self):
         valid_gradients = True
@@ -171,7 +224,6 @@ class AtomPLModule(pl.LightningModule):
                 valid_gradients = not (torch.isnan(param.grad).any() or torch.isinf(param.grad).any())
                 if not valid_gradients:
                     break
-
         if not valid_gradients:
             print(f'Detected inf or nan values in gradients. not updating model parameters')
             self.zero_grad()

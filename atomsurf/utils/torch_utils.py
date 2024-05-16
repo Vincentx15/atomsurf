@@ -3,6 +3,7 @@ import os
 import numpy as np
 import scipy
 import torch
+from torch_sparse.tensor import SparseTensor, from_scipy, to_scipy
 
 
 def safe_to_torch(value):
@@ -44,6 +45,13 @@ def sparse_np_to_torch(A):
     return torch.sparse.FloatTensor(torch.LongTensor(indices), torch.FloatTensor(values), torch.Size(shape)).coalesce()
 
 
+# Numpy sparse to pyg_sparse
+def sparse_np_to_pyg(A):
+    if isinstance(A, SparseTensor):
+        return A
+    return from_scipy(A)
+
+
 # Pytorch sparse to numpy csc matrix
 def sparse_torch_to_np(A, dtype=None):
     if isinstance(A, scipy.sparse.spmatrix):
@@ -56,12 +64,17 @@ def sparse_torch_to_np(A, dtype=None):
         A = A.coalesce()
         new_values = A.values()
         assert old_values.shape == new_values.shape, "Trying to convert uncoalesced tensors"
-
     indices = toNP(A.indices())
     values = toNP(A.values(), dtype=dtype)
-
     mat = scipy.sparse.coo_matrix((values, indices), shape=A.shape).tocsc()
     return mat
+
+
+# Pytorch sparse to numpy csc matrix
+def sparse_pyg_to_np(A):
+    if isinstance(A, scipy.sparse.spmatrix):
+        return A
+    return to_scipy(A, layout='csr')
 
 
 def read_sp_mat(npzfile, prefix):

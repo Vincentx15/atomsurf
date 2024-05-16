@@ -62,10 +62,6 @@ class AtomGraphBuilder:
         arrays = parse_pdb_path(pdb_path)
         return self.arrays_to_agraph(arrays)
 
-    @staticmethod
-    def batch_from_data_list(data_list):
-        return AGraphBatch.batch_from_data_list(data_list=data_list)
-
 
 class AGraphBatch(Batch):
     """

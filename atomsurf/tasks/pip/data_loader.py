@@ -20,15 +20,16 @@ from atomsurf.tasks.pip.preprocess import get_subunits
 
 
 class SurfaceBuilder:
-    def __init__(self, config,mode):
+    def __init__(self, config, mode):
         self.config = config
         self.data_dir = config.data_dir
-        self.mode= mode
+        self.mode = mode
+
     def build(self, name):
         if not self.config.use_surfaces:
             return Data()
         try:
-            surface = torch.load(os.path.join(self.data_dir,self.mode,'surf_full', f"{name}.pt"))
+            surface = torch.load(os.path.join(self.data_dir, self.mode, 'surf_full', f"{name}.pt"))
             surface.expand_features(remove_feats=True, feature_keys=self.config.feat_keys, oh_keys=self.config.oh_keys)
             return surface
         except:
@@ -36,17 +37,18 @@ class SurfaceBuilder:
 
 
 class GraphBuilder:
-    def __init__(self, config,mode):
+    def __init__(self, config, mode):
         self.config = config
         self.data_dir = config.data_dir
         self.esm_dir = config.esm_dir
         self.use_esm = config.use_esm
-        self.mode= mode
+        self.mode = mode
+
     def build(self, name):
         if not self.config.use_graphs:
             return Data()
         try:
-            graph = torch.load(os.path.join(self.data_dir,self.mode,'rgraph', f"{name}.pt"))
+            graph = torch.load(os.path.join(self.data_dir, self.mode, 'rgraph', f"{name}.pt"))
             feature_keys = self.config.feat_keys
             if self.use_esm:
                 esm_feats_path = os.path.join(self.esm_dir, f"{name}_esm.pt")
@@ -67,11 +69,12 @@ class PIPDataset(Dataset):
         self.surface_builder = surface_builder
         self.graph_builder = graph_builder
         self.neg_to_pos_ratio = neg_to_pos_ratio
-        self.max_pos_regions_per_ensemble=max_pos_regions_per_ensemble
+        self.max_pos_regions_per_ensemble = max_pos_regions_per_ensemble
+
     def __len__(self):
         return len(self.systems)
-    
-    def _num_to_use(self,num_pos, num_neg):
+
+    def _num_to_use(self, num_pos, num_neg):
         """
         Depending on the number of pos and neg of the system, we might want to use
             different amounts of positive or negative coordinates.
@@ -91,15 +94,17 @@ class PIPDataset(Dataset):
         num_pos_to_use = int(math.ceil(num_pos_to_use))
         num_neg_to_use = int(math.ceil(num_neg_to_use))
         return num_pos_to_use, num_neg_to_use
+
     def __getitem__(self, idx):
         # import time
         # t0=time.time()
-        protein_pair= self.systems[idx]
+        protein_pair = self.systems[idx]
         pos_pairs = protein_pair['atoms_neighbors']
-        names,dfs=get_subunits(protein_pair['atoms_pairs'])
-        pdbca1=dfs[0][(dfs[0]['name']=='CA') & (dfs[0]['hetero']==' ')& (dfs[0]['resname']!='UNK')]
-        pdbca2=dfs[1][(dfs[1]['name']=='CA') & (dfs[1]['hetero']==' ')& (dfs[1]['resname']!='UNK')]
-        pos_pairs_res=pos_pairs[(pos_pairs['residue0'].isin(pdbca1.residue))&(pos_pairs['residue1'].isin(pdbca2.residue))]
+        names, dfs = get_subunits(protein_pair['atoms_pairs'])
+        pdbca1 = dfs[0][(dfs[0]['name'] == 'CA') & (dfs[0]['hetero'] == ' ') & (dfs[0]['resname'] != 'UNK')]
+        pdbca2 = dfs[1][(dfs[1]['name'] == 'CA') & (dfs[1]['hetero'] == ' ') & (dfs[1]['resname'] != 'UNK')]
+        pos_pairs_res = pos_pairs[
+            (pos_pairs['residue0'].isin(pdbca1.residue)) & (pos_pairs['residue1'].isin(pdbca2.residue))]
 
         mapping_1 = {resindex: i for i, resindex in enumerate(pdbca1.residue.values)}
         mapping_2 = {resindex: i for i, resindex in enumerate(pdbca2.residue.values)}
@@ -119,8 +124,8 @@ class PIPDataset(Dataset):
         pos_array_sampled = torch.from_numpy(pos_array_sampled)
         neg_array_sampled = torch.from_numpy(neg_array_sampled)
 
-        idx_left = torch.cat((pos_array_sampled[0],neg_array_sampled[0]))
-        idx_right = torch.cat((pos_array_sampled[1],neg_array_sampled[1]))
+        idx_left = torch.cat((pos_array_sampled[0], neg_array_sampled[0]))
+        idx_right = torch.cat((pos_array_sampled[1], neg_array_sampled[1]))
         labels = torch.cat((torch.ones(num_pos_to_use), torch.zeros(num_neg_to_use)))
         surface_1 = self.surface_builder.build(names[0])
         surface_2 = self.surface_builder.build(names[1])
@@ -128,17 +133,18 @@ class PIPDataset(Dataset):
         graph_2 = self.graph_builder.build(names[1])
         if surface_1 is None or surface_2 is None or graph_1 is None or graph_2 is None:
             return None
-        if idx_left.dtype!= torch.int64 and idx_right.dtype!= torch.int64:
+        if idx_left.dtype != torch.int64 and idx_right.dtype != torch.int64:
             return None
         # TODO GDF EXPAND
-        if idx_left.max()> len(graph_1.node_pos) or idx_right.max()> len(graph_2.node_pos):
-            print('idx error',names)
+        if idx_left.max() > len(graph_1.node_pos) or idx_right.max() > len(graph_2.node_pos):
+            print('idx error', names)
             return None
-        locs_left= graph_1.node_pos[idx_left]
-        locs_right= graph_2.node_pos[idx_right]
-        #TODO MISS transform and normalize
+        locs_left = graph_1.node_pos[idx_left]
+        locs_right = graph_2.node_pos[idx_right]
+        # TODO MISS transform and normalize
         # item = Data(surface_1=surface_1, graph_1=graph_1,surface_2=surface_2, graph_2=graph_2, idx_left=idx_left,idx_right=idx_right, label=labels)
-        item = Data(surface_1=surface_1, graph_1=graph_1,surface_2=surface_2, graph_2=graph_2, locs_left=locs_left,locs_right=locs_right, labels_pip=labels)
+        item = Data(surface_1=surface_1, graph_1=graph_1, surface_2=surface_2, graph_2=graph_2, locs_left=locs_left,
+                    locs_right=locs_right, labels_pip=labels)
         # print('process one data ',time.time()-t0)
         return item
 
@@ -148,10 +154,10 @@ class PIPDataModule(pl.LightningDataModule):
         super().__init__()
 
         script_dir = os.path.dirname(os.path.realpath(__file__))
-        data_dir=cfg.data_dir
+        data_dir = cfg.data_dir
         self.systems = []
         for mode in ['train', 'val', 'test']:
-            self.systems.append(os.path.join(data_dir,mode))
+            self.systems.append(os.path.join(data_dir, mode))
         self.cfg = cfg
         self.loader_args = {'num_workers': self.cfg.loader.num_workers,
                             'batch_size': self.cfg.loader.batch_size,
@@ -159,12 +165,12 @@ class PIPDataModule(pl.LightningDataModule):
                             'prefetch_factor': self.cfg.loader.prefetch_factor,
                             'shuffle': self.cfg.loader.shuffle,
                             'collate_fn': lambda x: AtomBatch.from_data_list(x)}
-        self.surface_builder_train = SurfaceBuilder(self.cfg.cfg_surface,mode='train')
-        self.graph_builder_train = GraphBuilder(self.cfg.cfg_graph,mode='train')
-        self.surface_builder_test = SurfaceBuilder(self.cfg.cfg_surface,mode='test')
-        self.graph_builder_test = GraphBuilder(self.cfg.cfg_graph,mode='test')        
-        self.surface_builder_val = SurfaceBuilder(self.cfg.cfg_surface,mode='val')
-        self.graph_builder_val = GraphBuilder(self.cfg.cfg_graph,mode='val')
+        self.surface_builder_train = SurfaceBuilder(self.cfg.cfg_surface, mode='train')
+        self.graph_builder_train = GraphBuilder(self.cfg.cfg_graph, mode='train')
+        self.surface_builder_test = SurfaceBuilder(self.cfg.cfg_surface, mode='test')
+        self.graph_builder_test = GraphBuilder(self.cfg.cfg_graph, mode='test')
+        self.surface_builder_val = SurfaceBuilder(self.cfg.cfg_surface, mode='val')
+        self.graph_builder_val = GraphBuilder(self.cfg.cfg_graph, mode='val')
         # Useful to create a Model of the right input dims
         train_dataset_temp = PIPDataset(self.systems[0], self.surface_builder_train, self.graph_builder_train)
         train_dataset_temp = iter(train_dataset_temp)
