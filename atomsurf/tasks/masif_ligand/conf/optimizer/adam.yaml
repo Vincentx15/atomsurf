@@ -1,5 +1,5 @@
 name: adam
-lr: 1e-3
+lr: 5e-5
 b1: 0.9
 b2: 0.99
 weight_decay: 0
