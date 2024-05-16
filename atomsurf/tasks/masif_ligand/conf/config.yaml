@@ -11,9 +11,9 @@ defaults:
   - override hydra/job_logging: colorlog
   - override hydra/hydra_logging: colorlog
 
-# hydra:
-#   job:
-#     chdir: False
+hydra:
+ job:
+   chdir: False
 
 # general params
 seed: 2024

@@ -17,7 +17,7 @@ def compute_accuracy(predictions, labels):
 
 
 def compute_auroc(predictions, labels):
-    labels = labels.detach().cpu().numpy()
+    labels = labels.detach().cpu().numpy().astype(int)
     predictions = predictions.detach().cpu().numpy()
     try:
         auroc = roc_auc_score(y_true=labels, y_score=predictions)

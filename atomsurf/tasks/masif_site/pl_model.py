@@ -53,8 +53,8 @@ class MasifSiteModule(AtomPLModule):
 
     def get_metrics(self, logits, labels, prefix):
         logits, labels = torch.cat(logits, dim=0), torch.cat(labels, dim=0)
-        auroc = compute_auroc(labels, logits)
-        acc = compute_accuracy(labels, logits)
+        auroc = compute_auroc(predictions=logits, labels=labels)
+        acc = compute_accuracy(predictions=logits, labels=labels)
         self.log_dict({
             f"auroc/{prefix}": auroc,
             f"acc/{prefix}": acc,

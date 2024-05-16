@@ -67,6 +67,8 @@ def main(cfg=None):
         check_val_every_n_epoch=cfg.train.check_val_every_n_epoch,
         val_check_interval=cfg.train.val_check_interval,
         # just verbose to maybe be used
+        # limit_train_batches=3,
+        # limit_val_batches=3,
         limit_train_batches=cfg.train.limit_train_batches,
         limit_val_batches=cfg.train.limit_val_batches,
         # auto_lr_find=cfg.train.auto_lr_find,
