@@ -19,7 +19,7 @@ hydra:
 seed: 2024
 run_name: default
 out_dir: ../../../outputs/masif_ligand/out_dir
-data_dir: None
+data_dir: null
 test_freq: 5
 epochs: 100
 device: 0
