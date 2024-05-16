@@ -49,14 +49,14 @@ class Features(Data):
 
     def add_flat_features(self, value):
         assert len(value) in self.possible_nums
-        if "flat_features" not in self.keys():
+        if "flat_features" not in self.keys:
             self.flat_features = value
         else:
             self.flat_features = torch.cat((self.flat_features, value), 0)
 
     def add_named_features(self, key, value):
         value = self.sanitize_features(value)
-        if "named_features" not in self.keys():
+        if "named_features" not in self.keys:
             self.named_features = {key: value}
         else:
             self.named_features[key] = value
@@ -65,7 +65,7 @@ class Features(Data):
         value = self.sanitize_features(value)
         # OH encoding should involve tensors of shape (n,) or (n,1)
         assert len(value.squeeze().shape) == 1
-        if "named_one_hot_features" not in self.keys():
+        if "named_one_hot_features" not in self.keys:
             self.named_one_hot_features = {key: value}
             self.named_one_hot_features_nclasses = {key: nclasses}
         else:
@@ -76,7 +76,7 @@ class Features(Data):
         """
         Unchecked features for exotic ones
         """
-        if "misc_features" not in self.keys():
+        if "misc_features" not in self.keys:
             self.misc_features = {key: value}
         else:
             self.misc_features[key] = value
@@ -98,10 +98,10 @@ class Features(Data):
         """
         all_features = []
         # Add flat features, default ones
-        if "flat_features" in self.keys():
+        if "flat_features" in self.keys:
             all_features.append(self.flat_features)
         # Add named features that are requested
-        if "named_features" in self.keys():
+        if "named_features" in self.keys:
             if feature_keys == 'all':
                 feature_keys = list(self.named_features.keys())
             for feature_key in feature_keys:
@@ -113,7 +113,7 @@ class Features(Data):
                     named_feature = feature_expander[feature_key](named_feature)
                 all_features.append(named_feature)
         # Follow the same steps for one-hot encoded features
-        if "named_one_hot_features" in self.keys():
+        if "named_one_hot_features" in self.keys:
             if oh_keys == 'all':
                 oh_keys = list(self.named_one_hot_features.keys())
             for feature_key in oh_keys:

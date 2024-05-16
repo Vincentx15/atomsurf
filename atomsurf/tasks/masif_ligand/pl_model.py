@@ -11,6 +11,7 @@ from atomsurf.tasks.masif_ligand.model import MasifLigandNet
 from atomsurf.utils.data_utils import AtomPLModule
 from atomsurf.utils.metrics import multi_class_eval
 
+
 class MasifLigandModule(AtomPLModule):
     def __init__(self, cfg) -> None:
         super().__init__(cfg)

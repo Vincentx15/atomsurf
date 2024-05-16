@@ -9,7 +9,7 @@ import torch.nn.functional as F
 from atomsurf.tasks.pip.model import PIPNet
 from atomsurf.utils.metrics import compute_auroc, compute_accuracy
 from sklearn.metrics import roc_auc_score
-from torch.optim.lr_scheduler import _LRScheduler, LinearLR, CosineAnnealingLR, SequentialLR, LambdaLR
+
 def compute_accuracy(predictions, labels):
     # Convert predictions to binary labels (0 or 1)
     predicted_labels = torch.round(predictions)
@@ -96,11 +96,10 @@ class PIPModule(pl.LightningModule):
     def configure_optimizers(self):
         opt_params = self.hparams.hparams.optimizer
         optimizer = torch.optim.Adam(self.parameters(), lr=opt_params.lr)
-        # scheduler_obj = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,
-        #                                                            patience=opt_params.patience,
-        #                                                            factor=opt_params.factor,
-        #                                                            mode='max')
-        
+        scheduler_obj = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,
+                                                                   patience=opt_params.patience,
+                                                                   factor=opt_params.factor,
+                                                                   mode='max')
         scheduler = {'scheduler': scheduler_obj,
                      'monitor': "auroc_val",
                      'interval': "epoch",

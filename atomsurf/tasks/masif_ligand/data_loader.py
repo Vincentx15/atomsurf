@@ -80,8 +80,6 @@ class MasifLigandDataset(Dataset):
         graph = self.graph_builder.load(pocket)
         if surface is None or graph is None:
             return None
-        if torch.isnan(surface.x).any() or torch.isnan(graph.x).any():
-            return None
         # TODO GDF EXPAND
         item = Data(surface=surface, graph=graph, lig_coord=lig_coord, label=lig_type)
         return item
@@ -93,8 +91,7 @@ class MasifLigandDataModule(pl.LightningDataModule):
         self.surface_loader = SurfaceLoaderMasifLigand(cfg.cfg_surface)
         self.graph_loader = GraphLoaderMasifLigand(cfg.cfg_graph)
         script_dir = os.path.dirname(os.path.realpath(__file__))
-        # masif_ligand_data_dir = os.path.join(script_dir, '..', '..', '..', 'data', 'masif_ligand')
-        masif_ligand_data_dir = cfg.data_dir
+        masif_ligand_data_dir = os.path.join(script_dir, '..', '..', '..', 'data', 'masif_ligand')
         splits_dir = os.path.join(masif_ligand_data_dir, 'raw_data_MasifLigand', 'splits')
         ligands_path = os.path.join(masif_ligand_data_dir, 'raw_data_MasifLigand', 'ligand')
         self.systems = []
