@@ -102,8 +102,6 @@ class GraphLoader:
 
 def update_model_input_dim(cfg, dataset_temp):
     # Useful to create a Model of the right input dims
-    success = False
-    e = None
     try:
         from omegaconf import open_dict
         for i, example in enumerate(dataset_temp):
@@ -112,15 +110,11 @@ def update_model_input_dim(cfg, dataset_temp):
                     feat_encoder_kwargs = cfg.encoder.blocks[0].kwargs
                     feat_encoder_kwargs['graph_feat_dim'] = example.graph.x.shape[1]
                     feat_encoder_kwargs['surface_feat_dim'] = example.surface.x.shape[1]
-                success = True
                 break
             if i > 50:
-                e = 'all data is None'
-                break
+                raise Exception('All data returned by Dataloader is None')
     except Exception as e:
-        pass
-    if not success:
-        print('Could not update model input dims because of error: ', e)
+        raise Exception('Could not update model input dims because of error: ', e)
 
 
 class AtomBatch(Data):

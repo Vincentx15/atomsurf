@@ -21,7 +21,6 @@ torch.set_num_threads(1)
 
 
 class PreProcessPDBDataset(Dataset):
-
     def __init__(self, recompute=False, data_dir=None):
         if data_dir is None:
             script_dir = os.path.dirname(os.path.realpath(__file__))

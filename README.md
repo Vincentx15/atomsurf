@@ -30,10 +30,10 @@ conda create -n atom2d -y
 conda activate atom2d
 conda install python=3.8
 conda install pytorch=1.13 torchvision torchaudio pytorch-cuda=11.7 -c pytorch -c nvidia
-conda install pyg -c pyg
+conda install pyg=2.3.0 pytorch-scatter pytorch-sparse -c pyg
 pip install -r requirements.txt
 # install diffusion-net
-pip install git+https://github.com/pvnieo/diffusion-net-plus.git
+#pip install git+https://github.com/pvnieo/diffusion-net-plus.git
 ```
 
 

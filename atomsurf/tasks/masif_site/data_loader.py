@@ -30,7 +30,6 @@ class MasifSiteDataset(Dataset):
         graph = self.graph_builder.load(pocket)
         if surface is None or graph is None:
             return None
-        # TODO GDF EXPAND
         item = Data(surface=surface, graph=graph, label=surface.iface_labels)
         return item
 
@@ -87,7 +86,7 @@ if __name__ == '__main__':
     cfg_surface.use_surfaces = True
     cfg_surface.feat_keys = 'all'
     cfg_surface.oh_keys = 'all'
-    cfg_surface.data_dir = os.path.join(masif_site_data_dir, 'surf_full')
+    cfg_surface.data_dir = os.path.join(masif_site_data_dir, 'surfaces')
     surface_loader = SurfaceLoader(cfg_surface)
 
     # GRAPHS
