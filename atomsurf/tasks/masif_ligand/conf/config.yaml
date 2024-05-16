@@ -62,6 +62,7 @@ cfg_surface:
   data_dir: ../../../data/masif_ligand/surf_ours
   feat_keys: 'all'
   oh_keys: 'all'
+  gdf_expand: true
 
 # python train.py 'cfg_graph.feat_keys=[hphobs]' 'cfg_graph.oh_keys=[amino_types]' cfg_graph.use_esm=True
 cfg_graph:

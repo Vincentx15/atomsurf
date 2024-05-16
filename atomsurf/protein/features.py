@@ -88,11 +88,12 @@ class Features(Data):
         atom_feat = res_feat[self.res_map]
         return atom_feat
 
-    def build_expanded_features(self, feature_keys='all', oh_keys='all'):
+    def build_expanded_features(self, feature_keys='all', oh_keys='all', feature_expander=None):
         """
         The goal of this function is to return a simple torch matrix to be input in the model
         :param feature_keys: list of features to include in the feature matrix
-        :param oh_keys:  list of oh features to include in the feature matrix
+        :param oh_keys: list of oh features to include in the feature matrix
+        :param feature_expander: {named_feature_key: function to transform the features values}
         :return:
         """
         all_features = []
@@ -108,6 +109,8 @@ class Features(Data):
                 # If this is not of the right shape, it means it's a res for atom feature, so we expand it with resmap
                 if len(named_feature) != self.num_nodes:
                     named_feature = self.expand_one(named_feature)
+                if feature_expander is not None and feature_key in feature_expander:
+                    named_feature = feature_expander[feature_key](named_feature)
                 all_features.append(named_feature)
         # Follow the same steps for one-hot encoded features
         if "named_one_hot_features" in self.keys:

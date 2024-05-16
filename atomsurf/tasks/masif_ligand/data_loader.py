@@ -12,7 +12,7 @@ if __name__ == '__main__':
     script_dir = os.path.dirname(os.path.realpath(__file__))
     sys.path.append(os.path.join(script_dir, '..', '..', '..'))
 
-from atomsurf.utils.data_utils import SurfaceLoader, GraphLoader, AtomBatch, update_model_input_dim
+from atomsurf.utils.data_utils import SurfaceLoader, GraphLoader, AtomBatch, update_model_input_dim, GaussianDistance
 
 ligands = ["ADP", "COA", "FAD", "HEM", "NAD", "NAP", "SAM"]
 type_idx = {type_: ix for ix, type_ in enumerate(ligands)}

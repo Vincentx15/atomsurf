@@ -12,13 +12,40 @@ from atomsurf.protein.surfaces import SurfaceObject, SurfaceBatch
 from atomsurf.protein.residue_graph import ResidueGraph, RGraphBatch
 from atomsurf.protein.atom_graph import AtomGraph, AGraphBatch
 
-from torch_geometric.loader.dataloader import DataLoader, Collater
+
+class GaussianDistance(object):
+    def __init__(self, start, stop, num_centers):
+        self.filters = torch.linspace(start, stop, num_centers)
+        self.var = (stop - start) / (num_centers - 1)
+
+    def __call__(self, d):
+        """
+        :param d: shape (n,1)
+        :return: shape (n,len(filters))
+        """
+        return torch.exp(-0.5 * (d - self.filters) ** 2 / self.var ** 2)
 
 
 class SurfaceLoader:
+    """
+    This class is used to go load surfaces saved in a .pt file
+    Based on the config it's given, it will load the corresponding features, optionnally expand them and
+    populate a .x key with them.
+    """
     def __init__(self, config):
         self.config = config
         self.data_dir = config.data_dir
+        self.feature_expander = None
+        if "gdf_expand" in config and config.gdf_expand:
+            self.gauss_curv_gdf = GaussianDistance(start=-0.1, stop=0.1, num_centers=16)
+            self.mean_curv_gdf = GaussianDistance(start=-0.5, stop=0.5, num_centers=16)
+            self.feature_expander = {'geom_feats': self.gdf_expand}
+
+    def gdf_expand(self, geom_features):
+        gauss_curvs, mean_curvs, others = torch.split(geom_features, (1, 1, 20), dim=-1)
+        gauss_curvs_gdf = self.gauss_curv_gdf(gauss_curvs)
+        mean_curvs_gdf = self.mean_curv_gdf(mean_curvs)
+        return torch.cat([gauss_curvs_gdf, mean_curvs_gdf, others], dim=-1)
 
     def load(self, surface_name):
         if not self.config.use_surfaces:
@@ -27,7 +54,8 @@ class SurfaceLoader:
             surface = torch.load(os.path.join(self.data_dir, f"{surface_name}.pt"))
             surface.expand_features(remove_feats=True,
                                     feature_keys=self.config.feat_keys,
-                                    oh_keys=self.config.oh_keys)
+                                    oh_keys=self.config.oh_keys,
+                                    feature_expander=self.feature_expander)
             if torch.isnan(surface.x).any() or torch.isnan(surface.verts).any():
                 return None
             return surface
@@ -36,11 +64,17 @@ class SurfaceLoader:
 
 
 class GraphLoader:
+    """
+    This class is used to go load graphs saved in a .pt file
+    It is similar to the Surface one, but can also be extended with ESM or ProNet features
+    Based on the config it's given, it will load the corresponding features and populate a .x key with them.
+    """
     def __init__(self, config):
         self.config = config
         self.data_dir = config.data_dir
         self.esm_dir = config.esm_dir
         self.use_esm = config.use_esm
+        self.feature_expander = None
 
     def load(self, graph_name):
         if not self.config.use_graphs:
@@ -54,7 +88,10 @@ class GraphLoader:
                 graph.features.add_named_features('esm_feats', esm_feats)
                 if feature_keys != 'all':
                     feature_keys.append('esm_feats')
-            graph.expand_features(remove_feats=True, feature_keys=feature_keys, oh_keys=self.config.oh_keys)
+            graph.expand_features(remove_feats=True,
+                                  feature_keys=feature_keys,
+                                  oh_keys=self.config.oh_keys,
+                                  feature_expander=self.feature_expander)
             if torch.isnan(graph.x).any() or torch.isnan(graph.node_pos).any():
                 return None
         except Exception as e:
