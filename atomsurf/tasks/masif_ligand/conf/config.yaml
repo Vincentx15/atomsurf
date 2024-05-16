@@ -24,7 +24,9 @@ epochs: 100
 device: 0
 log_dir: "./"
 path_model: "version_x/checkpoints/last.ckpt"
-
+lr_scheduler: PolynomialLRWithWarmup
+warmup_epochs: 10
+lr_eta_min: 1E-8
 # loader params
 loader:
   num_workers: 2
