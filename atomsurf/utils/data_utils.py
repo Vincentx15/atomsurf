@@ -11,6 +11,7 @@ from atomsurf.protein.surfaces import SurfaceObject, SurfaceBatch
 from atomsurf.protein.residue_graph import ResidueGraph, RGraphBatch
 from atomsurf.protein.atom_graph import AtomGraph, AGraphBatch
 
+from torch.optim.lr_scheduler import _LRScheduler, LinearLR, CosineAnnealingLR, SequentialLR, LambdaLR
 
 class GaussianDistance(object):
     def __init__(self, start, stop, num_centers):
@@ -269,13 +270,22 @@ class AtomPLModule(pl.LightningModule):
         self.test_res = list()
         pass
 
+    def transfer_batch_to_device(self, batch, device, dataloader_idx):
+        batch = batch.to(device)
+        return batch
+
     def configure_optimizers(self):
         opt_params = self.hparams.cfg.optimizer
         optimizer = torch.optim.Adam(self.parameters(), lr=opt_params.lr)
-        scheduler_obj = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,
-                                                                   patience=opt_params.patience,
-                                                                   factor=opt_params.factor,
-                                                                   mode='max')
+        # scheduler_obj = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,
+        #                                                            patience=opt_params.patience,
+        #                                                            factor=opt_params.factor,
+        #                                                            mode='max')
+        scheduler_obj = get_lr_scheduler(scheduler=self.hparams.cfg.lr_scheduler,
+                                         optimizer=optimizer,
+                                         warmup_epochs=self.hparams.cfg.warmup_epochs,
+                                         total_epochs=self.hparams.cfg.epochs,
+                                         eta_min=self.hparams.cfg.lr_eta_min)
         scheduler = {'scheduler': scheduler_obj,
                      'monitor': self.hparams.cfg.train.to_monitor,
                      'interval': "epoch",
@@ -285,6 +295,41 @@ class AtomPLModule(pl.LightningModule):
         # return optimizer
         return [optimizer], [scheduler]
 
-    def transfer_batch_to_device(self, batch, device, dataloader_idx):
-        batch = batch.to(device)
-        return batch
+
+def get_lr_scheduler(scheduler, optimizer, warmup_epochs, total_epochs, eta_min=1E-8):
+    warmup_scheduler = LinearLR(optimizer,
+                                start_factor=1E-3,
+                                total_iters=warmup_epochs)
+
+    if scheduler == 'PolynomialLRWithWarmup':
+        decay_scheduler = PolynomialLR(optimizer,
+                                       total_iters=total_epochs - warmup_epochs,
+                                       power=1)
+    elif scheduler == 'CosineAnnealingLRWithWarmup':
+        decay_scheduler = CosineAnnealingLR(optimizer,
+                                            T_max=total_epochs - warmup_epochs,
+                                            eta_min=eta_min)
+    elif scheduler == 'constant':
+        lambda1 = lambda epoch: 1.0
+        decay_scheduler = LambdaLR(optimizer, lr_lambda=lambda1)
+    else:
+        raise NotImplementedError
+
+    return SequentialLR(optimizer,
+                        schedulers=[warmup_scheduler, decay_scheduler],
+                        milestones=[warmup_epochs])
+
+
+class PolynomialLR(_LRScheduler):
+    def __init__(self, optimizer, total_iters, power, last_epoch=-1, verbose=False):
+        self.total_iters = total_iters
+        self.power = power
+        super().__init__(optimizer, last_epoch, verbose)
+
+    def get_lr(self):
+        if self.last_epoch == 0 or self.last_epoch > self.total_iters:
+            return [group['lr'] for group in self.optimizer.param_groups]
+
+        decay_factor = ((1.0 - self.last_epoch / self.total_iters) /
+                        (1.0 - (self.last_epoch - 1) / self.total_iters)) ** self.power
+        return [group['lr'] * decay_factor for group in self.optimizer.param_groups]

@@ -26,6 +26,10 @@ log_dir: "./"
 path_model: "version_x/checkpoints/last.ckpt"
 min_batch_size: 2
 
+lr_scheduler: PolynomialLRWithWarmup
+warmup_epochs: 10
+lr_eta_min: 1E-8
+
 # loader params
 loader:
   num_workers: 2

@@ -81,6 +81,8 @@ class MasifLigandDataset(Dataset):
         if surface is None or graph is None:
             return None
         # TODO GDF EXPAND
+        if torch.isnan(surface.x).any() or torch.isnan(graph.x).any():
+            return None
         item = Data(surface=surface, graph=graph, lig_coord=lig_coord, label=lig_type)
         return item
 
