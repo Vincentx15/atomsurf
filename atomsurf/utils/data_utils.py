@@ -6,7 +6,7 @@ from torch_geometric.data import Batch
 from torch_sparse import SparseTensor
 import pytorch_lightning as pl
 
-from atomsurf.protein.surfaces import SurfaceObject
+from atomsurf.protein.surfaces import SurfaceObject, SurfaceBatch
 from atomsurf.protein.residue_graph import ResidueGraph
 from atomsurf.protein.atom_graph import AtomGraph
 
@@ -108,7 +108,7 @@ class AtomBatch(Data):
                 except:
                     batch[key] = batch[key]
             elif isinstance(item, SurfaceObject):
-                batch[key] = SurfaceObject.batch_from_data_list(batch[key])
+                batch[key] = SurfaceBatch.batch_from_data_list(batch[key])
             elif isinstance(item, ResidueGraph):
                 batch[key] = ResidueGraph.batch_from_data_list(batch[key])
             elif isinstance(item, AtomGraph):

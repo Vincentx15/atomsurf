@@ -82,7 +82,7 @@ class SurfaceObject(Data, FeaturesHolder):
 
         for attr_name in ['L', 'mass', 'gradX', 'gradY']:
             attr_value = getattr(self, attr_name)
-            setattr(self, attr_name, diff_utils.sparse_np_to_torch(attr_value).to(device=device))
+            setattr(self, attr_name, diff_utils.sparse_np_to_pyg(attr_value).to(device=device))
         return self
 
     def numpy(self):
@@ -92,7 +92,7 @@ class SurfaceObject(Data, FeaturesHolder):
 
         for attr_name in ['L', 'mass', 'gradX', 'gradY']:
             attr_value = getattr(self, attr_name)
-            setattr(self, attr_name, diff_utils.sparse_torch_to_np(attr_value))
+            setattr(self, attr_name, diff_utils.sparse_pyg_to_np(attr_value))
         return self
 
     def save(self, npz_path):
@@ -160,11 +160,7 @@ class SurfaceObject(Data, FeaturesHolder):
         if key in ["mass", "L", "gradX", "gradY"]:
             return (0, 1)
         else:
-            return super().__cat_dim__(key, value, *args, **kwargs)
-
-    @staticmethod
-    def batch_from_data_list(data_list):
-        return SurfaceBatch.batch_from_data_list(data_list=data_list)
+            return Data.__cat_dim__(None, key, value, *args, **kwargs)
 
 
 class SurfaceBatch(Batch):
@@ -179,21 +175,23 @@ class SurfaceBatch(Batch):
     @classmethod
     def batch_from_data_list(cls, data_list):
         for surface in data_list:
+            # This is needed for data that was created as torch sparse tensor (instead of pyg ones),
+            # since they cannot be batched
             for key in {'L', 'mass', 'gradX', 'gradY'}:
                 tensor_coo = getattr(surface, key)
-                tensor_sparse = SparseTensor.from_torch_sparse_coo_tensor(tensor_coo)
-                surface[key] = tensor_sparse
-        batch = Batch.from_data_list(data_list, follow_batch=('L', 'mass', 'gradX', 'gradY'))
+                if isinstance(tensor_coo, torch.Tensor):
+                    pyg_tensor = SparseTensor.from_torch_sparse_coo_tensor(tensor_coo)
+                else:
+                    pyg_tensor = tensor_coo
+                surface[key] = pyg_tensor
+        batch = Batch.from_data_list(data_list)
         batch = batch.contiguous()
         surface_batch = cls()
         surface_batch.__dict__.update(batch.__dict__)
         return surface_batch
 
     def __cat_dim__(self, key, value, *args, **kwargs):
-        if key in ["mass", "L", "gradX", "gradY"]:
-            return (0, 1)
-        else:
-            return Data.__cat_dim__(None, key, value, *args, **kwargs)
+        return SurfaceObject.__cat_dim__(None, key, value, *args, **kwargs)
 
     def to_lists(self):
         surfaces = self.to_data_list()
@@ -221,6 +219,7 @@ if __name__ == "__main__":
     # Save as torch, a bit heavier
     surface_file_torch = "../../data/example_files/example_surface.pt"
     surface.save_torch(surface_file_torch)
+
     # t0 = time.time()
     # for _ in range(100):
     #     surface = SurfaceObject.load(surface_file_np)
