@@ -228,7 +228,7 @@ class ResidueGraphBuilder:
         hphob = np.asarray([res_type_to_hphob[amino_type] for amino_type in amino_types], dtype=np.float32)
         res_graph.features.add_named_features('hphobs', hphob)
         res_graph.features.add_named_features('atom_charge', atom_charge)
-        res_graph.features.add_named_features('atom_radius', atom_radius)      
+        res_graph.features.add_named_features('atom_radius', atom_radius)       
         if self.add_esm:
             esm_embed = get_esm_embedding_single(pdb_path, esm_path)
             res_graph.features.add_named_features('esm_embed', esm_embed)

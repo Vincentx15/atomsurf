@@ -21,9 +21,12 @@ torch.set_num_threads(1)
 
 
 class PreprocessPatchDataset(Dataset):
-    def __init__(self, recompute=False):
+    def __init__(self,data, recompute=False):
         script_dir = os.path.dirname(os.path.realpath(__file__))
-        masif_ligand_data_dir = os.path.join(script_dir, '..', '..', '..', 'data', 'masif_ligand')
+        if data_dir is None:
+            masif_ligand_data_dir = os.path.join(script_dir, '..', '..', '..', 'data', 'masif_ligand')
+        else:
+            masif_ligand_data_dir = data_dir
         self.patch_dir = os.path.join(masif_ligand_data_dir, 'dataset_MasifLigand')
         self.out_surf_dir_hmr = os.path.join(masif_ligand_data_dir, 'surf_hmr')
         self.out_surf_dir_ours = os.path.join(masif_ligand_data_dir, 'surf_ours')
