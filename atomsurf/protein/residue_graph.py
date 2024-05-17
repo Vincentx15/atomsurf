@@ -227,8 +227,6 @@ class ResidueGraphBuilder:
         res_graph.features.add_named_oh_features('sse', res_sse, nclasses=8)
         hphob = np.asarray([res_type_to_hphob[amino_type] for amino_type in amino_types], dtype=np.float32)
         res_graph.features.add_named_features('hphobs', hphob)
-        import pdb
-        pdb.set_trace()
         # res_graph.features.add_named_features('atom_charge', atom_charge)
         # res_graph.features.add_named_features('atom_radius', atom_radius)       
         if self.add_esm:
