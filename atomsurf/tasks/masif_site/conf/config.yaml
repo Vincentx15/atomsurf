@@ -20,7 +20,7 @@ seed: 2024
 run_name: default
 out_dir: ../../../outputs/masif_site/out_dir
 test_freq: 5
-epochs: 100
+epochs: 200
 device: 0
 log_dir: "./"
 path_model: "version_x/checkpoints/last.ckpt"
@@ -32,8 +32,8 @@ lr_eta_min: 1E-8
 
 # loader params
 loader:
-  num_workers: 0
-  batch_size: 8
+  num_workers: 2
+  batch_size: 16
   pin_memory: False
   prefetch_factor: 2
   shuffle: true
@@ -65,23 +65,18 @@ cfg_surface:
   data_dir: ../../../data/masif_site/surfaces
   feat_keys: 'all'
   oh_keys: 'all'
+  gdf_expand: true
 
 # python train.py 'cfg_graph.feat_keys=[hphobs]' 'cfg_graph.oh_keys=[amino_types]' cfg_graph.use_esm=True
 cfg_graph:
   use_graphs: true
-  data_dir: ../../../data/masif_site/rgraph
+  data_dir: ../../../data/masif_site/agraph
+#  data_dir: ../../../data/masif_site/rgraph
   feat_keys: 'all'
   oh_keys: 'all'
   esm_dir: ../../../data/masif_site/esm
   use_esm: false
 
-#cfg_graph:
-#  use_graphs: true
-#  data_dir: ../../../data/masif_site/agraph
-#  feat_keys: 'all'
-#  oh_keys: 'all'
-#  esm_dir: ../../../data/masif_site/esm
-#  use_esm: false
 
 cfg_head:
   encoded_dims: 12

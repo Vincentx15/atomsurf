@@ -12,7 +12,7 @@ if __name__ == '__main__':
     script_dir = os.path.dirname(os.path.realpath(__file__))
     sys.path.append(os.path.join(script_dir, '..', '..'))
 
-from atomsurf.protein.graphs import parse_pdb_path, atom_coords_to_edges
+from atomsurf.protein.graphs import parse_pdb_path, atom_coords_to_edges, res_type_to_hphob
 from atomsurf.protein.features import Features, FeaturesHolder
 from atomsurf.utils.torch_utils import safe_to_torch
 
@@ -31,37 +31,6 @@ class AtomGraph(Data, FeaturesHolder):
         else:
             self.features = features
 
-    # @staticmethod
-    # def batch_from_data_list(data_list):
-    #     # filter out None
-    #     data_list = [data for data in data_list if data is not None]
-    #     if len(data_list) == 0:
-    #         return None
-    #     return data_list
-
-
-class AtomGraphBuilder:
-    def __init__(self):
-        pass
-
-    def arrays_to_agraph(self, arrays):
-        amino_types, _, atom_amino_id, _, atom_types, atom_pos, atom_charge, atom_radius, res_sse = arrays
-        edge_index, edge_dists = atom_coords_to_edges(atom_pos)
-        atom_graph = AtomGraph(node_pos=atom_pos,
-                               res_map=atom_amino_id,
-                               edge_index=edge_index,
-                               edge_attr=edge_dists)
-        atom_graph.features.add_named_oh_features('amino_types', amino_types, nclasses=21)
-        atom_graph.features.add_named_oh_features('atom_types', atom_types, nclasses=12)
-        atom_graph.features.add_named_oh_features('sse', atom_types, nclasses=8)
-        atom_graph.features.add_named_features('charge', atom_charge)
-        atom_graph.features.add_named_features('radius', atom_radius)
-        return atom_graph
-
-    def pdb_to_atomgraph(self, pdb_path):
-        arrays = parse_pdb_path(pdb_path)
-        return self.arrays_to_agraph(arrays)
-
 
 class AGraphBatch(Batch):
     """
@@ -79,6 +48,34 @@ class AGraphBatch(Batch):
         agraph_batch = cls()
         agraph_batch.__dict__.update(batch.__dict__)
         return agraph_batch
+
+
+class AtomGraphBuilder:
+    def __init__(self):
+        pass
+
+    def arrays_to_agraph(self, arrays):
+        amino_types, _, atom_amino_id, _, atom_types, atom_pos, atom_charge, atom_radius, res_sse = arrays
+        edge_index, edge_dists = atom_coords_to_edges(atom_pos)
+        atom_graph = AtomGraph(node_pos=atom_pos,
+                               res_map=atom_amino_id,
+                               edge_index=edge_index,
+                               edge_attr=edge_dists)
+        # Add res_level features to be expanded
+        atom_graph.features.add_named_oh_features('amino_types', amino_types, nclasses=21)
+        atom_graph.features.add_named_oh_features('sse', res_sse, nclasses=8)
+        hphob = np.asarray([res_type_to_hphob[amino_type] for amino_type in amino_types], dtype=np.float32)
+        atom_graph.features.add_named_features('hphobs', hphob)
+
+        # Add atom_level features
+        atom_graph.features.add_named_oh_features('atom_types', atom_types, nclasses=12)
+        atom_graph.features.add_named_features('charge', atom_charge)
+        atom_graph.features.add_named_features('radius', atom_radius)
+        return atom_graph
+
+    def pdb_to_atomgraph(self, pdb_path):
+        arrays = parse_pdb_path(pdb_path)
+        return self.arrays_to_agraph(arrays)
 
 
 if __name__ == "__main__":
