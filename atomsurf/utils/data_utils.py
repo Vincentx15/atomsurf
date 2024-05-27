@@ -25,7 +25,14 @@ class GaussianDistance(object):
         :return: shape (n,len(filters))
         """
         return torch.exp(-0.5 * (d - self.filters) ** 2 / self.var ** 2)
+import numpy as np
+class GaussianDistanceNP(object):
+    def __init__(self, start, stop, num_centers):
+        self.filters = np.linspace(start, stop, num_centers)
+        self.var = (stop - start) / (num_centers - 1)
 
+    def expand(self, d):
+        return np.exp(-0.5 * (d[..., None] - self.filters)**2 / self.var**2)
 
 class SurfaceLoader:
     """

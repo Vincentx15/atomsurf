@@ -1,0 +1,11 @@
+name: 6layer
+
+
+blocks:
+  - ${ChemGeomFeatEncoder}
+  - ${diffusion128|gcn128|concurent}
+  - ${diffusion128|gcn128|concurent}
+  - ${diffusion128|gcn128|concurent}
+  - ${diffusion128|gcn128|concurent}
+  - ${diffusion128|gcn128|concurent}
+  - ${diffusion128|gcn128|concurent}

@@ -7,7 +7,7 @@ import pytorch_lightning as pl
 import torch
 from torch.utils.data import Dataset, DataLoader
 from torch_geometric.data import Data
-
+from sklearn.neighbors import BallTree
 if __name__ == '__main__':
     script_dir = os.path.dirname(os.path.realpath(__file__))
     sys.path.append(os.path.join(script_dir, '..', '..', '..'))
@@ -23,6 +23,7 @@ def get_systems_from_ligands(split_list_path, ligands_path, out_path=None, recom
         if os.path.exists(out_path) and not recompute:
             all_pockets = pickle.load(open(out_path, "rb"))
             return all_pockets
+    datalist=os.listdir(os.path.join(ligands_path, '..', '..','dataset_MasifLigand'))
     all_pockets = {}
     split_list = open(split_list_path).read().splitlines()
     for pdb_chains in split_list:
@@ -35,7 +36,8 @@ def get_systems_from_ligands(split_list_path, ligands_path, out_path=None, recom
         for ix, (lig_type, lig_coord) in enumerate(zip(ligand_types, ligand_coords)):
             lig_coord = lig_coord.astype(np.float32)
             pocket = f'{pdb_chains}_patch_{ix}_{lig_type}'
-            all_pockets[pocket] = np.reshape(lig_coord, (-1, 3)), type_idx[lig_type]
+            if pocket+'.npz' in datalist:
+                all_pockets[pocket] = np.reshape(lig_coord, (-1, 3)), type_idx[lig_type]
     if out_path is not None:
         pickle.dump(all_pockets, open(out_path, "wb"))
     return all_pockets
@@ -81,7 +83,40 @@ class MasifLigandDataset(Dataset):
         if surface is None or graph is None:
             return None
         if torch.isnan(surface.x).any() or torch.isnan(graph.x).any():
+            print('nan',pocket)
             return None
+        # calclulate surface.nbr_vids
+        if surface!=None and graph!=None: 
+            import numpy as np
+            from sklearn.neighbors import BallTree 
+            from atomsurf.utils.data_utils import GaussianDistanceNP
+            from atomsurf.network_utils.diffusion_net.geometry import mesh_vertex_normals
+            chem_feats = graph.x
+            dist_gdf= GaussianDistanceNP(start=0., stop=8., num_centers=8)
+            angular_gdf =  GaussianDistanceNP(start=-1., stop=1., num_centers=8)
+            atom_bt = BallTree(graph.node_pos)
+            vert_nbr_atoms = 16
+            vert_nbr_dist, vert_nbr_ind = atom_bt.query(surface.verts, k=vert_nbr_atoms)
+            nbr_vid = np.concatenate([[i] * len(vert_nbr_ind[i]) for i in range(len(vert_nbr_ind))])
+            surface.nbr_vid= torch.from_numpy(nbr_vid)
+            dist_flat = np.concatenate(vert_nbr_dist, axis=0)
+            ind_flat = np.concatenate(vert_nbr_ind, axis=0)
+
+            chem_featstmp= chem_feats.numpy()
+            testchem_feats = [chem_featstmp[ind_flat]]
+            testchem_feats.append(dist_gdf.expand(dist_flat))
+            nbr_vec = graph.node_pos[ind_flat] - surface.verts[nbr_vid]
+            vnormals = mesh_vertex_normals(surface.verts.numpy(),surface.faces.numpy())
+            nbr_vnormals = vnormals[nbr_vid]
+            nbr_angular = np.einsum('vj,vj->v', 
+                                        nbr_vec / np.linalg.norm(nbr_vec, axis=-1, keepdims=True), 
+                                        nbr_vnormals)
+            nbr_angular_gdf = angular_gdf.expand(nbr_angular)
+            testchem_feats.append(nbr_angular_gdf)
+            testchem_feats = np.concatenate(testchem_feats, axis=-1)
+            testchem_feats = torch.from_numpy(testchem_feats)
+            surface.testchem_feats = testchem_feats
+            surface.nbr_vid = nbr_vid
         item = Data(surface=surface, graph=graph, lig_coord=lig_coord, label=lig_type)
         return item
 

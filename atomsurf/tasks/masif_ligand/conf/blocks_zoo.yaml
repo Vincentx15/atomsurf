@@ -10,7 +10,7 @@ diffusion128|gcn128|concurent:
       kwargs:
         C_width: 128
         mlp_hidden_dims: [128, 128]
-        dropout: 0.0
+        dropout: 0.1
         use_bn: true
         init_time: 2.0  # either null (for constant init) or a float
         init_std: 2.0
@@ -22,7 +22,7 @@ diffusion128|gcn128|concurent:
         dim_in: 128
         hidden_dims: 128
         dim_out: 128
-        dropout: 0.0
+        dropout: 0.1
         use_bn: true
         use_weighted_edge_distance: false
     communication_block:
@@ -62,7 +62,7 @@ ChemGeomFeatEncoder:
   instanciate:
     _target_: atomsurf.networks.ChemGeomFeatEncoder
   kwargs:
-    use_neigh: False
+    use_neigh: True #False
     h_dim: 128
     dropout: 0.1
     num_gdf: 16

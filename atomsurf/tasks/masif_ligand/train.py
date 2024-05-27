@@ -6,7 +6,7 @@ import hydra
 import torch
 import pytorch_lightning as pl
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
-
+from pytorch_lightning.callbacks import StochasticWeightAveraging
 # project
 if __name__ == '__main__':
     sys.path.append(str(Path(__file__).absolute().parents[3]))
@@ -50,7 +50,7 @@ def main(cfg=None):
     early_stop_callback = pl.callbacks.EarlyStopping(monitor=cfg.train.to_monitor,
                                                      patience=cfg.train.early_stoping_patience,
                                                      mode='max')
-    callbacks = [lr_logger, checkpoint_callback, early_stop_callback, CommandLoggerCallback(command)]
+    callbacks = [lr_logger, checkpoint_callback, early_stop_callback, CommandLoggerCallback(command),StochasticWeightAveraging(swa_lrs=1e-2)]
 
     if torch.cuda.is_available():
         params = {"accelerator": "gpu", "devices": [cfg.device]}
@@ -87,6 +87,9 @@ def main(cfg=None):
 
     # test
     trainer.test(model, ckpt_path="best", datamodule=datamodule)
+    print('*******last ckpt*******')
+    trainer.test(model, ckpt_path="last", datamodule=datamodule)
+    # trainer.test(model, ckpt_path=cfg.path_model, datamodule=datamodule)
 
 
 if __name__ == "__main__":
