@@ -10,7 +10,7 @@ if __name__ == '__main__':
     script_dir = os.path.dirname(os.path.realpath(__file__))
     sys.path.append(os.path.join(script_dir, '..', '..'))
 
-from atomsurf.protein.graphs import parse_pdb_path, atom_coords_to_edges, res_type_to_hphob
+from atomsurf.protein.graphs import parse_pdb_path, CAatom_coords_to_edges, res_type_to_hphob
 from atomsurf.protein.features import Features, FeaturesHolder
 
 from atomsurf.protein.create_esm import get_esm_embedding_single
@@ -218,7 +218,7 @@ class ResidueGraphBuilder:
         pos_ca = np.full((len(amino_types), 3), np.nan)
         pos_ca[atom_amino_id[mask_ca]] = atom_pos[mask_ca]
         pos_ca = torch.FloatTensor(pos_ca)
-        edge_index, edge_dists = atom_coords_to_edges(pos_ca)
+        edge_index, edge_dists = CAatom_coords_to_edges(pos_ca)
 
         res_graph = ResidueGraph(node_pos=pos_ca,
                                  edge_index=edge_index,

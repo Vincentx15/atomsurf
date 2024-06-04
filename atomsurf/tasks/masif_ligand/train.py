@@ -4,6 +4,7 @@ from pathlib import Path
 # 3p
 import hydra
 import torch
+torch.multiprocessing.set_sharing_strategy('file_system')
 import pytorch_lightning as pl
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.callbacks import StochasticWeightAveraging
@@ -33,10 +34,11 @@ def main(cfg=None):
     version = TensorBoardLogger(save_dir=cfg.log_dir).version
     version_name = f"version_{version}_{cfg.run_name}"
     tb_logger = TensorBoardLogger(save_dir=cfg.log_dir, version=version_name)
-    loggers = [tb_logger]
+    
 
     # callbacks
-    lr_logger = pl.callbacks.LearningRateMonitor()
+    lr_logger = pl.callbacks.LearningRateMonitor(logging_interval='epoch')
+    loggers = [tb_logger]
     checkpoint_callback = pl.callbacks.ModelCheckpoint(
         filename="{epoch}-{accuracy_balanced/val:.2f}",
         dirpath=Path(tb_logger.log_dir) / "checkpoints",
@@ -50,7 +52,7 @@ def main(cfg=None):
     early_stop_callback = pl.callbacks.EarlyStopping(monitor=cfg.train.to_monitor,
                                                      patience=cfg.train.early_stoping_patience,
                                                      mode='max')
-    callbacks = [lr_logger, checkpoint_callback, early_stop_callback, CommandLoggerCallback(command),StochasticWeightAveraging(swa_lrs=1e-2)]
+    callbacks = [lr_logger, checkpoint_callback, early_stop_callback, CommandLoggerCallback(command)]#,StochasticWeightAveraging(swa_lrs=1e-2)
 
     if torch.cuda.is_available():
         params = {"accelerator": "gpu", "devices": [cfg.device]}

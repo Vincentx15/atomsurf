@@ -176,6 +176,24 @@ def atom_coords_to_edges(node_pos, edge_dist_cutoff=4.5):
         my_edge_weights_torch = 1 / (np.linalg.norm(node_a - node_b, axis=1) + 1e-5)
     return edges, my_edge_weights_torch
 
+def CAatom_coords_to_edges(node_pos, edge_dist_cutoff=10):
+    r"""
+    Turn nodes position into neighbors graph.
+    """
+    # import time
+    # t0 = time.time()
+    from torch_geometric.nn import radius_graph
+    edges = radius_graph(node_pos, r=edge_dist_cutoff, batch=torch.zeros(len(node_pos),dtype=int), max_num_neighbors=32)
+    edges = to_undirected(edges)
+    # print(f"time to pre_dist : {time.time() - t0}")
+
+    # t0 = time.time()
+    node_a = node_pos[edges[0, :]]
+    node_b = node_pos[edges[1, :]]
+    with torch.no_grad():
+        my_edge_weights_torch = 1 / (np.linalg.norm(node_a - node_b, axis=1) + 1e-5)
+    return edges, my_edge_weights_torch
+
 
 if __name__ == "__main__":
     pass

@@ -119,6 +119,7 @@ def update_model_input_dim(cfg, dataset_temp):
                     feat_encoder_kwargs = cfg.encoder.blocks[0].kwargs
                     feat_encoder_kwargs['graph_feat_dim'] = example.graph.x.shape[1]
                     feat_encoder_kwargs['surface_feat_dim'] = example.surface.x.shape[1]
+                    feat_encoder_kwargs['chem_feat_dim_surf'] = example.graph.x.shape[1]+16
                 break
             if i > 50:
                 raise Exception('All data returned by Dataloader is None')
@@ -252,7 +253,7 @@ class AtomPLModule(pl.LightningModule):
     def test_step(self, batch, batch_idx: int):
         if batch.num_graphs < 1:
             return None
-        self.model.train()
+        self.model.eval()
         loss, logits, labels = self.step(batch)
         if loss is None or logits.isnan().any() or labels.isnan().any():
             return None

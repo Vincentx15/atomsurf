@@ -5,6 +5,7 @@ from pathlib import Path
 import hydra
 import torch
 import pytorch_lightning as pl
+import numpy as np
 # project
 if __name__ == '__main__':
     sys.path.append(str(Path(__file__).absolute().parents[3]))
@@ -16,8 +17,7 @@ from data_loader import MasifLigandDataModule
 @hydra.main(config_path="conf", config_name="config")
 def main(cfg=None):
     command = f"python3 {' '.join(sys.argv)}"
-
-    seed = cfg.seed
+    seed =cfg.seed
     pl.seed_everything(seed, workers=True)
 
     # init datamodule

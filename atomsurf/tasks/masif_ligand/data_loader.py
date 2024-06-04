@@ -86,37 +86,50 @@ class MasifLigandDataset(Dataset):
             print('nan',pocket)
             return None
         # calclulate surface.nbr_vids
+        if hasattr(graph, 'misc_features'):
+            use_pronet= True #True
+        else:
+            use_pronet= False
+        if use_pronet:
+            tmp_x= torch.cat([graph.x,graph.misc_features['pronet_features'].side_chain_embs,graph.misc_features['pronet_features'].bb_embs],dim=1)
+            graph.x=tmp_x
         if surface!=None and graph!=None: 
             import numpy as np
             from sklearn.neighbors import BallTree 
             from atomsurf.utils.data_utils import GaussianDistanceNP
             from atomsurf.network_utils.diffusion_net.geometry import mesh_vertex_normals
-            chem_feats = graph.x
-            dist_gdf= GaussianDistanceNP(start=0., stop=8., num_centers=8)
-            angular_gdf =  GaussianDistanceNP(start=-1., stop=1., num_centers=8)
+            # chem_feats = graph.x
+            # dist_gdf= GaussianDistanceNP(start=0., stop=8., num_centers=8)
+            # angular_gdf =  GaussianDistanceNP(start=-1., stop=1., num_centers=8)
             atom_bt = BallTree(graph.node_pos)
             vert_nbr_atoms = 16
             vert_nbr_dist, vert_nbr_ind = atom_bt.query(surface.verts, k=vert_nbr_atoms)
             nbr_vid = np.concatenate([[i] * len(vert_nbr_ind[i]) for i in range(len(vert_nbr_ind))])
-            surface.nbr_vid= torch.from_numpy(nbr_vid)
             dist_flat = np.concatenate(vert_nbr_dist, axis=0)
             ind_flat = np.concatenate(vert_nbr_ind, axis=0)
-
-            chem_featstmp= chem_feats.numpy()
-            testchem_feats = [chem_featstmp[ind_flat]]
-            testchem_feats.append(dist_gdf.expand(dist_flat))
-            nbr_vec = graph.node_pos[ind_flat] - surface.verts[nbr_vid]
-            vnormals = mesh_vertex_normals(surface.verts.numpy(),surface.faces.numpy())
-            nbr_vnormals = vnormals[nbr_vid]
-            nbr_angular = np.einsum('vj,vj->v', 
-                                        nbr_vec / np.linalg.norm(nbr_vec, axis=-1, keepdims=True), 
-                                        nbr_vnormals)
-            nbr_angular_gdf = angular_gdf.expand(nbr_angular)
-            testchem_feats.append(nbr_angular_gdf)
-            testchem_feats = np.concatenate(testchem_feats, axis=-1)
-            testchem_feats = torch.from_numpy(testchem_feats)
-            surface.testchem_feats = testchem_feats
-            surface.nbr_vid = nbr_vid
+            # chem_featstmp= chem_feats.numpy()
+            # import pdb
+            # pdb.set_trace()
+            # testchem_feats = [chem_featstmp[ind_flat]]
+            # testchem_feats.append(dist_gdf.expand(dist_flat))
+            # nbr_vec = graph.node_pos[ind_flat] - surface.verts[nbr_vid]
+            vnormals = mesh_vertex_normals(surface.verts.detach().numpy(),surface.faces.detach().numpy())
+            vnormals = np.array(vnormals,dtype=np.float32)
+            # # vnormals = mesh_vertex_normals(surface.verts,surface.faces)
+            # nbr_vnormals = vnormals[nbr_vid]
+            # nbr_angular = np.einsum('vj,vj->v', 
+            #                             nbr_vec / np.linalg.norm(nbr_vec, axis=-1, keepdims=True), 
+            #                             nbr_vnormals)
+            # nbr_angular_gdf = angular_gdf.expand(nbr_angular)
+            # testchem_feats.append(nbr_angular_gdf)
+            # testchem_feats = np.concatenate(testchem_feats, axis=-1)
+            # testchem_feats = torch.from_numpy(testchem_feats)
+            # surface.testchem_feats = testchem_feats
+            # surface.nbr_vid= torch.from_numpy(nbr_vid)
+            surface.nbr_vid= nbr_vid
+            surface.vert_nbr_dist = torch.from_numpy(dist_flat)
+            surface.vert_nbr_ind = ind_flat
+            surface.vnormals =  torch.from_numpy(vnormals)
         item = Data(surface=surface, graph=graph, lig_coord=lig_coord, label=lig_type)
         return item
 

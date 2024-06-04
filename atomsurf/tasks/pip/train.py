@@ -41,11 +41,11 @@ def main(cfg=None):
     version = TensorBoardLogger(save_dir=cfg.log_dir).version
     version_name = f"version_{version}_{cfg.run_name}"
     tb_logger = TensorBoardLogger(save_dir=cfg.log_dir, version=version_name)
-    loggers = [tb_logger]
+    
 
     # callbacks
     lr_logger = pl.callbacks.LearningRateMonitor()
-
+    loggers = [tb_logger,lr_logger]
     checkpoint_callback = pl.callbacks.ModelCheckpoint(
         filename="{epoch}-{accuracy_val:.2f}",
         dirpath=Path(tb_logger.log_dir) / "checkpoints",

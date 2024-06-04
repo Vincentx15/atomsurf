@@ -90,7 +90,7 @@ class PreprocessPatchDataset(Dataset):
 
 class PreProcessPDBDataset(Dataset):
 
-    def __init__(self, recompute=True, data_dir=None, max_vert_number=100000):
+    def __init__(self, recompute_a=True,recompute_s=True,recompute_r=True, data_dir=None, max_vert_number=100000):
 
         script_dir = os.path.dirname(os.path.realpath(__file__))
         if data_dir is None:
@@ -107,7 +107,10 @@ class PreProcessPDBDataset(Dataset):
         os.makedirs(self.out_agraph_dir, exist_ok=True)
 
         self.all_pdbs = os.listdir(self.pdb_dir)  # TODO filter
-        self.recompute = recompute
+        self.recompute=True
+        self.recompute_s = recompute_s
+        self.recompute_a = recompute_a
+        self.recompute_r = recompute_r
         self.max_vert_number = max_vert_number
 
     def __len__(self):
@@ -122,7 +125,7 @@ class PreProcessPDBDataset(Dataset):
             agraph_dump = os.path.join(self.out_agraph_dir, f'{name}.pt')
             rgraph_dump = os.path.join(self.out_rgraph_dir, f'{name}.pt')
 
-            if self.recompute or not os.path.exists(surface_full_dump):
+            if self.recompute_s or not os.path.exists(surface_full_dump):
                 surface = SurfaceObject.from_pdb_path(pdb_path, out_ply_path=None, max_vert_number=self.max_vert_number)
                 surface.add_geom_feats()
                 surface.save_torch(surface_full_dump)
@@ -131,13 +134,13 @@ class PreProcessPDBDataset(Dataset):
                 arrays = parse_pdb_path(pdb_path)
 
                 # create atomgraph
-                if self.recompute or not os.path.exists(agraph_dump):
+                if self.recompute_a or not os.path.exists(agraph_dump):
                     agraph_builder = AtomGraphBuilder()
                     agraph = agraph_builder.arrays_to_agraph(arrays)
                     torch.save(agraph, open(agraph_dump, 'wb'))
 
                 # create residuegraph
-                if self.recompute or not os.path.exists(rgraph_dump):
+                if self.recompute_r or not os.path.exists(rgraph_dump):
                     rgraph_builder = ResidueGraphBuilder(add_pronet=True, add_esm=False)
                     rgraph = rgraph_builder.arrays_to_resgraph(arrays)
                     torch.save(rgraph, open(rgraph_dump, 'wb'))
