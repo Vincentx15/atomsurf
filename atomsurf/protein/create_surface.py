@@ -242,6 +242,11 @@ def mesh_simplification(verts, faces, out_ply,
         import pymesh
         # cleaning the mesh with Pymesh
         mesh_py = pymesh.form_mesh(verts_out, faces_out)
+
+        disconnected, isolated_verts, duplicate_verts, abnormal_triangles = check_mesh_validity(mesh_py,
+                                                                                                check_triangles=True)
+        is_valid_mesh_first = not (disconnected or isolated_verts or duplicate_verts or abnormal_triangles)
+
         # mesh_py = pymesh.form_mesh_py(verts, faces)
         mesh_py, _ = pymesh.remove_duplicated_vertices(mesh_py, 1E-6)  # duplicate
         mesh_py, _ = pymesh.remove_degenerated_triangles(mesh_py, 100)  # colinear vertices
@@ -261,15 +266,20 @@ def mesh_simplification(verts, faces, out_ply,
         mesh_py = pymesh.form_mesh(*remove_abnormal_triangles(mesh_py.vertices, mesh_py.faces))
         mesh_py, _ = pymesh.remove_isolated_vertices(mesh_py)  # vertices not in faces, easy with index
         verts_py, faces_py = np.array(mesh_py.vertices, dtype=np.float32), np.array(mesh_py.faces, dtype=np.int32)
-        size_diff = len(verts) - len(faces_py)
-        # print('original', len(verts), 'coarsened', len(verts_out), 'corrected', len(verts_py), size_diff)
+        disconnected, isolated_verts, duplicate_verts, abnormal_triangles = check_mesh_validity(mesh_py,
+                                                                                                check_triangles=True)
+        is_valid_mesh = not (disconnected or isolated_verts or duplicate_verts or abnormal_triangles)
+
+        # Just a few assessments of the usefullness of PyMesh
+        # size_diff = len(verts) - len(faces_py)
+        # print('original', len(verts), 'coarsened', len(verts_out), 'corrected', len(verts_py), size_diff,
+        #       'valid_first', is_valid_mesh_first, 'valid', is_valid_mesh)
         # a = faces_py - faces_out
         # a = faces_py - faces
         # b = verts_py - verts
         # print(np.max(np.abs(a)), np.max(np.abs(b)))
-        disconnected, isolated_verts, duplicate_verts, abnormal_triangles = check_mesh_validity(mesh_py,
-                                                                                                check_triangles=True)
-        is_valid_mesh = not (disconnected or isolated_verts or duplicate_verts or abnormal_triangles)
+        # if not is_valid_mesh_first:
+        #     print(is_valid_mesh_first, is_valid_mesh)
         if not is_valid_mesh:
             raise ValueError(f'Mesh is not valid')
         verts_out = verts_py

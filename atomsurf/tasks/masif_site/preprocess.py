@@ -21,7 +21,7 @@ torch.set_num_threads(1)
 
 
 class PreProcessPDBDataset(Dataset):
-    def __init__(self, recompute=False, data_dir=None, face_reduction_rate=0.5):
+    def __init__(self, recompute=False, data_dir=None, face_reduction_rate=0.5, use_pymesh=True):
         if data_dir is None:
             script_dir = os.path.dirname(os.path.realpath(__file__))
             masif_site_data_dir = os.path.join(script_dir, '..', '..', '..', 'data', 'masif_site')
@@ -33,7 +33,8 @@ class PreProcessPDBDataset(Dataset):
         # Set up input/output dirs
         self.pdb_dir = os.path.join(masif_site_data_dir, '01-benchmark_pdbs')
         self.ply_dir = os.path.join(masif_site_data_dir, '01-benchmark_surfaces')
-        self.out_surf_dir_full = os.path.join(masif_site_data_dir, f'surfaces_{face_reduction_rate}')
+        # self.out_surf_dir_full = os.path.join(masif_site_data_dir, f'surfaces_{face_reduction_rate}')
+        self.out_surf_dir_full = os.path.join(masif_site_data_dir, f'surfaces_{face_reduction_rate}_{use_pymesh}')
         # self.ply_dir = os.path.join(masif_site_data_dir, 'ply_dir')
         self.out_rgraph_dir = os.path.join(masif_site_data_dir, 'rgraph')
         self.out_agraph_dir = os.path.join(masif_site_data_dir, 'agraph')
@@ -62,27 +63,26 @@ class PreProcessPDBDataset(Dataset):
         agraph_dump = os.path.join(self.out_agraph_dir, f'{pdb_name}.pt')
         rgraph_dump = os.path.join(self.out_rgraph_dir, f'{pdb_name}.pt')
         try:
-            # Made a version without pymesh to load the initial data
-            use_pymesh = False
-            if use_pymesh:
-                import pymesh
-                mesh = pymesh.load_mesh(ply_path)
-                verts = mesh.vertices.astype(np.float32)
-                faces = mesh.faces.astype(np.int32)
-                iface_labels = mesh.get_attribute("vertex_iface").astype(np.int32)
-            else:
-                from plyfile import PlyData, PlyElement
-                with open(ply_path, 'rb') as f:
-                    plydata = PlyData.read(f)
-                    vx = plydata['vertex']['x']
-                    vy = plydata['vertex']['y']
-                    vz = plydata['vertex']['z']
-                    verts = np.stack((vx, vy, vz), axis=1)
-                    iface_labels = plydata['vertex']['iface'].astype(np.int32)
-                    faces = np.stack(plydata['face']['vertex_indices'], axis=0)
-
             # From there get surface and both graphs
             if self.recompute or not os.path.exists(surface_full_dump):
+                # Made a version without pymesh to load the initial data
+                use_pymesh = False
+                if use_pymesh:
+                    import pymesh
+                    mesh = pymesh.load_mesh(ply_path)
+                    verts = mesh.vertices.astype(np.float32)
+                    faces = mesh.faces.astype(np.int32)
+                    iface_labels = mesh.get_attribute("vertex_iface").astype(np.int32)
+                else:
+                    from plyfile import PlyData, PlyElement
+                    with open(ply_path, 'rb') as f:
+                        plydata = PlyData.read(f)
+                        vx = plydata['vertex']['x']
+                        vy = plydata['vertex']['y']
+                        vz = plydata['vertex']['z']
+                        verts = np.stack((vx, vy, vz), axis=1)
+                        faces = np.stack(plydata['face']['vertex_indices'], axis=0)
+                        iface_labels = plydata['vertex']['iface'].astype(np.int32)
                 surface = SurfaceObject.from_verts_faces(verts=verts, faces=faces,
                                                          face_reduction_rate=self.face_reduction_rate)
                 iface_labels = torch.from_numpy(iface_labels)
@@ -142,6 +142,7 @@ def do_all(dataset, num_workers=4, prefetch_factor=100):
 if __name__ == '__main__':
     pass
     recompute = False
-    dataset = PreProcessPDBDataset(recompute=recompute, face_reduction_rate=0.5)
-    # do_all(dataset, num_workers=4)
-    do_all(dataset, num_workers=0)
+    use_pymesh = True
+    dataset = PreProcessPDBDataset(recompute=recompute, face_reduction_rate=0.5, use_pymesh=use_pymesh)
+    do_all(dataset, num_workers=4)
+    # do_all(dataset, num_workers=0)

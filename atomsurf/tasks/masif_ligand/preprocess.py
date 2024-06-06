@@ -21,7 +21,7 @@ torch.set_num_threads(1)
 
 
 class PreprocessPatchDataset(Dataset):
-    def __init__(self, data_dir=None, recompute=False, face_reduction_rate=1.):
+    def __init__(self, data_dir=None, recompute=False, face_reduction_rate=1., use_pymesh=True):
         script_dir = os.path.dirname(os.path.realpath(__file__))
         if data_dir is None:
             masif_ligand_data_dir = os.path.join(script_dir, '..', '..', '..', 'data', 'masif_ligand')
@@ -30,8 +30,11 @@ class PreprocessPatchDataset(Dataset):
         self.patch_dir = os.path.join(masif_ligand_data_dir, 'dataset_MasifLigand')
         self.out_surf_dir_hmr = os.path.join(masif_ligand_data_dir, 'surf_hmr')
         # self.out_surf_dir_ours = os.path.join(masif_ligand_data_dir, 'surf_ours')
-        self.out_surf_dir_ours = os.path.join(masif_ligand_data_dir, f'surf_ours_{face_reduction_rate}')
+        self.out_surf_dir_ours = os.path.join(masif_ligand_data_dir, f'surf_ours_{face_reduction_rate}_{use_pymesh}')
+
         self.face_reduction_rate = face_reduction_rate
+        self.use_pymesh = use_pymesh
+
         self.patches = list(os.listdir(self.patch_dir))
         self.recompute = recompute
         os.makedirs(self.out_surf_dir_ours, exist_ok=True)
@@ -56,7 +59,8 @@ class PreprocessPatchDataset(Dataset):
             # Ours from verts faces (pdb further)
             if self.recompute or not os.path.exists(surface_ours_dump):
                 surface_ours = SurfaceObject.from_verts_faces(verts=verts, faces=faces,
-                                                              face_reduction_rate=self.face_reduction_rate)
+                                                              face_reduction_rate=self.face_reduction_rate,
+                                                              use_pymesh=self.use_pymesh)
                 surface_ours.add_geom_feats()
                 surface_ours.save_torch(surface_ours_dump)
 
@@ -176,10 +180,11 @@ def do_all(dataset, num_workers=4, prefetch_factor=100):
 if __name__ == '__main__':
     pass
     recompute = False
+    use_pymesh = True
     dataset = PreprocessPatchDataset(recompute=recompute,
-                                     face_reduction_rate=0.5)
+                                     face_reduction_rate=0.5,
+                                     use_pymesh=use_pymesh)
     do_all(dataset, num_workers=4)
 
     dataset = PreProcessPDBDataset(recompute=recompute, max_vert_number=100000)
     do_all(dataset, num_workers=1)
-
