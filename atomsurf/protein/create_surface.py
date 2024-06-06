@@ -5,7 +5,6 @@ import numpy as np
 import open3d as o3d
 import pandas as pd
 from pathlib import Path
-import pymesh
 import subprocess
 
 if __name__ == '__main__':
@@ -128,14 +127,12 @@ Clean the MSMS surfae
 """
 
 
-def remove_abnormal_triangles(mesh):
+def remove_abnormal_triangles(verts, faces):
     """Remove abnormal triangles (angles ~180 or ~0) in the mesh
 
     Returns:
         pymesh.Mesh, a new mesh with abnormal faces removed
     """
-    verts = mesh.vertices
-    faces = mesh.faces
     v1 = verts[faces[:, 0]]
     v2 = verts[faces[:, 1]]
     v3 = verts[faces[:, 2]]
@@ -153,7 +150,7 @@ def remove_abnormal_triangles(mesh):
                              cos3.reshape(-1, 1)), axis=-1)
     valid_faces = np.where(np.all(1 - cos123 ** 2 > 1E-5, axis=-1))[0]
     faces_new = faces[valid_faces]
-    return pymesh.form_mesh(verts, faces_new)
+    return verts, faces_new
 
 
 def check_mesh_validity(mesh, check_triangles=False):
@@ -226,66 +223,82 @@ def check_mesh_validity(mesh, check_triangles=False):
 
 
 def mesh_simplification(verts, faces, out_ply,
-                        target_vert_number=2000, min_vert_number=256, max_vert_number=50000):
+                        face_reduction_rate=1.,
+                        min_vert_number=140,
+                        max_vert_number=50000,
+                        use_pymesh=True):
     # remeshing to have a target number of vertices
-    faces_num = int(target_vert_number * len(faces) / len(verts))
+    faces_num = max(min_vert_number * 2 + 1, int(face_reduction_rate * len(faces)))
     mesh = o3d.geometry.TriangleMesh(o3d.utility.Vector3dVector(verts), o3d.utility.Vector3iVector(faces))
+    # big_name = out_ply.replace('.ply', '_big.ply')
+    # print('saving', big_name)
+    # o3d.io.write_triangle_mesh(big_name, mesh)
+
     mesh = mesh.simplify_quadric_decimation(target_number_of_triangles=faces_num)
     verts_out = np.asarray(mesh.vertices)
     faces_out = np.asarray(mesh.triangles)
 
-    # cleaning the mesh
-    mesh = pymesh.form_mesh(verts_out, faces_out)
-    mesh, _ = pymesh.remove_duplicated_vertices(mesh, 1E-6)  # duplicate
-    mesh, _ = pymesh.remove_degenerated_triangles(mesh, 100)  # colinear vertices
-    num_verts = mesh.num_vertices
-    iteration = 0
-    while iteration < 10:
-        mesh, _ = pymesh.collapse_short_edges(mesh, rel_threshold=0.1)
-        mesh, _ = pymesh.remove_obtuse_triangles(mesh, 170.0, 100)
-        if abs(mesh.num_vertices - num_verts) < 20:
-            break
-        num_verts = mesh.num_vertices
-        iteration += 1
+    if use_pymesh:
+        import pymesh
+        # cleaning the mesh with Pymesh
+        mesh_py = pymesh.form_mesh(verts_out, faces_out)
+        # mesh_py = pymesh.form_mesh_py(verts, faces)
+        mesh_py, _ = pymesh.remove_duplicated_vertices(mesh_py, 1E-6)  # duplicate
+        mesh_py, _ = pymesh.remove_degenerated_triangles(mesh_py, 100)  # colinear vertices
+        num_verts = mesh_py.num_vertices
+        iteration = 0
+        while iteration < 10:
+            mesh_py, _ = pymesh.collapse_short_edges(mesh_py, rel_threshold=0.1)
+            mesh_py, _ = pymesh.remove_obtuse_triangles(mesh_py, 170.0, 100)
+            if abs(mesh_py.num_vertices - num_verts) < 20:
+                break
+            num_verts = mesh_py.num_vertices
+            iteration += 1
 
-    mesh = pymesh.resolve_self_intersection(mesh)
-    mesh, _ = pymesh.remove_duplicated_faces(mesh) # easy
-    # mesh = pymesh.compute_outer_hull(mesh) (Is this needed?)
-    mesh, _ = pymesh.remove_obtuse_triangles(mesh, 179.0, 100)
-    mesh = remove_abnormal_triangles(mesh)
-    mesh_py, _ = pymesh.remove_isolated_vertices(mesh) # vertices not in faces, easy with index
+        mesh_py = pymesh.resolve_self_intersection(mesh_py)
+        mesh_py, _ = pymesh.remove_duplicated_faces(mesh_py)  # easy
+        mesh_py, _ = pymesh.remove_obtuse_triangles(mesh_py, 179.0, 100)
+        mesh_py = pymesh.form_mesh(*remove_abnormal_triangles(mesh_py.vertices, mesh_py.faces))
+        mesh_py, _ = pymesh.remove_isolated_vertices(mesh_py)  # vertices not in faces, easy with index
+        verts_py, faces_py = np.array(mesh_py.vertices, dtype=np.float32), np.array(mesh_py.faces, dtype=np.int32)
+        size_diff = len(verts) - len(faces_py)
+        # print('original', len(verts), 'coarsened', len(verts_out), 'corrected', len(verts_py), size_diff)
+        # a = faces_py - faces_out
+        # a = faces_py - faces
+        # b = verts_py - verts
+        # print(np.max(np.abs(a)), np.max(np.abs(b)))
+        disconnected, isolated_verts, duplicate_verts, abnormal_triangles = check_mesh_validity(mesh_py,
+                                                                                                check_triangles=True)
+        is_valid_mesh = not (disconnected or isolated_verts or duplicate_verts or abnormal_triangles)
+        if not is_valid_mesh:
+            raise ValueError(f'Mesh is not valid')
+        verts_out = verts_py
+        faces_out = faces_py
 
-    disconnected, isolated_verts, duplicate_verts, abnormal_triangles = check_mesh_validity(mesh_py,
-                                                                                            check_triangles=True)
-    is_valid_mesh = not (disconnected or isolated_verts or duplicate_verts or abnormal_triangles)
+    if verts_out.shape[0] > max_vert_number:
+        raise ValueError(f'Too many vertices in the mesh: {verts_out.shape[0]}')
 
-    if verts.shape[0] > max_vert_number:
-        raise ValueError(f'Too many vertices in the mesh: {verts.shape[0]}')
-
-    if verts.shape[0] < min_vert_number:
-        raise ValueError(f'Not enough vertices in the mesh: {verts.shape[0]}')
-
-    if not is_valid_mesh:
-        raise ValueError(f'Mesh is not valid')
-    verts, faces = np.array(mesh_py.vertices, dtype=np.float32), np.array(mesh_py.faces, dtype=np.int32)
+    if verts_out.shape[0] < min_vert_number:
+        raise ValueError(f'Not enough vertices in the mesh: {verts_out.shape[0]}')
 
     # save to ply
     if out_ply is not None:
-        mesh = o3d.geometry.TriangleMesh(o3d.utility.Vector3dVector(verts), o3d.utility.Vector3iVector(faces))
+        mesh = o3d.geometry.TriangleMesh(o3d.utility.Vector3dVector(verts_out), o3d.utility.Vector3iVector(faces_out))
         o3d.io.write_triangle_mesh(out_ply, mesh, write_vertex_normals=True)
-    return verts, faces
+    return verts_out, faces_out
 
 
 def get_surface(pdb_path="../../data/example_files/4kt3.pdb",
                 out_ply_path=None,
-                min_vert_number=256,
+                face_reduction_rate=1.,
+                min_vert_number=140,
                 max_vert_number=50000):
     # # Check that msms and with_min gives the right output
-    verts, faces = pdb_to_surf_with_min(pdb_path, out_name=out_ply_path, min_number=min_vert_number)
+    verts, faces = pdb_to_surf_with_min(pdb_path, min_number=min_vert_number)
     verts, faces = mesh_simplification(verts=verts,
                                        faces=faces,
                                        out_ply=out_ply_path,
-                                       target_vert_number=1000,
+                                       face_reduction_rate=face_reduction_rate,
                                        min_vert_number=min_vert_number,
                                        max_vert_number=max_vert_number)
     return verts, faces
@@ -306,10 +319,12 @@ def read_vertices_and_triangles(ply_file):
 if __name__ == "__main__":
     pdb = "../../data/example_files/4kt3.pdb"
     outname = "../../data/example_files/test"
+    vert_file = outname + '.vert'
+    face_file = outname + '.face'
 
     # # Check that msms and with_min gives the right output
     # verts, faces = pdb_to_surf(pdb, out_name=outname, density=1.)
-    verts, faces = pdb_to_surf_with_min(pdb, out_name=outname, min_number=256)
+    # verts, faces = pdb_to_surf_with_min(pdb, out_name=outname, min_number=256)
     # mesh = o3d.geometry.TriangleMesh(o3d.utility.Vector3dVector(verts), o3d.utility.Vector3iVector(faces))
     # # compute normal for rendering
     # mesh.compute_triangle_normals()
@@ -318,14 +333,15 @@ if __name__ == "__main__":
 
     # Now simplify this into a coarser mesh (upper bound), and turn it into a corrected ply file
     ply_file = "../../data/example_files/example_mesh.ply"
+    verts, faces = parse_verts(vert_file, face_file)
     mesh_simplification(verts=verts,
                         faces=faces,
                         out_ply=ply_file,
-                        target_vert_number=1000)
+                        face_reduction_rate=0.2)
     mesh_reduced = o3d.io.read_triangle_mesh(ply_file)
     mesh_reduced.compute_triangle_normals()
     o3d.visualization.draw_geometries([mesh_reduced])
 
     verts, faces = get_surface(pdb_path="../../data/example_files/4kt3.pdb",
                                out_ply_path="../../data/example_files/example_mesh.ply",
-                               min_vert_number=256)
+                               min_vert_number=140)

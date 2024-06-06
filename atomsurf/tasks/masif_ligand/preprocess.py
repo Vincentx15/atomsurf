@@ -21,7 +21,7 @@ torch.set_num_threads(1)
 
 
 class PreprocessPatchDataset(Dataset):
-    def __init__(self, data_dir=None, recompute=False):
+    def __init__(self, data_dir=None, recompute=False, face_reduction_rate=1.):
         script_dir = os.path.dirname(os.path.realpath(__file__))
         if data_dir is None:
             masif_ligand_data_dir = os.path.join(script_dir, '..', '..', '..', 'data', 'masif_ligand')
@@ -29,7 +29,9 @@ class PreprocessPatchDataset(Dataset):
             masif_ligand_data_dir = data_dir
         self.patch_dir = os.path.join(masif_ligand_data_dir, 'dataset_MasifLigand')
         self.out_surf_dir_hmr = os.path.join(masif_ligand_data_dir, 'surf_hmr')
-        self.out_surf_dir_ours = os.path.join(masif_ligand_data_dir, 'surf_ours')
+        # self.out_surf_dir_ours = os.path.join(masif_ligand_data_dir, 'surf_ours')
+        self.out_surf_dir_ours = os.path.join(masif_ligand_data_dir, f'surf_ours_{face_reduction_rate}')
+        self.face_reduction_rate = face_reduction_rate
         self.patches = list(os.listdir(self.patch_dir))
         self.recompute = recompute
         os.makedirs(self.out_surf_dir_ours, exist_ok=True)
@@ -53,7 +55,8 @@ class PreprocessPatchDataset(Dataset):
             # Compare different ways to produce surface, our, using HMR preprocs, HMR eigenvecs cached...
             # Ours from verts faces (pdb further)
             if self.recompute or not os.path.exists(surface_ours_dump):
-                surface_ours = SurfaceObject.from_verts_faces(verts=verts, faces=faces)
+                surface_ours = SurfaceObject.from_verts_faces(verts=verts, faces=faces,
+                                                              face_reduction_rate=self.face_reduction_rate)
                 surface_ours.add_geom_feats()
                 surface_ours.save_torch(surface_ours_dump)
 
@@ -99,9 +102,11 @@ class PreProcessPDBDataset(Dataset):
             masif_ligand_data_dir = data_dir
         self.pdb_dir = os.path.join(masif_ligand_data_dir, 'raw_data_MasifLigand', 'pdb')
         self.out_surf_dir_full = os.path.join(masif_ligand_data_dir, 'surf_full')
+        # self.ply_dir = os.path.join(masif_ligand_data_dir, 'ply_dir')
         self.out_rgraph_dir = os.path.join(masif_ligand_data_dir, 'rgraph')
         self.out_agraph_dir = os.path.join(masif_ligand_data_dir, 'agraph')
 
+        # os.makedirs(self.ply_dir, exist_ok=True)
         os.makedirs(self.out_surf_dir_full, exist_ok=True)
         os.makedirs(self.out_rgraph_dir, exist_ok=True)
         os.makedirs(self.out_agraph_dir, exist_ok=True)
@@ -119,11 +124,14 @@ class PreProcessPDBDataset(Dataset):
             pdb_path = os.path.join(self.pdb_dir, pdb)
             name = pdb.rstrip('.pdb')
             surface_full_dump = os.path.join(self.out_surf_dir_full, f'{name}.pt')
+            # ply_full_dump = os.path.join(self.ply_dir, f'{name}.ply')
             agraph_dump = os.path.join(self.out_agraph_dir, f'{name}.pt')
             rgraph_dump = os.path.join(self.out_rgraph_dir, f'{name}.pt')
 
             if self.recompute or not os.path.exists(surface_full_dump):
-                surface = SurfaceObject.from_pdb_path(pdb_path, out_ply_path=None, max_vert_number=self.max_vert_number)
+                surface = SurfaceObject.from_pdb_path(pdb_path,
+                                                      # out_ply_path=ply_full_dump,
+                                                      max_vert_number=self.max_vert_number)
                 surface.add_geom_feats()
                 surface.save_torch(surface_full_dump)
 
@@ -168,8 +176,10 @@ def do_all(dataset, num_workers=4, prefetch_factor=100):
 if __name__ == '__main__':
     pass
     recompute = False
-    dataset = PreprocessPatchDataset(recompute=recompute)
+    dataset = PreprocessPatchDataset(recompute=recompute,
+                                     face_reduction_rate=0.5)
     do_all(dataset, num_workers=4)
 
     dataset = PreProcessPDBDataset(recompute=recompute, max_vert_number=100000)
-    do_all(dataset, num_workers=4)
+    do_all(dataset, num_workers=1)
+

@@ -141,20 +141,40 @@ class SurfaceObject(Data, FeaturesHolder):
         self.features.add_named_features('geom_feats', geom_feats)
 
     @classmethod
-    def from_verts_faces(cls, verts, faces, use_fem_decomp=False):
+    def from_verts_faces(cls, verts, faces,
+                         min_vert_number=140,
+                         max_vert_number=50000,
+                         face_reduction_rate=1.,
+                         use_fem_decomp=False,
+                         out_ply_path=None):
         from atomsurf.protein.create_operators import compute_operators
+        from atomsurf.protein.create_surface import mesh_simplification
+
         verts = diff_utils.toNP(verts)
         faces = diff_utils.toNP(faces).astype(int)
+        verts, faces = mesh_simplification(verts=verts,
+                                           faces=faces,
+                                           out_ply=out_ply_path,
+                                           face_reduction_rate=face_reduction_rate,
+                                           min_vert_number=min_vert_number,
+                                           max_vert_number=max_vert_number)
+
         frames, massvec, L, evals, evecs, gradX, gradY = compute_operators(verts, faces, use_fem_decomp=use_fem_decomp)
         surface = cls(verts=verts, faces=faces, mass=massvec, L=L, evals=evals,
                       evecs=evecs, gradX=gradX, gradY=gradY)
         return surface
 
     @classmethod
-    def from_pdb_path(cls, pdb_path, out_ply_path=None, max_vert_number=50000):
-        from atomsurf.protein.create_surface import get_surface
-        verts, faces = get_surface(pdb_path, out_ply_path=out_ply_path, max_vert_number=max_vert_number)
-        return cls.from_verts_faces(verts, faces)
+    def from_pdb_path(cls, pdb_path, **kwargs):
+        """
+
+        :param pdb_path:
+        :param kwargs: see arguments for from_verts_faces
+        :return:
+        """
+        from atomsurf.protein.create_surface import pdb_to_surf_with_min
+        verts, faces = pdb_to_surf_with_min(pdb_path)
+        return cls.from_verts_faces(verts, faces, **kwargs)
 
     def __cat_dim__(self, key, value, *args, **kwargs):
         if key in ["mass", "L", "gradX", "gradY"]:
