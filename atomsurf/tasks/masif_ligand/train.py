@@ -46,7 +46,6 @@ def main(cfg=None):
         save_top_k=cfg.train.save_top_k,
         verbose=False,
     )
-
     early_stop_callback = pl.callbacks.EarlyStopping(monitor=cfg.train.to_monitor,
                                                      patience=cfg.train.early_stoping_patience,
                                                      mode='max')

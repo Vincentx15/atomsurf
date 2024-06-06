@@ -48,7 +48,7 @@ class DiffusionNetBlockBatch(nn.Module):
 
         # Manage dimensions
         B = len(x_in)
-        assert x_in[0].shape[-1] == self.C_width, f"x_in has wrong last dimension {x_in[0]} != {self.C_width}"
+        assert x_in[0].shape[-1] == self.C_width, f"x_in has wrong last dimension {x_in[0].shape} != {self.C_width}"
 
         # Diffusion block
         x_diffuse = [self.diffusion(x.unsqueeze(0), L_, mass_, evals_, evecs_)[0]
