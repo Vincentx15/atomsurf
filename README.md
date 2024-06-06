@@ -26,12 +26,15 @@ python -c "import pymesh; pymesh.test()"
 Install the remaining dependencies using conda and pip:
 
 ```bash
-conda create -n atom2d -y
-conda activate atom2d
+conda create -n atomsurf -y
+conda activate atomsurf
 conda install python=3.8
 conda install pytorch=1.13 torchvision torchaudio pytorch-cuda=11.7 -c pytorch -c nvidia
 conda install pyg=2.3.0 pytorch-scatter pytorch-sparse -c pyg
 pip install -r requirements.txt
+
+pip install torch_geometric==2.3.0 pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-1.13.1+cpu.html
+python -c "import torch; print(torch.cuda.is_available())"
 # install diffusion-net
 #pip install git+https://github.com/pvnieo/diffusion-net-plus.git
 ```
