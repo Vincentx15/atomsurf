@@ -21,26 +21,30 @@ torch.set_num_threads(1)
 
 
 class PreProcessPDBDataset(Dataset):
-    def __init__(self, recompute=False, data_dir=None):
+    def __init__(self, recompute=False, data_dir=None, face_reduction_rate=0.5):
         if data_dir is None:
             script_dir = os.path.dirname(os.path.realpath(__file__))
-            masif_ligand_data_dir = os.path.join(script_dir, '..', '..', '..', 'data', 'masif_site')
+            masif_site_data_dir = os.path.join(script_dir, '..', '..', '..', 'data', 'masif_site')
         else:
-            masif_ligand_data_dir = data_dir
+            masif_site_data_dir = data_dir
+
+        self.face_reduction_rate = face_reduction_rate
 
         # Set up input/output dirs
-        self.pdb_dir = os.path.join(masif_ligand_data_dir, '01-benchmark_pdbs')
-        self.ply_dir = os.path.join(masif_ligand_data_dir, '01-benchmark_surfaces')
-        self.out_surf_dir_full = os.path.join(masif_ligand_data_dir, 'surfaces')
-        self.out_rgraph_dir = os.path.join(masif_ligand_data_dir, 'rgraph')
-        self.out_agraph_dir = os.path.join(masif_ligand_data_dir, 'agraph')
+        self.pdb_dir = os.path.join(masif_site_data_dir, '01-benchmark_pdbs')
+        self.ply_dir = os.path.join(masif_site_data_dir, '01-benchmark_surfaces')
+        self.out_surf_dir_full = os.path.join(masif_site_data_dir, f'surfaces_{face_reduction_rate}')
+        # self.ply_dir = os.path.join(masif_site_data_dir, 'ply_dir')
+        self.out_rgraph_dir = os.path.join(masif_site_data_dir, 'rgraph')
+        self.out_agraph_dir = os.path.join(masif_site_data_dir, 'agraph')
+        # os.makedirs(self.ply_dir, exist_ok=True)
         os.makedirs(self.out_surf_dir_full, exist_ok=True)
         os.makedirs(self.out_rgraph_dir, exist_ok=True)
         os.makedirs(self.out_agraph_dir, exist_ok=True)
 
         # Set up systems list
-        train_list = os.path.join(masif_ligand_data_dir, 'train_list.txt')
-        test_list = os.path.join(masif_ligand_data_dir, 'test_list.txt')
+        train_list = os.path.join(masif_site_data_dir, 'train_list.txt')
+        test_list = os.path.join(masif_site_data_dir, 'test_list.txt')
         train_names = set([name.strip() for name in open(train_list, 'r').readlines()])
         test_names = set([name.strip() for name in open(test_list, 'r').readlines()])
         self.all_sys = list(train_names.union(test_names))
@@ -53,6 +57,7 @@ class PreProcessPDBDataset(Dataset):
         pdb_name = self.all_sys[idx]
         pdb_path = os.path.join(self.pdb_dir, pdb_name + '.pdb')
         ply_path = os.path.join(self.ply_dir, pdb_name + '.ply')
+        # out_ply_path = os.path.join(self.ply_dir, pdb_name + '.ply')
         surface_full_dump = os.path.join(self.out_surf_dir_full, f'{pdb_name}.pt')
         agraph_dump = os.path.join(self.out_agraph_dir, f'{pdb_name}.pt')
         rgraph_dump = os.path.join(self.out_rgraph_dir, f'{pdb_name}.pt')
@@ -78,8 +83,22 @@ class PreProcessPDBDataset(Dataset):
 
             # From there get surface and both graphs
             if self.recompute or not os.path.exists(surface_full_dump):
-                surface = SurfaceObject.from_verts_faces(verts=verts, faces=faces)
-                surface.iface_labels = torch.from_numpy(iface_labels)
+                surface = SurfaceObject.from_verts_faces(verts=verts, faces=faces,
+                                                         face_reduction_rate=self.face_reduction_rate)
+                iface_labels = torch.from_numpy(iface_labels)
+                # If coarsened, we need to adapt the iface_labels on the new verts
+                if len(surface.verts) < len(iface_labels):
+                    old_verts = torch.from_numpy(verts)
+                    new_verts = torch.from_numpy(surface.verts)
+                    with torch.no_grad():
+                        k = 4
+                        dists = torch.cdist(old_verts, new_verts)  # (old,new)
+                        min_indices = torch.topk(-dists, k=k, dim=0).indices  # (k, new)
+                        neigh_labels = torch.sum(iface_labels[min_indices], dim=0) > k / 2
+                        # old_fraction = iface_labels.sum() / len(iface_labels)
+                        # new_fraction = neigh_labels.sum() / len(neigh_labels)
+                        iface_labels = neigh_labels.int()
+                surface.iface_labels = iface_labels
                 surface.add_geom_feats()
                 surface.save_torch(surface_full_dump)
 
@@ -123,5 +142,6 @@ def do_all(dataset, num_workers=4, prefetch_factor=100):
 if __name__ == '__main__':
     pass
     recompute = False
-    dataset = PreProcessPDBDataset(recompute=recompute)
-    do_all(dataset, num_workers=4)
+    dataset = PreProcessPDBDataset(recompute=recompute, face_reduction_rate=0.5)
+    # do_all(dataset, num_workers=4)
+    do_all(dataset, num_workers=0)
