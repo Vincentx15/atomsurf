@@ -146,6 +146,7 @@ class SurfaceObject(Data, FeaturesHolder):
                          max_vert_number=50000,
                          face_reduction_rate=1.,
                          use_fem_decomp=False,
+                         use_pymesh=True,
                          out_ply_path=None):
         from atomsurf.protein.create_operators import compute_operators
         from atomsurf.protein.create_surface import mesh_simplification
@@ -157,7 +158,8 @@ class SurfaceObject(Data, FeaturesHolder):
                                            out_ply=out_ply_path,
                                            face_reduction_rate=face_reduction_rate,
                                            min_vert_number=min_vert_number,
-                                           max_vert_number=max_vert_number)
+                                           max_vert_number=max_vert_number,
+                                           use_pymesh=use_pymesh)
 
         frames, massvec, L, evals, evecs, gradX, gradY = compute_operators(verts, faces, use_fem_decomp=use_fem_decomp)
         surface = cls(verts=verts, faces=faces, mass=massvec, L=L, evals=evals,
