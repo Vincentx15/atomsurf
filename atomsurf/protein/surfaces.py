@@ -162,6 +162,7 @@ class SurfaceObject(Data, FeaturesHolder):
                                            use_pymesh=use_pymesh)
 
         frames, massvec, L, evals, evecs, gradX, gradY = compute_operators(verts, faces, use_fem_decomp=use_fem_decomp)
+
         surface = cls(verts=verts, faces=faces, mass=massvec, L=L, evals=evals,
                       evecs=evecs, gradX=gradX, gradY=gradY)
         return surface

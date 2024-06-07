@@ -379,8 +379,8 @@ def compute_operators(verts, faces, k_eig=128, normals=None, use_fem_decomp=Fals
     grad_mat = build_grad(verts, edges, edge_vecs)
 
     # Split complex gradient in to two real sparse mats (torch doesn't like complex sparse matrices)
-    gradX = np.real(grad_mat).astype(np.int32)
-    gradY = np.imag(grad_mat).astype(np.int32)
+    gradX = np.real(grad_mat).astype(np.float32)
+    gradY = np.imag(grad_mat).astype(np.float32)
     return frames, massvec, L, evals, evecs, gradX, gradY
 
 

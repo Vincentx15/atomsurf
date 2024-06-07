@@ -21,7 +21,12 @@ torch.set_num_threads(1)
 
 
 class PreProcessPDBDataset(Dataset):
-    def __init__(self, recompute=False, data_dir=None, face_reduction_rate=0.5, use_pymesh=True):
+    def __init__(self,
+                 recompute_surfaces=False,
+                 recompute_graphs=False,
+                 data_dir=None,
+                 face_reduction_rate=0.5,
+                 use_pymesh=True):
         if data_dir is None:
             script_dir = os.path.dirname(os.path.realpath(__file__))
             masif_site_data_dir = os.path.join(script_dir, '..', '..', '..', 'data', 'masif_site')
@@ -29,6 +34,7 @@ class PreProcessPDBDataset(Dataset):
             masif_site_data_dir = data_dir
 
         self.face_reduction_rate = face_reduction_rate
+        self.use_pymesh = use_pymesh
 
         # Set up input/output dirs
         self.pdb_dir = os.path.join(masif_site_data_dir, '01-benchmark_pdbs')
@@ -49,7 +55,8 @@ class PreProcessPDBDataset(Dataset):
         train_names = set([name.strip() for name in open(train_list, 'r').readlines()])
         test_names = set([name.strip() for name in open(test_list, 'r').readlines()])
         self.all_sys = list(train_names.union(test_names))
-        self.recompute = recompute
+        self.recompute_surfaces = recompute_surfaces
+        self.recompute_graphs = recompute_graphs
 
     def __len__(self):
         return len(self.all_sys)
@@ -64,10 +71,9 @@ class PreProcessPDBDataset(Dataset):
         rgraph_dump = os.path.join(self.out_rgraph_dir, f'{pdb_name}.pt')
         try:
             # From there get surface and both graphs
-            if self.recompute or not os.path.exists(surface_full_dump):
+            if self.recompute_surfaces or not os.path.exists(surface_full_dump):
                 # Made a version without pymesh to load the initial data
-                use_pymesh = False
-                if use_pymesh:
+                if self.use_pymesh:
                     import pymesh
                     mesh = pymesh.load_mesh(ply_path)
                     verts = mesh.vertices.astype(np.float32)
@@ -80,8 +86,8 @@ class PreProcessPDBDataset(Dataset):
                         vx = plydata['vertex']['x']
                         vy = plydata['vertex']['y']
                         vz = plydata['vertex']['z']
-                        verts = np.stack((vx, vy, vz), axis=1)
-                        faces = np.stack(plydata['face']['vertex_indices'], axis=0)
+                        verts = np.stack((vx, vy, vz), axis=1).astype(np.float32)
+                        faces = np.stack(plydata['face']['vertex_indices'], axis=0).astype(np.int32)
                         iface_labels = plydata['vertex']['iface'].astype(np.int32)
                 surface = SurfaceObject.from_verts_faces(verts=verts, faces=faces,
                                                          face_reduction_rate=self.face_reduction_rate)
@@ -102,16 +108,16 @@ class PreProcessPDBDataset(Dataset):
                 surface.add_geom_feats()
                 surface.save_torch(surface_full_dump)
 
-            if self.recompute or not os.path.exists(agraph_dump) or not os.path.exists(rgraph_dump):
+            if self.recompute_graphs or not os.path.exists(agraph_dump) or not os.path.exists(rgraph_dump):
                 arrays = parse_pdb_path(pdb_path)
 
                 # create atomgraph
-                if self.recompute or not os.path.exists(agraph_dump):
+                if self.recompute_graphs or not os.path.exists(agraph_dump):
                     agraph = AtomGraphBuilder().arrays_to_agraph(arrays)
                     torch.save(agraph, open(agraph_dump, 'wb'))
 
                 # create residuegraph
-                if self.recompute or not os.path.exists(rgraph_dump):
+                if self.recompute_graphs or not os.path.exists(rgraph_dump):
                     rgraph_builder = ResidueGraphBuilder(add_pronet=True, add_esm=False)
                     rgraph = rgraph_builder.arrays_to_resgraph(arrays)
                     torch.save(rgraph, open(rgraph_dump, 'wb'))
@@ -141,8 +147,11 @@ def do_all(dataset, num_workers=4, prefetch_factor=100):
 
 if __name__ == '__main__':
     pass
-    recompute = False
-    use_pymesh = True
-    dataset = PreProcessPDBDataset(recompute=recompute, face_reduction_rate=0.5, use_pymesh=use_pymesh)
-    do_all(dataset, num_workers=4)
-    # do_all(dataset, num_workers=0)
+    recompute_graphs = False
+    recompute_surfaces = True
+    for use_pymesh in (True, False):
+        for face_red in [0.1, 0.2, 0.5, 1.0]:
+            dataset = PreProcessPDBDataset(recompute_surfaces=recompute_surfaces, recompute_graphs=recompute_graphs,
+                                           face_reduction_rate=face_red, use_pymesh=use_pymesh)
+            # do_all(dataset, num_workers=0)
+            do_all(dataset, num_workers=40)
