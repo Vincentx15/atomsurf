@@ -14,6 +14,8 @@ defaults:
 hydra:
  job:
    chdir: False
+ searchpath:
+   - main/../../shared_conf/
 
 # general params
 seed: 2024
