@@ -1,6 +1,6 @@
 defaults:
   - _self_
-  - blocks_zoo
+  - blocks_zoo_pronet
   - encoder: vanilla #debug
   - dataset: vanilla
   #  - dataset@trainset: [ masif_ligand_hmr ]
@@ -36,7 +36,7 @@ loader:
   batch_size: 8
   pin_memory: False
   prefetch_factor: 2
-  shuffle: true
+  shuffle: True
 
 train:
   save_top_k: 2

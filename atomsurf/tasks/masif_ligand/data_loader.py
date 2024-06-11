@@ -90,6 +90,9 @@ class MasifLigandDataset(Dataset):
             use_pronet= True #True
         else:
             use_pronet= False
+        use_pronet_block=True
+        if use_pronet_block:
+            pronetdata = graph.misc_features['pronet_features']
         if use_pronet:
             tmp_x= torch.cat([graph.x,graph.misc_features['pronet_features'].side_chain_embs,graph.misc_features['pronet_features'].bb_embs],dim=1)
             graph.x=tmp_x
@@ -130,7 +133,7 @@ class MasifLigandDataset(Dataset):
             surface.vert_nbr_dist = torch.from_numpy(dist_flat)
             surface.vert_nbr_ind = ind_flat
             surface.vnormals =  torch.from_numpy(vnormals)
-        item = Data(surface=surface, graph=graph, lig_coord=lig_coord, label=lig_type)
+        item = Data(surface=surface, graph=graph, lig_coord=lig_coord, label=lig_type,pronetdata=pronetdata)
         return item
 
 

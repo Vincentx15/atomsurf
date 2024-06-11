@@ -1,0 +1,9 @@
+name: pronet
+
+
+blocks:
+  - ${ChemGeomFeatEncoder}
+  - ${diffusion128|pronet128|concurent}
+  - ${diffusion128|pronet128|concurent}
+  - ${diffusion128|pronet128|concurent}
+  - ${diffusion128|pronet128|concurent}

@@ -25,6 +25,17 @@ class GaussianDistance(object):
         :return: shape (n,len(filters))
         """
         return torch.exp(-0.5 * (d - self.filters) ** 2 / self.var ** 2)
+class GaussianDistance_torch(object):
+    def __init__(self, start, stop, num_centers):
+        self.filters = torch.linspace(start, stop, num_centers)
+        self.var = torch.tensor((stop - start) / (num_centers - 1))
+
+    def __call__(self, d):
+        """
+        :param d: shape (n,1)
+        :return: shape (n,len(filters))
+        """
+        return torch.exp(-0.5 * (d - self.filters.to(d.device)) ** 2 / self.var.to(d.device) ** 2)
 import numpy as np
 class GaussianDistanceNP(object):
     def __init__(self, start, stop, num_centers):
@@ -120,6 +131,7 @@ def update_model_input_dim(cfg, dataset_temp):
                     feat_encoder_kwargs['graph_feat_dim'] = example.graph.x.shape[1]
                     feat_encoder_kwargs['surface_feat_dim'] = example.surface.x.shape[1]
                     feat_encoder_kwargs['chem_feat_dim_surf'] = example.graph.x.shape[1]+16
+                    # feat_encoder_kwargs['chem_feat_dim_surf'] = example.graph.x.shape[1]-1280+128+16
                 break
             if i > 50:
                 raise Exception('All data returned by Dataloader is None')
