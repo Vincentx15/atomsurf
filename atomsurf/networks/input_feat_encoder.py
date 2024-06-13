@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 from torch_scatter import scatter
+from network_utils.communication.surface_graph_comm import SurfaceGraphCommunication
+from network_utils.communication.utils_blocks import init_block
 
 
 class ChemGeomFeatEncoder(nn.Module):
@@ -97,3 +99,79 @@ class ChemGeomFeatEncoder(nn.Module):
         graph.x = h_chem
         surface.x = h_geom
         return surface, graph
+
+
+class HMRChemGeomFeatEncoder(SurfaceGraphCommunication):
+    def __init__(self, hparams, **kwargs):
+
+        use_bp = hparams.use_bp
+        h_dim = hparams.h_dim
+        dropout = hparams.dropout
+        self.use_neigh = hparams.use_neigh
+        chem_feat_dim = hparams.graph_feat_dim
+        geom_feat_dim = hparams.surface_feat_dim
+
+        # chem feat
+        chem_mlp = HMR2LayerMLP([chem_feat_dim, h_dim, h_dim], dropout)
+
+        # geom feats
+        geom_mlp = HMR2LayerMLP([geom_feat_dim, h_dim, h_dim], dropout)
+
+        # preprocess blocks
+        s_pre_block = geom_mlp
+        g_pre_block = chem_mlp
+
+        # message passing blocks
+        # * this version does not use self-loops, because we will be summing surface-level features with graph-level features (not good apriori)
+        if use_bp:
+            bp_sg_block = init_block("gcn",
+                                     use_gat=hparams.use_gat, use_v2=hparams.use_v2,
+                                     dim_in=hparams.bp_s_dim_in, dim_out=hparams.bp_s_dim_out,
+                                     add_self_loops=hparams.bp_self_loops, fill_value=hparams.bp_fill_value)
+            bp_gs_block = init_block("gcn",
+                                     use_gat=hparams.use_gat, use_v2=hparams.use_v2,
+                                     dim_in=hparams.bp_g_dim_in, dim_out=hparams.bp_g_dim_out,
+                                     add_self_loops=hparams.bp_self_loops, fill_value=hparams.bp_fill_value)
+        else:
+            bp_gs_block, bp_sg_block = None, None
+
+        # post-process blocks
+        # * skip connection is a bad design, summing surface-level features with graph-level features, the skip is done in two different spaces
+        # * we will use concatenation instead
+
+        # merge SG/GS features
+        merge_sg = HMR2LayerMLP([h_dim * 2, h_dim * 2, h_dim], dropout)
+        merge_gs = HMR2LayerMLP([h_dim * 2, h_dim * 2, h_dim], dropout)
+
+        s_post_block = CatMergeBlock(merge_sg)
+        g_post_block = CatMergeBlock(merge_gs)
+
+        super().__init__(use_bp, bp_sg_block=bp_sg_block, bp_gs_block=bp_gs_block,
+                         s_pre_block=s_pre_block, g_pre_block=g_pre_block,
+                         s_post_block=s_post_block, g_post_block=g_post_block,
+                         neigh_thresh=hparams.neigh_thresh, sigma=hparams.sigma, **kwargs)
+
+
+class HMR2LayerMLP(nn.Module):
+    def __init__(self, layers, dropout):
+        self.net = nn.Sequential(
+            nn.Linear(layers[0], layers[1]),
+            nn.Dropout(dropout),
+            nn.BatchNorm1d(layers[1]),
+            nn.SiLU(),
+            nn.Linear(layers[1], layers[2]),
+            nn.Dropout(dropout),
+            nn.BatchNorm1d(layers[2]),
+        )
+
+    def forward(self, x):
+        return self.net(x)
+
+
+class CatMergeBlock(nn.Module):
+    def __init__(self, net):
+        super().__init__()
+        self.net = net
+
+    def forward(self, x_in, x_out):
+        return self.net(torch.cat((x_in, x_out), dim=-1))

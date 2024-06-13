@@ -151,6 +151,28 @@ ChemGeomFeatEncoder24:
     num_signatures: 16
 
 
+HMRChemGeomFeatEncoder24:
+  name: HMRChemGeomFeatEncoder
+  instanciate:
+    _target_: atomsurf.networks.HMRChemGeomFeatEncoder
+  kwargs:
+    h_dim: 24
+    dropout: 0.1
+    num_gdf: 16
+    num_signatures: 16
+    use_bp: true
+    use_gat: false
+    use_v2: false
+    bp_self_loops: false
+    bp_s_dim_in: 24
+    bp_s_dim_out: 24
+    bp_g_dim_in: 24
+    bp_g_dim_out: 24
+    bp_fill_value: "mean"
+    neigh_thresh: 8
+    sigma: 2.5
+
+
 diffusion128|gcn128|concurent_dout:
   name: ProteinEncoder
   instanciate:
