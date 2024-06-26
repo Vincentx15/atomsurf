@@ -150,7 +150,7 @@ if __name__ == '__main__':
     recompute_graphs = False
     recompute_surfaces = True
     for use_pymesh in (True, False):
-        for face_red in [0.1, 0.2, 0.5, 1.0]:
+        for face_red in [0.1, 0.2, 0.5, 0.9, 1.0]:
             dataset = PreProcessPDBDataset(recompute_surfaces=recompute_surfaces, recompute_graphs=recompute_graphs,
                                            face_reduction_rate=face_red, use_pymesh=use_pymesh)
             # do_all(dataset, num_workers=0)
