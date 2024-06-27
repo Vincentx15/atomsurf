@@ -8,7 +8,7 @@ class ConcurrentCommunication(SurfaceGraphCommunication):
                  # preprocess blocks
                  pre_s_block="identity", pre_g_block="identity", pre_s_dim_in=128, pre_s_dim_out=64, pre_g_dim_in=128, pre_g_dim_out=64,
                  # message passing blocks
-                 use_gat=False, use_v2=False, bp_self_loops=False, bp_fill_value="mean",
+                 use_gat=False, use_v2=False, bp_self_loops=False, bp_fill_value="mean", use_gvp=False,
                  bp_s_dim_in=64, bp_s_dim_out=64, bp_g_dim_in=64, bp_g_dim_out=64,
                  # postprocess blocks
                  post_s_block="identity", post_g_block="identity", post_s_dim_in=128, post_s_dim_out=64, post_g_dim_in=128, post_g_dim_out=64,
@@ -23,11 +23,17 @@ class ConcurrentCommunication(SurfaceGraphCommunication):
         # message passing blocks
         # * this version does not use self-loops, because we will be summing surface-level features with graph-level features (not good apriori)
         if use_bp:
-            bp_sg_block = init_block("gcn",
+            if use_gvp:
+                bp_sg_block = init_block("gvp",
+                                         dim_in=bp_s_dim_in, dim_out=bp_s_dim_out)
+                bp_gs_block = init_block("gvp",
+                                         dim_in=bp_g_dim_in, dim_out=bp_g_dim_out)
+            else:
+                bp_sg_block = init_block("gcn",
                                      use_gat=use_gat, use_v2=use_v2,
                                      dim_in=bp_s_dim_in, dim_out=bp_s_dim_out,
                                      add_self_loops=bp_self_loops, fill_value=bp_fill_value)
-            bp_gs_block = init_block("gcn",
+                bp_gs_block = init_block("gcn",
                                      use_gat=use_gat, use_v2=use_v2,
                                      dim_in=bp_g_dim_in, dim_out=bp_g_dim_out,
                                      add_self_loops=bp_self_loops, fill_value=bp_fill_value)
@@ -40,7 +46,7 @@ class ConcurrentCommunication(SurfaceGraphCommunication):
         s_post_block = init_block(post_s_block, dim_in=post_s_dim_in, dim_out=post_s_dim_out)
         g_post_block = init_block(post_g_block, dim_in=post_g_dim_in, dim_out=post_g_dim_out)
 
-        super().__init__(use_bp, bp_sg_block=bp_sg_block, bp_gs_block=bp_gs_block,
+        super().__init__(use_bp, use_gvp=use_gvp, bp_sg_block=bp_sg_block, bp_gs_block=bp_gs_block,
                          s_pre_block=s_pre_block, g_pre_block=g_pre_block,
                          s_post_block=s_post_block, g_post_block=g_post_block,
                          neigh_thresh=neigh_thresh, sigma=sigma, **kwargs)

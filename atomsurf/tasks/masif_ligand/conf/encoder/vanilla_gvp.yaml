@@ -1,0 +1,7 @@
+name: vanilla_gvp
+
+blocks:
+  - ${GVPChemGeomFeatEncoder128}
+  - ${gvp_128}
+  - ${gvp_128}
+  - ${gvp_128}
