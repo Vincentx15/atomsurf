@@ -107,6 +107,7 @@ class HMRChemGeomFeatEncoder(SurfaceGraphCommunication):
 
         use_bp = hparams.use_bp
         use_gvp = hparams.use_gvp if "use_gvp" in hparams else False
+        use_normals = hparams.use_normals if "use_gvp" in hparams else False
         h_dim = hparams.h_dim
         dropout = hparams.dropout
         chem_feat_dim = hparams.graph_feat_dim
@@ -128,10 +129,12 @@ class HMRChemGeomFeatEncoder(SurfaceGraphCommunication):
             if use_gvp:
                 bp_sg_block = init_block("gvp",
                                          dim_in=h_dim,
-                                         dim_out=h_dim)
+                                         dim_out=h_dim,
+                                         use_normals=use_normals)
                 bp_gs_block = init_block("gvp",
                                          dim_in=h_dim,
-                                         dim_out=h_dim)
+                                         dim_out=h_dim,
+                                         use_normals=use_normals)
             else:
                 bp_sg_block = init_block("gcn",
                                          use_gat=hparams.use_gat, use_v2=hparams.use_v2,

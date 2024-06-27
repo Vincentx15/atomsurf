@@ -6,12 +6,15 @@ from .utils_blocks import init_block
 class ConcurrentCommunication(SurfaceGraphCommunication):
     def __init__(self, use_bp=True,
                  # preprocess blocks
-                 pre_s_block="identity", pre_g_block="identity", pre_s_dim_in=128, pre_s_dim_out=64, pre_g_dim_in=128, pre_g_dim_out=64,
+                 pre_s_block="identity", pre_g_block="identity", pre_s_dim_in=128, pre_s_dim_out=64, pre_g_dim_in=128,
+                 pre_g_dim_out=64,
                  # message passing blocks
-                 use_gat=False, use_v2=False, bp_self_loops=False, bp_fill_value="mean", use_gvp=False,
+                 use_gat=False, use_v2=False, bp_self_loops=False, bp_fill_value="mean",  # GCN args
+                 use_gvp=False, use_normals=True,  # GVP args
                  bp_s_dim_in=64, bp_s_dim_out=64, bp_g_dim_in=64, bp_g_dim_out=64,
                  # postprocess blocks
-                 post_s_block="identity", post_g_block="identity", post_s_dim_in=128, post_s_dim_out=64, post_g_dim_in=128, post_g_dim_out=64,
+                 post_s_block="identity", post_g_block="identity", post_s_dim_in=128, post_s_dim_out=64,
+                 post_g_dim_in=128, post_g_dim_out=64,
                  # misc
                  neigh_thresh=8, sigma=2.5,
                  **kwargs):
@@ -25,18 +28,18 @@ class ConcurrentCommunication(SurfaceGraphCommunication):
         if use_bp:
             if use_gvp:
                 bp_sg_block = init_block("gvp",
-                                         dim_in=bp_s_dim_in, dim_out=bp_s_dim_out)
+                                         dim_in=bp_s_dim_in, dim_out=bp_s_dim_out, use_normals=use_normals)
                 bp_gs_block = init_block("gvp",
-                                         dim_in=bp_g_dim_in, dim_out=bp_g_dim_out)
+                                         dim_in=bp_g_dim_in, dim_out=bp_g_dim_out, use_normals=use_normals)
             else:
                 bp_sg_block = init_block("gcn",
-                                     use_gat=use_gat, use_v2=use_v2,
-                                     dim_in=bp_s_dim_in, dim_out=bp_s_dim_out,
-                                     add_self_loops=bp_self_loops, fill_value=bp_fill_value)
+                                         use_gat=use_gat, use_v2=use_v2,
+                                         dim_in=bp_s_dim_in, dim_out=bp_s_dim_out,
+                                         add_self_loops=bp_self_loops, fill_value=bp_fill_value)
                 bp_gs_block = init_block("gcn",
-                                     use_gat=use_gat, use_v2=use_v2,
-                                     dim_in=bp_g_dim_in, dim_out=bp_g_dim_out,
-                                     add_self_loops=bp_self_loops, fill_value=bp_fill_value)
+                                         use_gat=use_gat, use_v2=use_v2,
+                                         dim_in=bp_g_dim_in, dim_out=bp_g_dim_out,
+                                         add_self_loops=bp_self_loops, fill_value=bp_fill_value)
         else:
             bp_gs_block, bp_sg_block = None, None
 
@@ -55,12 +58,14 @@ class ConcurrentCommunication(SurfaceGraphCommunication):
 class SequentialCommunication(SequentialSurfaceGraphCommunication):
     def __init__(self, use_bp=True,
                  # preprocess blocks
-                 pre_s_block="identity", pre_g_block="identity", pre_s_dim_in=128, pre_s_dim_out=64, pre_g_dim_in=128, pre_g_dim_out=64,
+                 pre_s_block="identity", pre_g_block="identity", pre_s_dim_in=128, pre_s_dim_out=64, pre_g_dim_in=128,
+                 pre_g_dim_out=64,
                  # message passing blocks
                  use_gat=False, use_v2=False, bp_self_loops=False, bp_fill_value="mean",
                  bp_s_dim_in=64, bp_s_dim_out=64, bp_g_dim_in=64, bp_g_dim_out=64,
                  # postprocess blocks
-                 post_s_block="identity", post_g_block="identity", post_s_dim_in=128, post_s_dim_out=64, post_g_dim_in=128, post_g_dim_out=64,
+                 post_s_block="identity", post_g_block="identity", post_s_dim_in=128, post_s_dim_out=64,
+                 post_g_dim_in=128, post_g_dim_out=64,
                  # misc
                  neigh_thresh=8, sigma=2.5,
                  **kwargs):
@@ -111,8 +116,10 @@ class ParallelCommunicationV1(SurfaceGraphCommunication):
 
         # message passing blocks
         if use_bp:
-            bp_gs_block = init_block("no_param_aggregate", aggr=aggr_type, self_loops=add_self_loops, fill_value=fill_value)
-            bp_sg_block = init_block("no_param_aggregate", aggr=aggr_type, self_loops=add_self_loops, fill_value=fill_value)
+            bp_gs_block = init_block("no_param_aggregate", aggr=aggr_type, self_loops=add_self_loops,
+                                     fill_value=fill_value)
+            bp_sg_block = init_block("no_param_aggregate", aggr=aggr_type, self_loops=add_self_loops,
+                                     fill_value=fill_value)
         else:
             bp_gs_block, bp_sg_block = None, None
 

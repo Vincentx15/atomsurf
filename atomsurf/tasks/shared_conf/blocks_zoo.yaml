@@ -198,6 +198,22 @@ GVPChemGeomFeatEncoder128:
     num_signatures: 16
     use_bp: true
     use_gvp: true
+    use_normals: false
+    neigh_thresh: 8
+    sigma: 2.5
+
+GVPChemGeomFeatEncoder128_normals:
+  name: GVPChemGeomFeatEncoder
+  instanciate:
+    _target_: atomsurf.networks.HMRChemGeomFeatEncoder
+  kwargs:
+    h_dim: 128
+    dropout: 0.1
+    num_gdf: 16
+    num_signatures: 16
+    use_bp: true
+    use_gvp: true
+    use_normals: true
     neigh_thresh: 8
     sigma: 2.5
 
@@ -242,6 +258,65 @@ gvp_128:
         pre_g_dim_out: 64
 
         use_gvp: true
+        use_normals: false
+        bp_s_dim_in: 64
+        bp_s_dim_out: 64
+        bp_g_dim_in: 64
+        bp_g_dim_out: 64
+
+        post_s_block: cat_post_process
+        post_g_block: cat_post_process
+        post_s_dim_in: 128
+        post_s_dim_out: 128
+        post_g_dim_in: 128
+        post_g_dim_out: 128
+
+        neigh_thresh: 8
+        sigma: 2.5
+
+
+gvp_128_normals:
+  name: ProteinEncoder
+  instanciate:
+    _target_: atomsurf.networks.ProteinEncoderBlock
+  kwargs:
+    surface_encoder:
+      name: DiffusionNetBlockBatch
+      instanciate:
+        _target_: atomsurf.network_utils.DiffusionNetBlockBatch  # diffusion_net.DiffusionNet
+      kwargs:
+        C_width: 128
+        mlp_hidden_dims: [128, 128]
+        dropout: 0.1
+        use_bn: true
+        init_time: 2.0  # either null (for constant init) or a float
+        init_std: 2.0
+    graph_encoder:
+      name: GCNx2Block
+      instanciate:
+        _target_: atomsurf.network_utils.GCNx2Block
+      kwargs:
+        dim_in: 128
+        hidden_dims: 128
+        dim_out: 128
+        dropout: 0.1
+        use_bn: true
+        use_weighted_edge_distance: false
+    communication_block:
+      name: ConcurrentCommunication
+      instanciate:
+        _target_: atomsurf.network_utils.ConcurrentCommunication
+      kwargs:
+        use_bp: true
+        pre_s_block: linear
+        pre_g_block: linear
+        pre_s_dim_in: 128
+        pre_s_dim_out: 64
+        pre_g_dim_in: 128
+        pre_g_dim_out: 64
+
+        use_gvp: true
+        use_normals: true
         bp_s_dim_in: 64
         bp_s_dim_out: 64
         bp_g_dim_in: 64

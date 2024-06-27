@@ -70,17 +70,20 @@ def get_gvp_feats(pos, edge_index, neigh_th=8):
     return dists, rbf, u_vec
 
 
-def get_gvp_graph(pos, edge_index, neigh_th=8):
+def get_gvp_graph(pos, edge_index, normals=None, neigh_th=8):
     # Keep dists for compatibility with mixed GVP/bipartite approaches
     dists, rbf, u_vec = get_gvp_feats(pos, edge_index, neigh_th=neigh_th)
-    return Data(all_pos=pos, edge_index=edge_index, edge_s=rbf, edge_v=u_vec, edge_weight=dists)
+    return Data(all_pos=pos, edge_index=edge_index, edge_s=rbf, edge_v=u_vec, edge_weight=dists, normals=normals)
 
 
 # todo check if this valid (copy pasted)
 # TODO benchmark against torch_cluster radius graph
 def compute_bipartite_graphs(surfaces, graphs, neigh_th, gvp_feats=False):
     verts_list = [surface.verts for surface in surfaces.to_data_list()]
+    # TODO: UNSAFE, if normals are useful, find a better way (probably by including it as a surface attribute)
+    vertsnormals_list = [surface.x[:, -3:] for surface in surfaces.to_data_list()]
     nodepos_list = [graph.node_pos for graph in graphs.to_data_list()]
+    nodenormals_list = [torch.zeros_like(graph.node_pos) for graph in graphs.to_data_list()]
     sigma = neigh_th / 2  # todo is this the right way to do it?
     with torch.no_grad():
         all_dists = [torch.cdist(vert, nodepos) for vert, nodepos in zip(verts_list, nodepos_list)]
@@ -93,12 +96,14 @@ def compute_bipartite_graphs(surfaces, graphs, neigh_th, gvp_feats=False):
             neighbor[1] += len(verts_list[i])
         reverse_neighbors = [torch.flip(neigh, dims=(0,)) for neigh in neighbors]
         all_pos = [torch.cat((vert, nodepos)) for vert, nodepos in zip(verts_list, nodepos_list)]
+        all_normals = [torch.cat((vernorms, nodenorms)) for vernorms, nodenorms in
+                       zip(vertsnormals_list, nodenormals_list)]
 
         if gvp_feats:
-            bipartite_surfgraph = [get_gvp_graph(pos=pos, edge_index=neighbor, neigh_th=neigh_th) for pos, neighbor in
-                                   zip(all_pos, neighbors)]
-            bipartite_graphsurf = [get_gvp_graph(pos=pos, edge_index=rneighbor, neigh_th=neigh_th) for pos, rneighbor in
-                                   zip(all_pos, reverse_neighbors)]
+            bipartite_surfgraph = [get_gvp_graph(pos=pos, edge_index=neighbor, neigh_th=neigh_th, normals=normals)
+                                   for pos, normals, neighbor in zip(all_pos, all_normals, neighbors)]
+            bipartite_graphsurf = [get_gvp_graph(pos=pos, edge_index=rneighbor, neigh_th=neigh_th, normals=normals)
+                                   for pos, normals, rneighbor in zip(all_pos, all_normals, reverse_neighbors)]
         else:
             bipartite_surfgraph = [Data(all_pos=pos, edge_index=neighbor, edge_weight=dist) for pos, neighbor, dist in
                                    zip(all_pos, neighbors, dists)]

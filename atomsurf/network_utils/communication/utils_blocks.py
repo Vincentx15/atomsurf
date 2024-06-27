@@ -7,7 +7,7 @@ from torch_geometric.utils import add_self_loops
 from atomsurf.network_utils.misc_arch.gvp_gnn import GVPConv
 
 
-def init_block(name, use_gat=False, use_v2=False, add_self_loops=False,
+def init_block(name, use_normals=True, use_gat=False, use_v2=False, add_self_loops=False,
                fill_value="mean", aggr='add', dim_in=128, dim_out=64):
     if name == "identity":
         return IdentityLayer()
@@ -22,7 +22,7 @@ def init_block(name, use_gat=False, use_v2=False, add_self_loops=False,
     elif name == "return_processed":
         return ReturnProcessedBlock()
     elif name == "gvp":
-        return GVPWrapper(dim_in, dim_out)
+        return GVPWrapper(dim_in, dim_out, use_normals=use_normals)
     elif name == "gcn":
         if not use_gat:
             conv_layer = GCNConv
@@ -33,8 +33,10 @@ def init_block(name, use_gat=False, use_v2=False, add_self_loops=False,
 
 
 class GVPWrapper(nn.Module):
-    def __init__(self, dim_in, dim_out):
+    def __init__(self, dim_in, dim_out, use_normals=True):
         super().__init__()
+        self.use_normals = use_normals
+
         # Complete initial node features with zero vectors, we could include normals here as initial features
         in_dims = dim_in, 1
 
@@ -47,7 +49,10 @@ class GVPWrapper(nn.Module):
         self.gvp = GVPConv(in_dims, out_dims, edge_dims)
 
     def forward(self, x, graph):
-        x_v = torch.zeros((len(x), 1, 3), device=x.device)
+        if graph.normals is not None and self.use_normals:
+            x_v = graph.normals[:, None, :]
+        else:
+            x_v = torch.zeros((len(x), 1, 3), device=x.device)
         x = (x, x_v)
 
         e_s = graph.edge_s
