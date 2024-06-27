@@ -173,6 +173,21 @@ HMRChemGeomFeatEncoder24:
     sigma: 2.5
 
 
+GVPChemGeomFeatEncoder12:
+  name: GVPChemGeomFeatEncoder
+  instanciate:
+    _target_: atomsurf.networks.HMRChemGeomFeatEncoder
+  kwargs:
+    h_dim: 12
+    dropout: 0.1
+    num_gdf: 16
+    num_signatures: 16
+    use_bp: true
+    use_gvp: true
+    neigh_thresh: 8
+    sigma: 2.5
+
+
 diffusion128|gcn128|concurent_dout:
   name: ProteinEncoder
   instanciate:

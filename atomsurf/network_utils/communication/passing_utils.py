@@ -37,8 +37,48 @@ def compute_rbf_graph(surface, graph, sigma):
     return rbf_weights
 
 
+# FROM GVP
+def _normalize(tensor, dim=-1):
+    '''
+    Normalizes a `torch.Tensor` along dimension `dim` without `nan`s.
+    '''
+    return torch.nan_to_num(
+        torch.div(tensor, torch.norm(tensor, dim=dim, keepdim=True)))
+
+
+def _rbf(D, D_min=0., D_max=8., D_count=16):
+    '''
+    From https://github.com/jingraham/neurips19-graph-protein-design
+
+    Returns an RBF embedding of `torch.Tensor` `D` along a new axis=-1.
+    That is, if `D` has shape [...dims], then the returned tensor will have
+    shape [...dims, D_count].
+    '''
+    D_mu = torch.linspace(D_min, D_max, D_count, device=D.device)
+    D_mu = D_mu.view([1, -1])
+    D_sigma = (D_max - D_min) / D_count
+    D_expand = torch.unsqueeze(D, -1)
+    RBF = torch.exp(-((D_expand - D_mu) / D_sigma) ** 2)
+    return RBF
+
+
+def get_gvp_feats(pos, edge_index, neigh_th=8):
+    E_vectors = pos[edge_index[0]] - pos[edge_index[1]]
+    dists = E_vectors.norm(dim=-1)
+    rbf = _rbf(dists, D_max=neigh_th)
+    u_vec = _normalize(E_vectors)[:, None, :]
+    return dists, rbf, u_vec
+
+
+def get_gvp_graph(pos, edge_index, neigh_th=8):
+    # Keep dists for compatibility with mixed GVP/bipartite approaches
+    dists, rbf, u_vec = get_gvp_feats(pos, edge_index, neigh_th=neigh_th)
+    return Data(all_pos=pos, edge_index=edge_index, edge_s=rbf, edge_v=u_vec, edge_weight=dists)
+
+
 # todo check if this valid (copy pasted)
-def compute_bipartite_graphs(surfaces, graphs, neigh_th):
+# TODO benchmark against torch_cluster radius graph
+def compute_bipartite_graphs(surfaces, graphs, neigh_th, gvp_feats=False):
     verts_list = [surface.verts for surface in surfaces.to_data_list()]
     nodepos_list = [graph.node_pos for graph in graphs.to_data_list()]
     sigma = neigh_th / 2  # todo is this the right way to do it?
@@ -53,10 +93,17 @@ def compute_bipartite_graphs(surfaces, graphs, neigh_th):
             neighbor[1] += len(verts_list[i])
         reverse_neighbors = [torch.flip(neigh, dims=(0,)) for neigh in neighbors]
         all_pos = [torch.cat((vert, nodepos)) for vert, nodepos in zip(verts_list, nodepos_list)]
-        bipartite_surfgraph = [Data(all_pos=pos, edge_index=neighbor, edge_weight=dist) for pos, neighbor, dist in
-                               zip(all_pos, neighbors, dists)]
-        bipartite_graphsurf = [Data(all_pos=pos, edge_index=rneighbor, edge_weight=dist) for pos, rneighbor, dist in
-                               zip(all_pos, reverse_neighbors, dists)]
+
+        if gvp_feats:
+            bipartite_surfgraph = [get_gvp_graph(pos=pos, edge_index=neighbor, neigh_th=neigh_th) for pos, neighbor in
+                                   zip(all_pos, neighbors)]
+            bipartite_graphsurf = [get_gvp_graph(pos=pos, edge_index=rneighbor, neigh_th=neigh_th) for pos, rneighbor in
+                                   zip(all_pos, reverse_neighbors)]
+        else:
+            bipartite_surfgraph = [Data(all_pos=pos, edge_index=neighbor, edge_weight=dist) for pos, neighbor, dist in
+                                   zip(all_pos, neighbors, dists)]
+            bipartite_graphsurf = [Data(all_pos=pos, edge_index=rneighbor, edge_weight=dist) for pos, rneighbor, dist in
+                                   zip(all_pos, reverse_neighbors, dists)]
         return bipartite_graphsurf, bipartite_surfgraph
 
 

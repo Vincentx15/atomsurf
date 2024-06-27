@@ -10,11 +10,12 @@ class SurfaceGraphCommunication(nn.Module):
                  s_pre_block=None, g_pre_block=None,
                  bp_sg_block=None, bp_gs_block=None,
                  s_post_block=None, g_post_block=None,
-                 neigh_thresh=8, sigma=2.5,
+                 neigh_thresh=8, sigma=2.5, use_gvp=False,
                  **kwargs):
         super().__init__()
 
         self.use_bp = use_bp
+        self.use_gvp = use_gvp
 
         self.s_pre_block = s_pre_block
         self.g_pre_block = g_pre_block
@@ -51,10 +52,14 @@ class SurfaceGraphCommunication(nn.Module):
             x = [torch.cat((xs_b.x, graph_b.x)) for xs_b, graph_b in zip(surface.to_data_list(), graph.to_data_list())]
 
             # apply the message passing
-            xs_out = [self.bp_gs_block(x_b, bp_gs_b.edge_index, bp_gs_b.edge_weight) for x_b, bp_gs_b in
-                      zip(x, self.bp_gs)]
-            xg_out = [self.bp_sg_block(x_b, bp_sg_b.edge_index, bp_sg_b.edge_weight) for x_b, bp_sg_b in
-                      zip(x, self.bp_sg)]
+            if self.use_gvp:
+                xs_out = [self.bp_gs_block(x_b, bp_gs_b) for x_b, bp_gs_b in zip(x, self.bp_gs)]
+                xg_out = [self.bp_sg_block(x_b, bp_sg_b) for x_b, bp_sg_b in zip(x, self.bp_sg)]
+            else:
+                xs_out = [self.bp_gs_block(x_b, bp_gs_b.edge_index, bp_gs_b.edge_weight) for x_b, bp_gs_b in
+                          zip(x, self.bp_gs)]
+                xg_out = [self.bp_sg_block(x_b, bp_sg_b.edge_index, bp_sg_b.edge_weight) for x_b, bp_sg_b in
+                          zip(x, self.bp_sg)]
 
             verts_list = [surf.verts for surf in surface.to_data_list()]
             # extract the projected features
@@ -77,7 +82,9 @@ class SurfaceGraphCommunication(nn.Module):
     def compute_graph(self, surface, graph):
         if self.use_bp:
             if "bp_gs" not in surface or "bp_sg" not in surface:
-                self.bp_gs, self.bp_sg = compute_bipartite_graphs(surface, graph, neigh_th=self.neigh_thresh)
+                self.bp_gs, self.bp_sg = compute_bipartite_graphs(surface, graph,
+                                                                  neigh_th=self.neigh_thresh,
+                                                                  gvp_feats=self.use_gvp)
                 surface["bp_gs"], surface[
                     "bp_sg"] = self.bp_gs, self.bp_sg  # Previously included a clone which I think was unnecessary
             else:
