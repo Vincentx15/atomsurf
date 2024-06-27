@@ -85,6 +85,16 @@ class MasifLigandDataset(Dataset):
         item = Data(surface=surface, graph=graph, lig_coord=lig_coord, label=lig_type)
         return item
 
+class MasifLigandDataset_InMemory(Dataset):
+    def __init__(self, dataset_dir):
+        self.systems = torch.load(dataset_dir)
+
+    def __len__(self):
+        return len(self.systems)
+
+    def __getitem__(self, idx):
+        item = self.systems[idx]
+        return item
 
 class MasifLigandDataModule(pl.LightningDataModule):
     def __init__(self, cfg):
@@ -99,6 +109,13 @@ class MasifLigandDataModule(pl.LightningDataModule):
         splits_dir = os.path.join(masif_ligand_data_dir, 'raw_data_MasifLigand', 'splits')
         ligands_path = os.path.join(masif_ligand_data_dir, 'raw_data_MasifLigand', 'ligand')
         self.systems = []
+        self.use_inmem =cfg.use_inmem
+        if self.use_inmem:
+            self.train_dir=os.path.join(cfg.data_dir,'Inmemory_train_surfhmr_rggraph_esm.pt')
+            self.val_dir=os.path.join(cfg.data_dir,'Inmemory_val_surfhmr_rggraph_esm.pt')
+            self.test_dir=os.path.join(cfg.data_dir,'Inmemory_test_surfhmr_rggraph_esm.pt')
+            if not (os.path.isfile(self.train_dir) and os.path.isfile(self.val_dir) and os.path.isfile(self.test_dir) ):
+                self.create_inmem_set(cfg)
         for split in ['train', 'val', 'test']:
             splits_path = os.path.join(splits_dir, f'{split}-list.txt')
             out_path = os.path.join(splits_dir, f'{split}.p')
@@ -112,19 +129,47 @@ class MasifLigandDataModule(pl.LightningDataModule):
                             'prefetch_factor': self.cfg.loader.prefetch_factor,
                             'shuffle': self.cfg.loader.shuffle,
                             'collate_fn': lambda x: AtomBatch.from_data_list(x)}
-        dataset_temp = MasifLigandDataset(self.systems[0], self.surface_loader, self.graph_loader)
+        
+        if  self.use_inmem:
+            dataset_temp= MasifLigandDataset_InMemory(self.val_dir)
+        else:
+            dataset_temp = MasifLigandDataset(self.systems[0], self.surface_loader, self.graph_loader)
         update_model_input_dim(cfg, dataset_temp=dataset_temp)
-
+    def create_inmem_set(self,cfg):
+        train_set = MasifLigandDataset(self.systems[0], self.surface_loader, self.graph_loader)
+        val_set = MasifLigandDataset(self.systems[1], self.surface_loader, self.graph_loader)
+        test_set = MasifLigandDataset(self.systems[2], self.surface_loader, self.graph_loader)
+        train_list = []
+        val_list = []
+        test_list = []
+        for data in train_set:
+            train_list.append(data)
+        torch.save(train_list,os.path.join(cfg.data_dir,'Inmemory_train_surfhmr_rggraph_esm.pt'))
+        for data in val_set:
+            val_list.append(data)
+        torch.save(val_list,os.path.join(cfg.data_dir,'Inmemory_val_surfhmr_rggraph_esm.pt'))
+        for data in test_set:
+            test_list.append(data)
+        torch.save(test_list,os.path.join(cfg.data_dir,'Inmemory_test_surfhmr_rggraph_esm.pt'))    
     def train_dataloader(self):
-        dataset = MasifLigandDataset(self.systems[0], self.surface_loader, self.graph_loader)
+        if self.use_inmem:
+            dataset =MasifLigandDataset_InMemory(self.train_dir)
+        else:
+            dataset = MasifLigandDataset(self.systems[0], self.surface_loader, self.graph_loader)
         return DataLoader(dataset, **self.loader_args)
 
     def val_dataloader(self):
-        dataset = MasifLigandDataset(self.systems[1], self.surface_loader, self.graph_loader)
+        if self.use_inmem:
+            dataset =MasifLigandDataset_InMemory(self.val_dir)
+        else:
+            dataset = MasifLigandDataset(self.systems[1], self.surface_loader, self.graph_loader)
         return DataLoader(dataset, **self.loader_args)
 
     def test_dataloader(self):
-        dataset = MasifLigandDataset(self.systems[2], self.surface_loader, self.graph_loader)
+        if self.use_inmem:
+            dataset =MasifLigandDataset_InMemory(self.test_dir)
+        else:
+            dataset = MasifLigandDataset(self.systems[2], self.surface_loader, self.graph_loader)
         return DataLoader(dataset, **self.loader_args)
 
 
