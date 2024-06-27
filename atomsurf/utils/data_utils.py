@@ -231,7 +231,7 @@ class AtomPLModule(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx: int):
-        if batch.num_graphs < 1:
+        if batch.num_graphs < self.hparams.cfg.min_batch_size:
             return None
         self.model.train()
         loss, logits, labels = self.step(batch)
@@ -243,7 +243,7 @@ class AtomPLModule(pl.LightningModule):
         self.val_res.append((logits, labels))
 
     def test_step(self, batch, batch_idx: int):
-        if batch.num_graphs < 1:
+        if batch.num_graphs < self.hparams.cfg.min_batch_size:
             return None
         self.model.train()
         loss, logits, labels = self.step(batch)

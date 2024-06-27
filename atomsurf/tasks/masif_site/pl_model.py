@@ -15,7 +15,7 @@ def masif_site_loss(preds, labels):
     pos_preds = preds[labels == 1]
     pos_labels = torch.ones_like(pos_preds)
     neg_preds = preds[labels == 0]
-    neg_labels = torch.zeros_like(pos_preds)
+    neg_labels = torch.zeros_like(neg_preds)
     n_points_sample = min(len(pos_labels), len(neg_labels))
     pos_indices = torch.randperm(len(pos_labels))[:n_points_sample]
     neg_indices = torch.randperm(len(neg_labels))[:n_points_sample]

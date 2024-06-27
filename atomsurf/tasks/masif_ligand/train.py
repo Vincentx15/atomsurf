@@ -85,7 +85,10 @@ def main(cfg=None):
     trainer.fit(model, datamodule=datamodule)
 
     # test
+    print('*****************test besst ckpt*****************')
     trainer.test(model, ckpt_path="best", datamodule=datamodule)
+    print('*****************test last ckpt*****************')
+    trainer.test(model, ckpt_path="last", datamodule=datamodule)
 
 
 if __name__ == "__main__":
