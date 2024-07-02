@@ -100,6 +100,11 @@ def parse_pdb_path(pdb_path):  # def parse_pdb_from_pqr(pdb_path)
     atom_radius = []  # size: (n_atom,1)
     res_id = 0
     for residue in structure.get_residues():
+        for atom in residue.get_atoms():
+            # Add occupancy to write as pdb
+            atom.set_occupancy(1.0)
+            atom.set_bfactor(1.0)
+
         # HETATM
         if residue.id[0] != " ":
             continue
@@ -111,10 +116,6 @@ def parse_pdb_path(pdb_path):  # def parse_pdb_from_pqr(pdb_path)
         amino_types.append(resname)
 
         for atom in residue.get_atoms():
-            # Add occupancy to write as pdb
-            atom.set_occupancy(1.0)
-            atom.set_bfactor(1.0)
-
             # Skip H
             element = atom.element
             if atom.get_name().startswith("H"):
