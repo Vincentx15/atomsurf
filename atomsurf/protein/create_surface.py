@@ -305,6 +305,8 @@ def mesh_simplification(verts, faces, out_ply,
         mesh = o3d.geometry.TriangleMesh(o3d.utility.Vector3dVector(verts_out), o3d.utility.Vector3iVector(faces_out))
         o3d.io.write_triangle_mesh(out_ply, mesh, write_vertex_normals=True)
 
+    verts_out = verts_out.astype(np.float32)
+    faces_out = faces_out.astype(np.int32)
     return verts_out, faces_out
 
 
