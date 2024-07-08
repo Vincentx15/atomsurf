@@ -190,7 +190,7 @@ def vertex_normals(verts, faces):
 
 def build_tangent_frames(verts, faces, normals=None):
     """
-    Define a local frame based on thee normal to get an approx of local manifold
+    Define a local frame based on three normal to get an approx of local manifold
     :param verts:
     :param faces:
     :param normals:
@@ -237,7 +237,8 @@ def edge_tangent_vectors(verts, frames, edges):
 
 def build_grad(verts, edges, edge_tangent_vectors):
     """
-    Build a (V, V) complex sparse matrix grad operator. Given real inputs at vertices, produces a complex (vector value) at vertices giving the gradient.
+    Build a (V, V) complex sparse matrix grad operator. Given real inputs at vertices, produces a complex (vector value)
+     at vertices giving the gradient.
     All values pointwise.
     - edges: (2, E)
     """

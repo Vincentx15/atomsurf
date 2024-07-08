@@ -11,11 +11,15 @@ from atomsurf.utils.metrics import compute_accuracy, compute_auroc
 
 
 def masif_site_loss(preds, labels):
-    # Inspired from dmasif
+    # Inspired from dmasif https://github.com/FreyrS/dMaSIF/blob/master/data_iteration.py#L158
+
+    # Get our predictions and corresponding binary labels
     pos_preds = preds[labels == 1]
-    pos_labels = torch.ones_like(pos_preds)
     neg_preds = preds[labels == 0]
+    pos_labels = torch.ones_like(pos_preds)
     neg_labels = torch.zeros_like(neg_preds)
+
+    # Subsample majority class to get balanced loss
     n_points_sample = min(len(pos_labels), len(neg_labels))
     pos_indices = torch.randperm(len(pos_labels))[:n_points_sample]
     neg_indices = torch.randperm(len(neg_labels))[:n_points_sample]
@@ -23,6 +27,8 @@ def masif_site_loss(preds, labels):
     pos_labels = pos_labels[pos_indices]
     neg_preds = neg_preds[neg_indices]
     neg_labels = neg_labels[neg_indices]
+
+    # Compute loss on these prediction/GT pairs
     preds_concat = torch.cat([pos_preds, neg_preds])
     labels_concat = torch.cat([pos_labels, neg_labels])
     loss = F.binary_cross_entropy_with_logits(preds_concat, labels_concat)

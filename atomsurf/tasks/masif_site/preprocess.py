@@ -90,6 +90,7 @@ class PreProcessPDBDataset(Dataset):
                         faces = np.stack(plydata['face']['vertex_indices'], axis=0).astype(np.int32)
                         iface_labels = plydata['vertex']['iface'].astype(np.int32)
                 surface = SurfaceObject.from_verts_faces(verts=verts, faces=faces,
+                                                         use_pymesh=self.use_pymesh,
                                                          face_reduction_rate=self.face_reduction_rate)
                 iface_labels = torch.from_numpy(iface_labels)
                 # If coarsened, we need to adapt the iface_labels on the new verts

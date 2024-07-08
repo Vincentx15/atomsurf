@@ -15,9 +15,9 @@ from atomsurf.protein.atom_graph import AtomGraphBuilder
 from atomsurf.protein.residue_graph import ResidueGraphBuilder
 
 
-def create_protein(pdb_path, dump_ply, dump_surf, dump_agraph, dump_rgraph):
+def create_protein(pdb_path, dump_ply, dump_surf, dump_agraph, dump_rgraph, use_pymesh=False):
     # Create surface
-    surface = SurfaceObject.from_pdb_path(pdb_path, out_ply_path=dump_ply)
+    surface = SurfaceObject.from_pdb_path(pdb_path, out_ply_path=dump_ply, use_pymesh=use_pymesh)
     surface.add_geom_feats()
     surface.save_torch(dump_surf)
 
