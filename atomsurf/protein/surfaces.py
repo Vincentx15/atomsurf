@@ -29,7 +29,6 @@ def compute_HKS(evecs, evals, num_t, t_min=0.1, t_max=1000, scale=1000):
     hks = np.einsum('tnk,nk->nt', wphi, evecs[:, 1:]) * scale
     heat_trace = np.sum(phase, axis=1)
     hks /= heat_trace
-
     return hks
 
 

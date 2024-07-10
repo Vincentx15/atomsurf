@@ -149,8 +149,8 @@ def do_all(dataset, num_workers=4, prefetch_factor=100):
 if __name__ == '__main__':
     pass
     recompute_graphs = False
-    recompute_surfaces = True
-    for use_pymesh in (True, False):
+    recompute_surfaces = False
+    for use_pymesh in (False, True):
         for face_red in [0.1, 0.2, 0.5, 0.9, 1.0]:
             dataset = PreProcessPDBDataset(recompute_surfaces=recompute_surfaces, recompute_graphs=recompute_graphs,
                                            face_reduction_rate=face_red, use_pymesh=use_pymesh)

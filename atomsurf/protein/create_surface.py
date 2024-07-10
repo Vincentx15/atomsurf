@@ -228,6 +228,14 @@ def mesh_simplification(verts, faces, out_ply,
                         min_vert_number=140,
                         max_vert_number=50000,
                         use_pymesh=True):
+    """
+    Simplify and clean a mesh.
+    Simplification is based on coarsening with iterative quadratic decimation
+    Cleaning involves discarding small disconnected components, unreferenced faces and vertices...
+
+    Most of the computation time resides in the coarsening.
+    """
+
     # remeshing to have a target number of vertices
     faces_num = max(min_vert_number * 2 + 1, int(face_reduction_rate * len(faces)))
     mesh = o3d.geometry.TriangleMesh(o3d.utility.Vector3dVector(verts), o3d.utility.Vector3iVector(faces))
@@ -243,8 +251,23 @@ def mesh_simplification(verts, faces, out_ply,
     mesh.remove_unreferenced_vertices()
 
     mesh = mesh.simplify_quadric_decimation(target_number_of_triangles=faces_num)
+
     verts_out = np.asarray(mesh.vertices)
     faces_out = np.asarray(mesh.triangles)
+
+    if not use_pymesh:
+        # TODO time
+        triangle_clusters, cluster_n_triangles, cluster_area = (mesh.cluster_connected_triangles())
+        triangle_clusters = np.asarray(triangle_clusters)
+        cluster_n_triangles = np.asarray(cluster_n_triangles)
+        cluster_area = np.asarray(cluster_area)
+
+        # Some tiny clusters might exist, we want to remove those
+        assert (cluster_n_triangles >= 10).sum() == 1
+        triangles_to_remove = cluster_n_triangles[triangle_clusters] < 10
+        mesh.remove_triangles_by_mask(triangles_to_remove)
+        mesh.remove_unreferenced_vertices()
+        mesh.remove_degenerate_triangles()
 
     if use_pymesh:
         import pymesh
@@ -371,4 +394,4 @@ if __name__ == "__main__":
                                out_ply_path="../../data/example_files/example_mesh.ply",
                                min_vert_number=140,
                                use_pymesh=False,
-                               face_reduction_rate=1)
+                               face_reduction_rate=0.1)

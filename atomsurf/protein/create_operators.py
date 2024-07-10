@@ -158,20 +158,21 @@ def mesh_vertex_normals(verts, faces):
     vertex_normals = np.zeros_like(verts)
     for i in range(3):
         np.add.at(vertex_normals, faces[:, i], face_n)
-
-    vertex_normals = vertex_normals / np.linalg.norm(
-        vertex_normals, axis=-1, keepdims=True
-    )
-
+    norm = np.linalg.norm(vertex_normals, axis=-1, keepdims=True)
+    vertex_normals = vertex_normals / norm
     return vertex_normals
 
 
-def vertex_normals(verts, faces):
+def vertex_normals(verts, faces, permissive=False):
     normals = mesh_vertex_normals(verts, faces)
 
     # if any are NaN, wiggle slightly and recompute
     bad_normals_mask = np.isnan(normals).any(axis=1, keepdims=True)
-    if bad_normals_mask.any():
+    bad_normals = bad_normals_mask.any()
+    if bad_normals:
+        if not permissive:
+            raise ValueError(f"Some normals are nan, indicating problems with the mesh and potential ulterior "
+                             f"segmentation fault later in the code.")
         bbox = np.amax(verts, axis=0) - np.amin(verts, axis=0)
         scale = np.linalg.norm(bbox) * 1e-4
         wiggle = (np.random.RandomState(seed=777).rand(*verts.shape) - 0.5) * scale
