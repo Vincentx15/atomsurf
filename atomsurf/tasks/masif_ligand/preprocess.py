@@ -66,7 +66,11 @@ class PreprocessPatchDataset(Dataset):
 
             # Using HMR preproc
             if self.recompute or not os.path.exists(surface_hmr_dump):
-                surface_ours_hmr = SurfaceObject.from_verts_faces(verts=verts, faces=faces, use_fem_decomp=True)
+                surface_ours_hmr = SurfaceObject.from_verts_faces(verts=verts,
+                                                                  faces=faces,
+                                                                  face_reduction_rate=self.face_reduction_rate,
+                                                                  use_pymesh=self.use_pymesh,
+                                                                  use_fem_decomp=True)
                 surface_ours_hmr.add_geom_feats()
                 surface_ours_hmr.save_torch(surface_hmr_dump)
 
@@ -97,7 +101,7 @@ class PreprocessPatchDataset(Dataset):
 
 class PreProcessPDBDataset(Dataset):
 
-    def __init__(self, recompute=True, data_dir=None, max_vert_number=100000):
+    def __init__(self, recompute=True, data_dir=None, max_vert_number=100000, face_reduction_rate=1.0, use_pymesh=True):
 
         script_dir = os.path.dirname(os.path.realpath(__file__))
         if data_dir is None:
@@ -114,6 +118,9 @@ class PreProcessPDBDataset(Dataset):
         os.makedirs(self.out_surf_dir_full, exist_ok=True)
         os.makedirs(self.out_rgraph_dir, exist_ok=True)
         os.makedirs(self.out_agraph_dir, exist_ok=True)
+
+        self.face_reduction_rate = face_reduction_rate
+        self.use_pymesh = use_pymesh
 
         self.all_pdbs = os.listdir(self.pdb_dir)  # TODO filter
         self.recompute = recompute
@@ -132,8 +139,11 @@ class PreProcessPDBDataset(Dataset):
             agraph_dump = os.path.join(self.out_agraph_dir, f'{name}.pt')
             rgraph_dump = os.path.join(self.out_rgraph_dir, f'{name}.pt')
 
-            if self.recompute or not os.path.exists(surface_full_dump):
+            # if self.recompute or not os.path.exists(surface_full_dump):
+            if False:
                 surface = SurfaceObject.from_pdb_path(pdb_path,
+                                                      face_reduction_rate=self.face_reduction_rate,
+                                                      use_pymesh=self.use_pymesh,
                                                       # out_ply_path=ply_full_dump,
                                                       max_vert_number=self.max_vert_number)
                 surface.add_geom_feats()
@@ -180,11 +190,13 @@ def do_all(dataset, num_workers=4, prefetch_factor=100):
 if __name__ == '__main__':
     pass
     recompute = False
-    use_pymesh = True
+    use_pymesh = False
     dataset = PreprocessPatchDataset(recompute=recompute,
-                                     face_reduction_rate=0.5,
+                                     face_reduction_rate=1.0,
                                      use_pymesh=use_pymesh)
-    do_all(dataset, num_workers=4)
+    # do_all(dataset, num_workers=20)
 
-    dataset = PreProcessPDBDataset(recompute=recompute, max_vert_number=100000)
-    do_all(dataset, num_workers=1)
+    dataset = PreProcessPDBDataset(recompute=recompute,
+                                   face_reduction_rate=1.0,
+                                   use_pymesh=use_pymesh)
+    do_all(dataset, num_workers=20)
