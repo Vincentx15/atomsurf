@@ -27,13 +27,11 @@ class NoParamAggregate(MessagePassing):
         return edge_weights[..., None] * x_j
 
 
-# todo check if this valid (copy pasted)
 def compute_rbf_graph(surface, graph, sigma):
     vertices = surface.vertices
     with torch.no_grad():
         all_dists = [torch.cdist(vert, mini_graph.pos) for vert, mini_graph in zip(vertices, graph.to_data_list())]
         rbf_weights = [torch.exp(-x / sigma) for x in all_dists]
-
     return rbf_weights
 
 
@@ -76,22 +74,64 @@ def get_gvp_graph(pos, edge_index, normals=None, neigh_th=8):
     return Data(all_pos=pos, edge_index=edge_index, edge_s=rbf, edge_v=u_vec, edge_weight=dists, normals=normals)
 
 
-# todo check if this valid (copy pasted)
-# TODO benchmark against torch_cluster radius graph
-def compute_bipartite_graphs(surfaces, graphs, neigh_th, gvp_feats=False):
+def compute_bipartite_graphs(surfaces, graphs, neigh_th=8, k=16, use_knn=False, gvp_feats=False):
+    """
+    Code to compute the graph tying surface vertices to graph nodes
+    :param surfaces: A batched Surface object
+    :param graphs: A batched graph object
+    :param neigh_th: the distance threshold to use
+    :param k: the number of neighbors to use
+    :param use_knn: Whether to use knn or distance threshold
+    :param gvp_feats: Whether to add gvp features or not
+    :return:
+    """
     verts_list = [surface.verts for surface in surfaces.to_data_list()]
     # TODO: UNSAFE, if normals are useful, find a better way (probably by including it as a surface attribute)
     vertsnormals_list = [surface.x[:, -3:] for surface in surfaces.to_data_list()]
     nodepos_list = [graph.node_pos for graph in graphs.to_data_list()]
     nodenormals_list = [torch.zeros_like(graph.node_pos) for graph in graphs.to_data_list()]
-    sigma = neigh_th / 2  # todo is this the right way to do it?
+    sigma = neigh_th / 2
     with torch.no_grad():
         all_dists = [torch.cdist(vert, nodepos) for vert, nodepos in zip(verts_list, nodepos_list)]
-        neighbors = [torch.where(x < neigh_th) for x in all_dists]
+        if use_knn:
+            neighbors = []
+            for x in all_dists:
+                min_indices = torch.topk(-x, k=k, dim=1).indices
+                vertex_ids = torch.arange(0, len(x), device=x.device)
+                repeated_tensor = vertex_ids.repeat_interleave(k)
+                neighbors.append((repeated_tensor, min_indices.flatten()))
+        else:
+            neighbors = [torch.where(x < neigh_th) for x in all_dists]
+
         # Slicing requires tuple
         dists = [all_dist[neigh] for all_dist, neigh in zip(all_dists, neighbors)]
         dists = [torch.exp(-x / sigma) for x in dists]
         neighbors = [torch.stack(x).long() for x in neighbors]
+
+        # Plot the number of neighbors per vertex
+        # neigh_counts = neighbors[0][0].unique(return_counts=True)[1]
+        # import matplotlib.pyplot as plt
+        # plt.hist(neigh_counts.cpu())
+        # plt.show()
+
+        # This is the torch_cluster radius version, which does not return distances
+        # Unbatched version is actually close/slower.
+        # Batched version is close on CPU and approx 3 times faster on GPU.
+
+        # from torch_cluster import radius
+        # neighbors_2 = []
+        # for vert, nodepos in zip(verts_list, nodepos_list):
+        #     # Counterintuitive, radius finds points in y close to x..
+        #     # result is 2,N with pair corresponding to, point in node, point in vert
+        #     edge_index = radius(nodepos, vert, neigh_th)
+        #     neighbors_2.append(edge_index)
+        # # results of batch version is hard to work with, a flat list of indices with batch increments..
+        # neighbors_3 = radius(x=graphs.node_pos,
+        #                      y=surfaces.verts,
+        #                      batch_x=graphs.batch,
+        #                      batch_y=surfaces.batch,
+        #                      r=neigh_th)
+
         for i, neighbor in enumerate(neighbors):
             neighbor[1] += len(verts_list[i])
         reverse_neighbors = [torch.flip(neigh, dims=(0,)) for neigh in neighbors]

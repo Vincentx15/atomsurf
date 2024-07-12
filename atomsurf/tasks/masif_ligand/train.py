@@ -14,7 +14,9 @@ if __name__ == '__main__':
 from atomsurf.utils.callbacks import CommandLoggerCallback
 from pl_model import MasifLigandModule
 from data_loader import MasifLigandDataModule
+
 torch.multiprocessing.set_sharing_strategy('file_system')
+
 
 @hydra.main(config_path="conf", config_name="config")
 def main(cfg=None):

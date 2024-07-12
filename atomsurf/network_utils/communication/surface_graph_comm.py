@@ -11,6 +11,7 @@ class SurfaceGraphCommunication(nn.Module):
                  bp_sg_block=None, bp_gs_block=None,
                  s_post_block=None, g_post_block=None,
                  neigh_thresh=8, sigma=2.5, use_gvp=False,
+                 use_knn=False,
                  **kwargs):
         super().__init__()
 
@@ -28,6 +29,7 @@ class SurfaceGraphCommunication(nn.Module):
 
         self.neigh_thresh = neigh_thresh
         self.sigma = sigma
+        self.use_knn = use_knn
 
         # init variables
         if use_bp:
@@ -84,6 +86,7 @@ class SurfaceGraphCommunication(nn.Module):
             if "bp_gs" not in surface or "bp_sg" not in surface:
                 self.bp_gs, self.bp_sg = compute_bipartite_graphs(surface, graph,
                                                                   neigh_th=self.neigh_thresh,
+                                                                  use_knn=self.use_knn,
                                                                   gvp_feats=self.use_gvp)
                 surface["bp_gs"], surface[
                     "bp_sg"] = self.bp_gs, self.bp_sg  # Previously included a clone which I think was unnecessary

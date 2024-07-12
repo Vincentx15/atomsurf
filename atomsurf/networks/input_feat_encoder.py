@@ -161,7 +161,8 @@ class HMRChemGeomFeatEncoder(SurfaceGraphCommunication):
         super().__init__(use_bp, use_gvp=use_gvp, bp_sg_block=bp_sg_block, bp_gs_block=bp_gs_block,
                          s_pre_block=s_pre_block, g_pre_block=g_pre_block,
                          s_post_block=s_post_block, g_post_block=g_post_block,
-                         neigh_thresh=hparams.neigh_thresh, sigma=hparams.sigma, **kwargs)
+                         neigh_thresh=hparams.neigh_thresh, sigma=hparams.sigma,
+                         use_knn=hparams.use_knn, **kwargs)
 
 
 class HMR2LayerMLP(nn.Module):
