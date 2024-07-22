@@ -65,13 +65,14 @@ def get_gvp_feats(pos, edge_index, neigh_th=8):
     dists = E_vectors.norm(dim=-1)
     rbf = _rbf(dists, D_max=neigh_th)
     u_vec = _normalize(E_vectors)[:, None, :]
-    return dists, rbf, u_vec
+    weights = torch.exp(-dists / (neigh_th / 2))
+    return weights, rbf, u_vec
 
 
 def get_gvp_graph(pos, edge_index, normals=None, neigh_th=8):
     # Keep dists for compatibility with mixed GVP/bipartite approaches
-    dists, rbf, u_vec = get_gvp_feats(pos, edge_index, neigh_th=neigh_th)
-    return Data(all_pos=pos, edge_index=edge_index, edge_s=rbf, edge_v=u_vec, edge_weight=dists, normals=normals)
+    weights, rbf, u_vec = get_gvp_feats(pos, edge_index, neigh_th=neigh_th)
+    return Data(all_pos=pos, edge_index=edge_index, edge_s=rbf, edge_v=u_vec, edge_weight=weights, normals=normals)
 
 
 def compute_bipartite_graphs(surfaces, graphs, neigh_th=8, k=16, use_knn=False, gvp_feats=False):
@@ -99,17 +100,15 @@ def compute_bipartite_graphs(surfaces, graphs, neigh_th=8, k=16, use_knn=False, 
                 min_indices = torch.topk(-x, k=k, dim=1).indices
                 vertex_ids = torch.arange(0, len(x), device=x.device)
                 repeated_tensor = vertex_ids.repeat_interleave(k)
-                neighbors.append((repeated_tensor, min_indices.flatten()))
+                neighbors.append((repeated_tensor, min_indices.flatten()))  # TODO use a better rneighbor
         else:
             neighbors = [torch.where(x < neigh_th) for x in all_dists]
 
         # Slicing requires tuple
-        dists = [all_dist[neigh] for all_dist, neigh in zip(all_dists, neighbors)]
-        dists = [torch.exp(-x / sigma) for x in dists]
         neighbors = [torch.stack(x).long() for x in neighbors]
 
         # Plot the number of neighbors per vertex
-        # neigh_counts = neighbors[0][0].unique(return_counts=True)[1]
+        # neigh_counts = neighbors[0][1].unique(return_counts=True)[1]
         # import matplotlib.pyplot as plt
         # plt.hist(neigh_counts.cpu())
         # plt.show()
@@ -132,6 +131,8 @@ def compute_bipartite_graphs(surfaces, graphs, neigh_th=8, k=16, use_knn=False, 
         #                      batch_y=surfaces.batch,
         #                      r=neigh_th)
 
+        # Neighbor holds the 16 closest point in the graph for each vertex,
+        # it needs to be offset by the #vertex (bipartite)
         for i, neighbor in enumerate(neighbors):
             neighbor[1] += len(verts_list[i])
         reverse_neighbors = [torch.flip(neigh, dims=(0,)) for neigh in neighbors]
@@ -145,10 +146,12 @@ def compute_bipartite_graphs(surfaces, graphs, neigh_th=8, k=16, use_knn=False, 
             bipartite_graphsurf = [get_gvp_graph(pos=pos, edge_index=rneighbor, neigh_th=neigh_th, normals=normals)
                                    for pos, normals, rneighbor in zip(all_pos, all_normals, reverse_neighbors)]
         else:
-            bipartite_surfgraph = [Data(all_pos=pos, edge_index=neighbor, edge_weight=dist) for pos, neighbor, dist in
-                                   zip(all_pos, neighbors, dists)]
-            bipartite_graphsurf = [Data(all_pos=pos, edge_index=rneighbor, edge_weight=dist) for pos, rneighbor, dist in
-                                   zip(all_pos, reverse_neighbors, dists)]
+            dists = [all_dist[neigh] for all_dist, neigh in zip(all_dists, neighbors)]
+            weights = [torch.exp(-x / sigma) for x in dists]
+            bipartite_surfgraph = [Data(all_pos=pos, edge_index=neighbor, edge_weight=weight)
+                                   for pos, neighbor, weight in zip(all_pos, neighbors, weights)]
+            bipartite_graphsurf = [Data(all_pos=pos, edge_index=rneighbor, edge_weight=weight)
+                                   for pos, rneighbor, weight in zip(all_pos, reverse_neighbors, weights)]
         return bipartite_graphsurf, bipartite_surfgraph
 
 

@@ -1,4 +1,5 @@
 atom3d
+biopython==1.81
 deltaconv==1.0.2
 hydra-core==1.3.2
 hydra-colorlog

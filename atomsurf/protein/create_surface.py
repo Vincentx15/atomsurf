@@ -395,3 +395,4 @@ if __name__ == "__main__":
                                min_vert_number=140,
                                use_pymesh=False,
                                face_reduction_rate=0.1)
+

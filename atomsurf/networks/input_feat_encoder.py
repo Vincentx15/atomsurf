@@ -4,6 +4,7 @@ from torch_scatter import scatter
 
 from atomsurf.network_utils.communication.surface_graph_comm import SurfaceGraphCommunication
 from atomsurf.network_utils.communication.utils_blocks import init_block
+from atomsurf.network_utils.communication.passing_utils import _rbf
 
 
 class ChemGeomFeatEncoder(nn.Module):
@@ -12,8 +13,7 @@ class ChemGeomFeatEncoder(nn.Module):
 
         h_dim = hparams.h_dim
         dropout = hparams.dropout
-        num_gdf = hparams.num_gdf
-        num_signatures = hparams.num_signatures
+        self.num_gdf = hparams.num_gdf
         self.use_neigh = hparams.use_neigh
         chem_feat_dim = hparams.graph_feat_dim
         geom_feat_dim = hparams.surface_feat_dim
@@ -25,9 +25,9 @@ class ChemGeomFeatEncoder(nn.Module):
             nn.Dropout(dropout),
             nn.BatchNorm1d(h_dim),
             nn.SiLU(),
-            nn.Linear(h_dim, 2 * h_dim),
+            nn.Linear(h_dim, h_dim),
             nn.Dropout(dropout),
-            nn.BatchNorm1d(2 * h_dim),
+            nn.BatchNorm1d(h_dim),
         )
         self.sigmoid = nn.Sigmoid()
         self.softplus = nn.Softplus()
@@ -57,6 +57,16 @@ class ChemGeomFeatEncoder(nn.Module):
         )
 
         if self.use_neigh:
+            self.surf_chem_mlp = nn.Sequential(
+                nn.Linear(chem_feat_dim + 2 * self.num_gdf, h_dim),
+                nn.Dropout(dropout),
+                nn.BatchNorm1d(h_dim),
+                nn.SiLU(),
+                nn.Linear(h_dim, 2 * h_dim),
+                nn.Dropout(dropout),
+                nn.BatchNorm1d(2 * h_dim),
+            )
+
             # chem + geom feats
             self.feat_mlp = nn.Sequential(
                 nn.Linear(h_dim + h_dim, h_dim),
@@ -70,33 +80,58 @@ class ChemGeomFeatEncoder(nn.Module):
             )
 
     def forward(self, surface, graph):
-        # chem_feats, geom_feats, nbr_vids = graph.chem_feats, surface.geom_feats, surface.nbr_vids
-        # surface_in = [mini_surface.x for mini_surface in surface]
-        # chem_feats, geom_feats = graph.x, torch.concatenate(surface_in, dim=-2)
         chem_feats, geom_feats = graph.x, surface.x
-
-        # geometric features
+        # First, let us get geom and chem features
         h_geom = self.geom_mlp(geom_feats)
-
-        # chemical features
         h_chem = self.chem_mlp(chem_feats)
 
-        nbr_filter, nbr_core = h_chem.chunk(2, dim=-1)
-        # If self-filter
+        # If we additionally use neighboring info, we need to compute it and propagate a message that
+        # uses dists and angles
         if self.use_neigh:
-            nbr_vids = surface.nbr_vid  # TODO: implement/fix
+            # TODO: UNSAFE, if normals are useful, find a better way (probably by including it as a surface attribute)
+            verts_list = [surf.verts for surf in surface.to_data_list()]
+            nodepos_list = [gr.node_pos for gr in graph.to_data_list()]
+            with torch.no_grad():
+                all_dists = [torch.cdist(vert, nodepos) for vert, nodepos in zip(verts_list, nodepos_list)]
+                neighbors = []
+                offset_surf, offset_graph = 0, 0
+                for x in all_dists:
+                    k = 16
+                    # these are the 16 closest point in the graph for each vertex
+                    min_indices = torch.topk(-x, k=k, dim=1).indices
+                    vertex_ids = torch.arange(0, len(x), device=x.device)
+                    repeated_tensor = vertex_ids.repeat_interleave(k)
+                    min_indices += offset_graph
+                    repeated_tensor += offset_surf
+                    offset_surf += len(x)
+                    offset_graph += len(x.T)
+                    neighbors.append(torch.stack((repeated_tensor, min_indices.flatten())))
+            # Slicing requires tuple
+            neighbors = torch.cat([x for x in neighbors], dim=1).long()
+            neigh_verts, neigh_graphs = neighbors[0, :], neighbors[1, :]
+
+            # extract relevant chem features
+            all_chem_feats = chem_feats[neigh_graphs]
+            verts_normals = torch.cat([surf.x[:, -3:] for surf in surface.to_data_list()], dim=0)
+            all_normals = verts_normals[neigh_verts]
+            edge_vecs = graph.node_pos[neigh_graphs] - surface.verts[neigh_verts]
+            edge_dists = torch.linalg.norm(edge_vecs, axis=-1)
+            normed_edge_vecs = edge_vecs / edge_dists[:, None]
+            nbr_angular = torch.einsum('vj,vj->v', normed_edge_vecs, all_normals)
+
+            # Compute expanded message feature, and concatenate
+            encoded_dists = _rbf(edge_dists, D_min=0, D_max=8, D_count=self.num_gdf)
+            encoded_angles = _rbf(nbr_angular, D_min=-1, D_max=1, D_count=self.num_gdf)
+            expanded_message_features = torch.cat([all_chem_feats, encoded_dists, encoded_angles], axis=-1)
+
+            # Now use MLP to modulate those messages, with self filtering, and aggregate them over vertices.
+            embedded_messages = self.surf_chem_mlp(expanded_message_features)
+            nbr_filter, nbr_core = embedded_messages.chunk(2, dim=-1)
             nbr_filter = self.sigmoid(nbr_filter)
             nbr_core = self.softplus(nbr_core)
-            h_chem = nbr_filter * nbr_core
-            h_chem_geom = scatter(h_chem, nbr_vids, dim=0, reduce="sum")
+            h_chem_geom = nbr_filter * nbr_core
+            h_chem_geom = scatter(h_chem_geom, neigh_verts, dim=0, reduce="sum")
             h_geom = self.feat_mlp(torch.cat((h_chem_geom, h_geom), dim=-1))
-        else:
-            h_geom = h_geom
-            h_chem = nbr_filter
-
-        # surface_out = torch.split(h_geom, [len(x) for x in surface_in], dim=-2)
-        # for mini_surf_out, mini_surf in zip(surface_out, surface):
-        #     mini_surf.x = mini_surf_out
         graph.x = h_chem
         surface.x = h_geom
         return surface, graph
