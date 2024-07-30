@@ -54,7 +54,7 @@ class PreProcessPDBDataset(Dataset):
         test_list = os.path.join(masif_site_data_dir, 'test_list.txt')
         train_names = set([name.strip() for name in open(train_list, 'r').readlines()])
         test_names = set([name.strip() for name in open(test_list, 'r').readlines()])
-        self.all_sys = list(train_names.union(test_names))
+        self.all_sys = sorted(list(train_names.union(test_names)))
         self.recompute_surfaces = recompute_surfaces
         self.recompute_graphs = recompute_graphs
 
@@ -80,7 +80,7 @@ class PreProcessPDBDataset(Dataset):
                     faces = mesh.faces.astype(np.int32)
                     iface_labels = mesh.get_attribute("vertex_iface").astype(np.int32)
                 else:
-                    from plyfile import PlyData, PlyElement
+                    from plyfile import PlyData
                     with open(ply_path, 'rb') as f:
                         plydata = PlyData.read(f)
                         vx = plydata['vertex']['x']
