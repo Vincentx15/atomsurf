@@ -61,7 +61,7 @@ class SurfaceLoader:
             if torch.isnan(surface.x).any() or torch.isnan(surface.verts).any():
                 return None
             return surface
-        except Exception as e:
+        except Exception:
             return None
 
 
@@ -97,7 +97,7 @@ class GraphLoader:
                                   feature_expander=self.feature_expander)
             if torch.isnan(graph.x).any() or torch.isnan(graph.node_pos).any():
                 return None
-        except Exception as e:
+        except Exception:
             return None
         return graph
 
@@ -136,7 +136,7 @@ class AtomBatch(Data):
             try:
                 # If they are all the same size
                 batch[key] = torch.stack(batch[key])
-            except:
+            except Exception:
                 batch[key] = batch[key]
         elif isinstance(item, SurfaceObject):
             batch[key] = SurfaceBatch.batch_from_data_list(batch[key])
@@ -213,7 +213,7 @@ class AtomPLModule(pl.LightningModule):
                 if not valid_gradients:
                     break
         if not valid_gradients:
-            print(f'Detected inf or nan values in gradients. not updating model parameters')
+            print('Detected inf or nan values in gradients. not updating model parameters')
             self.zero_grad()
 
     def forward(self, x):
@@ -311,7 +311,7 @@ def get_lr_scheduler(scheduler, optimizer, warmup_epochs, total_epochs, eta_min=
                                             T_max=total_epochs - warmup_epochs,
                                             eta_min=eta_min)
     elif scheduler == 'constant':
-        lambda1 = lambda epoch: 1.0
+        lambda1 = lambda epoch: 1.0  # noqa
         decay_scheduler = LambdaLR(optimizer, lr_lambda=lambda1)
     else:
         raise NotImplementedError
