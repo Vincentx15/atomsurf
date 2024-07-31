@@ -16,3 +16,4 @@ pytorch-lightning==1.9.0
 sympy
 tensorboard
 tqdm
+trimesh

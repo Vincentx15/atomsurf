@@ -6,6 +6,7 @@ import open3d as o3d
 import pandas as pd
 from pathlib import Path
 import subprocess
+import trimesh
 
 if __name__ == '__main__':
     script_dir = os.path.dirname(os.path.realpath(__file__))
@@ -275,7 +276,7 @@ def mesh_simplification(verts, faces, out_ply,
         mesh_py = pymesh.form_mesh(verts_out, faces_out)
         disconnected, isolated_verts, duplicate_verts, abnormal_triangles = check_mesh_validity(mesh_py,
                                                                                                 check_triangles=True)
-        is_valid_mesh_first = not (disconnected or isolated_verts or duplicate_verts or abnormal_triangles)
+        _ = not (disconnected or isolated_verts or duplicate_verts or abnormal_triangles)
 
         # mesh_py = pymesh.form_mesh_py(verts, faces)
         mesh_py, _ = pymesh.remove_duplicated_vertices(mesh_py, 1E-6)  # duplicate
@@ -313,7 +314,7 @@ def mesh_simplification(verts, faces, out_ply,
         # if not is_valid_mesh_first:
         #     print(is_valid_mesh_first, is_valid_mesh)
         if not is_valid_mesh:
-            raise ValueError(f'Mesh is not valid')
+            raise ValueError('Mesh is not valid')
         verts_out = verts_py
         faces_out = faces_py
 
@@ -330,6 +331,12 @@ def mesh_simplification(verts, faces, out_ply,
 
     verts_out = verts_out.astype(np.float32)
     faces_out = faces_out.astype(np.int32)
+
+    # remove duplicate
+    mesh = trimesh.Trimesh(vertices=verts_out, faces=faces_out, preprocess=True)
+    verts_out = np.array(mesh.vertices).astype(np.float32)
+    faces_out = np.array(mesh.faces).astype(np.int32)
+
     return verts_out, faces_out
 
 
