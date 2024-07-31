@@ -68,6 +68,28 @@ res_type_to_hphob = {
 SSE_type_dict = {'H': 0, 'B': 1, 'E': 2, 'G': 3, 'I': 4, 'T': 5, 'S': 6, '-': 7}
 
 
+def quick_pdb_to_seq(pdb_path):
+    """
+    No need for extensive parsing to only retrieve the sequence
+    :param pdb_path:
+    :return:
+    """
+    parser = PDBParser(QUIET=True)
+    structure = parser.get_structure("toto", pdb_path)
+    amino_types = []  # size: (n_amino,)
+    for residue in structure.get_residues():
+        # HETATM
+        if residue.id[0] != " ":
+            continue
+        resname = residue.get_resname()
+        if resname.upper() not in res_type_dict:
+            resname = 'UNK'
+        resname = res_type_dict[resname.upper()]
+        amino_types.append(resname)
+    amino_types = np.asarray(amino_types, dtype=np.int32)
+    return amino_types
+
+
 def parse_pdb_path(pdb_path):
     pdb2pqr_bin = shutil.which('pdb2pqr')
     if pdb2pqr_bin is None:

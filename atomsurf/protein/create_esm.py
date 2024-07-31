@@ -10,7 +10,7 @@ if __name__ == '__main__':
     script_dir = os.path.dirname(os.path.realpath(__file__))
     sys.path.append(os.path.join(script_dir, '..', '..'))
 
-from atomsurf.protein.graphs import parse_pdb_path, res_type_idx_to_1
+from atomsurf.protein.graphs import quick_pdb_to_seq, res_type_idx_to_1
 
 
 def compute_one(pdb_path, outpath=None, model_objs=None):
@@ -23,7 +23,7 @@ def compute_one(pdb_path, outpath=None, model_objs=None):
     model.eval()
     model.to(device)
     name = pdb_path.split('/')[-1][0:-4]
-    seq = parse_pdb_path(pdb_path)[0]
+    seq = quick_pdb_to_seq(pdb_path)
     seq = ''.join([res_type_idx_to_1[i] for i in seq])
     tmpdata = [(name, seq)]
     batch_labels, batch_strs, batch_tokens = batch_converter(tmpdata)
@@ -81,8 +81,11 @@ class PreProcessPDBDataset(Dataset):
     def __getitem__(self, idx):
         pdb_name = self.in_pdbs[idx]
         pdb_path = os.path.join(self.in_pdbs_dir, f"{pdb_name}.pdb")
-        seq = parse_pdb_path(pdb_path)[0]
-        seq = ''.join([res_type_idx_to_1[i] for i in seq])
+        try:
+            seq = quick_pdb_to_seq(pdb_path)
+            seq = ''.join([res_type_idx_to_1[i] for i in seq])
+        except:
+            return None
         return pdb_name, seq
 
 
@@ -90,8 +93,8 @@ def get_esm_embedding_batch(in_pdbs_dir, dump_dir):
     dataset = PreProcessPDBDataset(in_pdbs_dir, dump_dir)
     dataloader = DataLoader(dataset,
                             collate_fn=lambda samples: samples,
-                            num_workers=12,
-                            batch_size=4)
+                            num_workers=4,
+                            batch_size=8)
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     model, alphabet = esm.pretrained.esm2_t33_650M_UR50D()
@@ -99,27 +102,25 @@ def get_esm_embedding_batch(in_pdbs_dir, dump_dir):
     model = model.to(device)
     batch_converter = alphabet.get_batch_converter()
     for batch in tqdm(dataloader):
-        try:
-            names, data = list(map(list, zip(*batch)))
-            batch_labels, batch_strs, batch_tokens = batch_converter(batch)
-            batch_lens = (batch_tokens != alphabet.padding_idx).sum(1)
-            batch_tokens = batch_tokens.to(device)
+        # filter Nones out
+        batch = [x for x in batch if x is not None]
 
-            # Extract per-residue representations (on CPU)
-            # NOTE: token 0 is always a beginning-of-sequence token, so the first residue is token 1.
-            with torch.no_grad():
-                results = model(batch_tokens, repr_layers=[33])
-            token_representations = results["representations"][33]
-            for i, (name, tokens_len) in enumerate(zip(names, batch_lens)):
-                embeddings = token_representations[i, 1: tokens_len - 1]
-                embeddings = embeddings.cpu()
-                assert len(data[i]) == len(embeddings)
-                out_path = os.path.join(dump_dir, f"{name}_esm.pt")
-                torch.save(embeddings, out_path)
-            a = 1
+        names, data = list(map(list, zip(*batch)))
+        batch_labels, batch_strs, batch_tokens = batch_converter(batch)
+        batch_lens = (batch_tokens != alphabet.padding_idx).sum(1)
+        batch_tokens = batch_tokens.to(device)
 
-        except IOError:
-            pass
+        # Extract per-residue representations (on CPU)
+        # NOTE: token 0 is always a beginning-of-sequence token, so the first residue is token 1.
+        with torch.no_grad():
+            results = model(batch_tokens, repr_layers=[33])
+        token_representations = results["representations"][33]
+        for i, (name, tokens_len) in enumerate(zip(names, batch_lens)):
+            embeddings = token_representations[i, 1: tokens_len - 1]
+            embeddings = embeddings.cpu()
+            assert len(data[i]) == len(embeddings)
+            out_path = os.path.join(dump_dir, f"{name}_esm.pt")
+            torch.save(embeddings, out_path)
 
 
 if __name__ == "__main__":
