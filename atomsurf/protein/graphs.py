@@ -68,7 +68,7 @@ res_type_to_hphob = {
 SSE_type_dict = {'H': 0, 'B': 1, 'E': 2, 'G': 3, 'I': 4, 'T': 5, 'S': 6, '-': 7}
 
 
-def parse_pdb_path(pdb_path):  # def parse_pdb_from_pqr(pdb_path)
+def parse_pdb_path(pdb_path):
     pdb2pqr_bin = shutil.which('pdb2pqr')
     if pdb2pqr_bin is None:
         raise RuntimeError('pdb2pqr executable not found')
