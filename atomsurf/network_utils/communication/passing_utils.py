@@ -124,6 +124,7 @@ def compute_bipartite_graphs(surfaces, graphs, neigh_th=8, k=16, use_knn=False, 
         #     # result is 2,N with pair corresponding to, point in node, point in vert
         #     edge_index = radius(nodepos, vert, neigh_th)
         #     neighbors_2.append(edge_index)
+
         # # results of batch version is hard to work with, a flat list of indices with batch increments..
         # neighbors_3 = radius(x=graphs.node_pos,
         #                      y=surfaces.verts,
@@ -146,7 +147,8 @@ def compute_bipartite_graphs(surfaces, graphs, neigh_th=8, k=16, use_knn=False, 
             bipartite_graphsurf = [get_gvp_graph(pos=pos, edge_index=rneighbor, neigh_th=neigh_th, normals=normals)
                                    for pos, normals, rneighbor in zip(all_pos, all_normals, reverse_neighbors)]
         else:
-            dists = [all_dist[neigh] for all_dist, neigh in zip(all_dists, neighbors)]
+            dists = [all_dist[neigh[0, :], (neigh[1, :] - all_dist.shape[0])] for all_dist, neigh in
+                     zip(all_dists, neighbors)]
             weights = [torch.exp(-x / sigma) for x in dists]
             bipartite_surfgraph = [Data(all_pos=pos, edge_index=neighbor, edge_weight=weight)
                                    for pos, neighbor, weight in zip(all_pos, neighbors, weights)]
