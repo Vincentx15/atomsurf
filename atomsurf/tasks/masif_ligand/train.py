@@ -47,7 +47,7 @@ def main(cfg=None):
         tags = []
 
         Path(tb_logger.log_dir).absolute().mkdir(parents=True, exist_ok=True)
-        wandb_logger = WandbLogger(project="atomsurf", name=run_name, tags=tags, version=Path(tb_logger.log_dir).stem, id=wand_id,
+        wandb_logger = WandbLogger(project="masif-ligand", name=run_name, tags=tags, version=Path(tb_logger.log_dir).stem, id=wand_id,
                                    save_dir=tb_logger.log_dir, log_model=False)
 
         loggers += [wandb_logger]
