@@ -216,14 +216,20 @@ class SurfaceBatch(Batch):
         return SurfaceObject.__cat_dim__(None, key, value, *args, **kwargs)
 
     def to_lists(self):
-        surfaces = self.to_data_list()
-        x_in = [mini_surface.x for mini_surface in surfaces]
-        mass = [mini_surface.mass for mini_surface in surfaces]
-        L = [mini_surface.L for mini_surface in surfaces]
-        evals = [mini_surface.evals for mini_surface in surfaces]
-        evecs = [mini_surface.evecs for mini_surface in surfaces]
-        gradX = [mini_surface.gradX for mini_surface in surfaces]
-        gradY = [mini_surface.gradY for mini_surface in surfaces]
+        if not "cache" in self.keys:
+            surfaces = self.to_data_list()
+            x_in = [mini_surface.x for mini_surface in surfaces]
+            mass = [mini_surface.mass for mini_surface in surfaces]
+            L = [mini_surface.L for mini_surface in surfaces]
+            evals = [mini_surface.evals for mini_surface in surfaces]
+            evecs = [mini_surface.evecs for mini_surface in surfaces]
+            gradX = [mini_surface.gradX for mini_surface in surfaces]
+            gradY = [mini_surface.gradY for mini_surface in surfaces]
+            self.cache = mass, L, evals, evecs, gradX, gradY
+        else:
+            mass, L, evals, evecs, gradX, gradY = self.cache
+            surface_sizes = list(self.n_verts.detach().cpu().numpy())
+            x_in = torch.split(self.x, surface_sizes)
         return x_in, mass, L, evals, evecs, gradX, gradY
 
 
