@@ -24,7 +24,7 @@ class GaussianDistance(object):
         :param d: shape (n,1)
         :return: shape (n,len(filters))
         """
-        return torch.exp(-0.5 * (d - self.filters) ** 2 / self.var ** 2)
+        return torch.exp(-(((d - self.filters) / self.var) ** 2))
 
 
 class SurfaceLoader:
@@ -54,10 +54,11 @@ class SurfaceLoader:
             return Data()
         try:
             surface = torch.load(os.path.join(self.data_dir, f"{surface_name}.pt"))
-            surface.expand_features(remove_feats=True,
-                                    feature_keys=self.config.feat_keys,
-                                    oh_keys=self.config.oh_keys,
-                                    feature_expander=self.feature_expander)
+            with torch.no_grad():
+                surface.expand_features(remove_feats=True,
+                                        feature_keys=self.config.feat_keys,
+                                        oh_keys=self.config.oh_keys,
+                                        feature_expander=self.feature_expander)
             if torch.isnan(surface.x).any() or torch.isnan(surface.verts).any():
                 return None
             return surface
@@ -84,6 +85,9 @@ class GraphLoader:
             return Data()
         try:
             graph = torch.load(os.path.join(self.data_dir, f"{graph_name}.pt"))
+            # patch
+            if "node_len" not in graph.keys:
+                graph.node_len = len(graph.node_pos)
             feature_keys = self.config.feat_keys
             if self.use_esm:
                 esm_feats_path = os.path.join(self.esm_dir, f"{graph_name}_esm.pt")
@@ -91,10 +95,11 @@ class GraphLoader:
                 graph.features.add_named_features('esm_feats', esm_feats)
                 if feature_keys != 'all':
                     feature_keys.append('esm_feats')
-            graph.expand_features(remove_feats=True,
-                                  feature_keys=feature_keys,
-                                  oh_keys=self.config.oh_keys,
-                                  feature_expander=self.feature_expander)
+            with torch.no_grad():
+                graph.expand_features(remove_feats=True,
+                                      feature_keys=feature_keys,
+                                      oh_keys=self.config.oh_keys,
+                                      feature_expander=self.feature_expander)
             if torch.isnan(graph.x).any() or torch.isnan(graph.node_pos).any():
                 return None
         except Exception:
