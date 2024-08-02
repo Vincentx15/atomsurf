@@ -43,11 +43,7 @@ class SurfaceGraphCommunication(nn.Module):
             return surface, graph
 
         # prepare the communication graph
-        t1 = time.perf_counter()
         self.compute_graph(surface, graph)
-        torch.cuda.synchronize()
-        time_model = time.perf_counter() - t1
-        print("MP: Graph comp \t", time_model)
 
         # get input features and apply preprocessing
         surface.x = self.s_pre_block(surface.x)
@@ -85,10 +81,6 @@ class SurfaceGraphCommunication(nn.Module):
         # update the features and return
         surface.x = xs
         graph.x = xg
-
-        torch.cuda.synchronize()
-        time_model = time.perf_counter() - t1
-        print("MP: actual mp \t", time_model)
         return surface, graph
 
     def compute_graph(self, surface, graph):

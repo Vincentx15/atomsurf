@@ -36,7 +36,7 @@ class ProteinEncoderBlock(nn.Module):
         surface, graph = self.message_passing(surface, graph)
         torch.cuda.synchronize()
         time_model = time.perf_counter() - t1
-        print("MP \t", time_model)
+        print("Mess passing \t", time_model)
         return surface, graph
 
 

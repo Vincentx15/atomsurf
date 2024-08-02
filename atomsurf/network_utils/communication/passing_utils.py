@@ -112,8 +112,6 @@ def compute_bipartite_graphs(surfaces, graphs, neigh_th=8, k=16, use_knn=False, 
     :param gvp_feats: Whether to add gvp features or not
     :return:
     """
-    import time
-    t1 = time.perf_counter()
     surface_sizes = list(surfaces.n_verts.detach().cpu().numpy())
     graph_sizes = list(graphs.node_len.detach().cpu().numpy())
     verts_list = torch.split(surfaces.verts, surface_sizes)
@@ -121,28 +119,11 @@ def compute_bipartite_graphs(surfaces, graphs, neigh_th=8, k=16, use_knn=False, 
     vertsnormals_list = torch.split(surfaces.x[:, -3:], surface_sizes)
     nodepos_list = torch.split(graphs.node_pos, graph_sizes)
     nodenormals_list = [torch.zeros_like(graph_node_pos) for graph_node_pos in nodepos_list]
-    torch.cuda.synchronize()
-    time_model = time.perf_counter() - t1
-    print("Graph Comp 1.1\t", time_model)
-
-    # t1 = time.perf_counter()
-    # verts_list_old = [surface.verts for surface in surfaces.to_data_list()]
-    # vertsnormals_list_old = [surface.x[:, -3:] for surface in surfaces.to_data_list()]
-    # nodepos_list_old = [graph.node_pos for graph in graphs.to_data_list()]
-    # nodenormals_list_old = [torch.zeros_like(graph.node_pos) for graph in graphs.to_data_list()]
-    # torch.cuda.synchronize()
-    # time_model = time.perf_counter() - t1
-    # print("Graph Comp 1.2\t", time_model)
 
     sigma = neigh_th / 2
     with torch.no_grad():
-        t1 = time.perf_counter()
         all_dists = [torch.cdist(vert, nodepos) for vert, nodepos in zip(verts_list, nodepos_list)]
-        torch.cuda.synchronize()
-        time_model = time.perf_counter() - t1
-        print("Graph Comp 2 \t", time_model)
 
-        t1 = time.perf_counter()
         if use_knn:
             neighbors = []
             for x in all_dists:
@@ -191,7 +172,7 @@ def compute_bipartite_graphs(surfaces, graphs, neigh_th=8, k=16, use_knn=False, 
         all_normals = [torch.cat((vernorms, nodenorms)) for vernorms, nodenorms in
                        zip(vertsnormals_list, nodenormals_list)]
         if gvp_feats:
-            # TODO fix GVP batching
+            # TODO fix/debug GVP batching
             bipartite_surfgraph = [get_gvp_graph(pos=pos, edge_index=neighbor, neigh_th=neigh_th, normals=normals)
                                    for pos, normals, neighbor in zip(all_pos, all_normals, neighbors)]
             bipartite_graphsurf = [get_gvp_graph(pos=pos, edge_index=rneighbor, neigh_th=neigh_th, normals=normals)
@@ -205,10 +186,6 @@ def compute_bipartite_graphs(surfaces, graphs, neigh_th=8, k=16, use_knn=False, 
             bipartite_graphsurf = [Data(all_pos=pos, edge_index=rneighbor, edge_weight=weight)
                                    for pos, rneighbor, weight in zip(all_pos, reverse_neighbors, weights)]
 
-        torch.cuda.synchronize()
-        time_model = time.perf_counter() - t1
-        print("Graph Comp 3\t", time_model)
-
         # addition
         # we want to go from S1,G1,S2,G2.. to S1,S2,.. G1,...
         # MAYBE CONSTRUCT as S1,S2.. directly ? just have to update neighbors and not use batch.from_data_list...
@@ -218,12 +195,14 @@ def compute_bipartite_graphs(surfaces, graphs, neigh_th=8, k=16, use_knn=False, 
         # Graph Comp 2     0.0002411930001926521
         # Graph Comp 3     0.00048718800007918617
         # Graph Comp 4     0.0012848750000102882
-        t1 = time.perf_counter()
+
+        # import time
+        # t1 = time.perf_counter()
         bipartite_graphsurf = BPGraphBatch(bipartite_graphsurf, surface_sizes, graph_sizes)
         bipartite_surfgraph = BPGraphBatch(bipartite_surfgraph, surface_sizes, graph_sizes)
-        torch.cuda.synchronize()
-        time_model = time.perf_counter() - t1
-        print("Graph Comp 4\t", time_model)
+        # torch.cuda.synchronize()
+        # time_model = time.perf_counter() - t1
+        # print("Graph Comp 4\t", time_model)
         return bipartite_graphsurf, bipartite_surfgraph
 
 
