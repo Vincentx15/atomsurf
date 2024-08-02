@@ -26,6 +26,8 @@ class AtomGraph(Data, FeaturesHolder):
         self.res_map = safe_to_torch(res_map)
         self.num_atoms = len(node_pos) if node_pos is not None else 0
         self.num_res = res_map.max() + 1 if res_map is not None else 0
+        # Useful for bipartite computations
+        self.node_len = self.num_atoms
         if features is None:
             self.features = Features(num_nodes=self.num_atoms, res_map=res_map)
         else:

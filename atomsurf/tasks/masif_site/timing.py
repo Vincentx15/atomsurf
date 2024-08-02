@@ -74,10 +74,10 @@ import time
 def main(cfg=None):
     import numpy as np
     np.random.seed(42)
-    # cfg.cfg_surface.data_dir = "../../../data/masif_site/surfaces_1.0_False"
-    cfg.cfg_surface.data_dir = "../../../data/masif_site/surfaces_0.1_False"
-    cfg.cfg_graph.data_dir = "../../../data/masif_site/agraph"
-    # cfg.cfg_graph.data_dir = "../../../data/masif_site/rgraph"
+    cfg.cfg_surface.data_dir = "../../../data/masif_site/surfaces_1.0_False"
+    # cfg.cfg_surface.data_dir = "../../../data/masif_site/surfaces_0.1_False"
+    # cfg.cfg_graph.data_dir = "../../../data/masif_site/agraph"
+    cfg.cfg_graph.data_dir = "../../../data/masif_site/rgraph"
     cfg.cfg_graph.esm_dir = '../../../data/masif_site/01-benchmark_esm_embs'
     cfg.cfg_graph.use_esm = False
     cfg.loader.num_workers = 2

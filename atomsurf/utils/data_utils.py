@@ -86,6 +86,9 @@ class GraphLoader:
             return Data()
         try:
             graph = torch.load(os.path.join(self.data_dir, f"{graph_name}.pt"))
+            # patch
+            if "node_len" not in graph.keys:
+                graph.node_len = len(graph.node_pos)
             feature_keys = self.config.feat_keys
             if self.use_esm:
                 esm_feats_path = os.path.join(self.esm_dir, f"{graph_name}_esm.pt")
