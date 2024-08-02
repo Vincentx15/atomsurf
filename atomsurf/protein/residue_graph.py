@@ -175,6 +175,8 @@ class ResidueGraph(Data, FeaturesHolder):
         super(ResidueGraph, self).__init__(edge_index=edge_index, edge_attr=edge_attr, **kwargs)
         self.node_pos = safe_to_torch(node_pos)
         self.num_res = len(node_pos) if node_pos is not None else 0
+        # Useful for bipartite computations
+        self.node_len = self.num_res
         if features is None:
             self.features = Features(num_nodes=self.num_res)
         else:

@@ -51,22 +51,23 @@ class SurfaceGraphCommunication(nn.Module):
         # apply the message passing
         if self.use_bp:
             # concatenate the features for the graph structure
-            x = [torch.cat((xs_b.x, graph_b.x)) for xs_b, graph_b in zip(surface.to_data_list(), graph.to_data_list())]
+            bp_gs_batch_container = self.bp_gs
+            bp_sg_batch_container = self.bp_sg
+            bp_sg_batch = bp_sg_batch_container.batch
+            bp_gs_batch = bp_gs_batch_container.batch
+            x_batch = bp_gs_batch_container.aggregate(surface.x, graph.x)
 
             # apply the message passing
             if self.use_gvp:
-                xs_out = [self.bp_gs_block(x_b, bp_gs_b) for x_b, bp_gs_b in zip(x, self.bp_gs)]
-                xg_out = [self.bp_sg_block(x_b, bp_sg_b) for x_b, bp_sg_b in zip(x, self.bp_sg)]
+                xg_out = self.bp_sg_block(x_batch, bp_sg_batch)
+                xs_out = self.bp_gs_block(x_batch, bp_gs_batch)
             else:
-                xs_out = [self.bp_gs_block(x_b, bp_gs_b.edge_index, bp_gs_b.edge_weight) for x_b, bp_gs_b in
-                          zip(x, self.bp_gs)]
-                xg_out = [self.bp_sg_block(x_b, bp_sg_b.edge_index, bp_sg_b.edge_weight) for x_b, bp_sg_b in
-                          zip(x, self.bp_sg)]
+                xs_out = self.bp_gs_block(x_batch, bp_gs_batch.edge_index, bp_gs_batch.edge_weight)
+                xg_out = self.bp_sg_block(x_batch, bp_sg_batch.edge_index, bp_sg_batch.edge_weight)
 
-            verts_list = [surf.verts for surf in surface.to_data_list()]
-            # extract the projected features
-            xs_out = torch.cat([out[:len(vert)] for out, vert in zip(xs_out, verts_list)], dim=0)
-            xg_out = torch.cat([out[len(vert):] for out, vert in zip(xg_out, verts_list)], dim=0)
+            # Split back embeddings into surface and graph
+            xs_out = bp_sg_batch_container.get_surfs(xs_out)
+            xg_out = bp_sg_batch_container.get_graphs(xg_out)
         else:
             # project features from one representation to the other
             xs_out = [torch.mm(rbf_w, graph_b.x) for rbf_w, graph_b in zip(self.rbf_weights, graph.to_data_list())]
