@@ -111,7 +111,7 @@ if __name__ == '__main__':
     cfg_graph.feat_keys = 'all'
     cfg_graph.oh_keys = 'all'
     cfg_graph.esm_dir = os.path.join(masif_site_data_dir, '01-benchmark_esm_embs')
-    cfg_graph.use_esm = False
+    cfg_graph.use_esm = True
     cfg_graph.data_dir = os.path.join(masif_site_data_dir, 'rgraph')
     # cfg_graph.data_dir = os.path.join(masif_site_data_dir, 'agraph')
     graph_loader = GraphLoader(cfg_graph)
