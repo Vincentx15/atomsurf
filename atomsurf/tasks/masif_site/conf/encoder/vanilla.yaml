@@ -2,7 +2,8 @@ name: vanilla
 
 
 blocks:
-  - ${ChemGeomFeatEncoder}
+  - ${GVPChemGeomFeatEncoder128_normals}
+#  - ${ChemGeomFeatEncoder}
   - ${diffusion128|gcn128|concurent}
   - ${diffusion128|gcn128|concurent}
   - ${diffusion128|gcn128|concurent}

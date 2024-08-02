@@ -171,7 +171,6 @@ def compute_bipartite_graphs(surfaces, graphs, neigh_th=8, k=16, use_knn=False, 
                        zip(vertsnormals_list, nodenormals_list)]
 
         if gvp_feats:
-            # TODO fix/debug GVP batching
             bipartite_surfgraph = [get_gvp_graph(pos=pos, edge_index=neighbor, neigh_th=neigh_th, normals=normals)
                                    for pos, normals, neighbor in zip(all_pos, all_normals, neighbors)]
             bipartite_graphsurf = [get_gvp_graph(pos=pos, edge_index=rneighbor, neigh_th=neigh_th, normals=normals)
