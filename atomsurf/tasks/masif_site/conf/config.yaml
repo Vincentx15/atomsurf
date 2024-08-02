@@ -1,7 +1,7 @@
 defaults:
   - _self_
   - blocks_zoo
-  - encoder: debug
+  - encoder: vanilla
   - dataset: vanilla
   #  - dataset@trainset: [ masif_site_hmr ]
   #  - dataset@valset: [ masif_site_hmr ]
@@ -62,7 +62,7 @@ train:
 
 cfg_surface:
   use_surfaces: true
-  data_dir: ../../../data/masif_site/surfaces
+  data_dir: ../../../data/masif_site/surfaces_1.0_False
   feat_keys: 'all'
   oh_keys: 'all'
   gdf_expand: true
@@ -79,5 +79,5 @@ cfg_graph:
 
 
 cfg_head:
-  encoded_dims: 12
+  encoded_dims: 128
   output_dims: 1

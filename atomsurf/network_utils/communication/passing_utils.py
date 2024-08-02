@@ -1,6 +1,6 @@
 import torch
 from torch_geometric.nn import MessagePassing
-from torch_geometric.data import Data
+from torch_geometric.data import Data, Batch
 from torch_geometric.utils import add_self_loops
 
 
@@ -75,6 +75,32 @@ def get_gvp_graph(pos, edge_index, normals=None, neigh_th=8):
     return Data(all_pos=pos, edge_index=edge_index, edge_s=rbf, edge_v=u_vec, edge_weight=weights, normals=normals)
 
 
+class BPGraphBatch:
+    def __init__(self, graph_list, surface_sizes, graph_sizes):
+        batch = Batch.from_data_list(graph_list)
+        self.surface_sizes = surface_sizes
+        self.graph_sizes = graph_sizes
+
+        # To go from concatenated format to split one
+        extracter = torch.cat([torch.cat((torch.ones(surface_size), torch.zeros(graph_size)))
+                               for surface_size, graph_size in zip(surface_sizes, graph_sizes)])
+        self.surf_extracter = extracter == 1
+        self.graph_extracter = extracter == 0
+        self.batch = batch #TODO not sure how to subclass the batch here
+
+    def get_surfs(self, x):
+        return x[self.surf_extracter]
+
+    def get_graphs(self, x):
+        return x[self.graph_extracter]
+
+    def aggregate(self, surf_x, graph_x):
+        split_surfs = torch.split(surf_x, self.surface_sizes)
+        split_graphs = torch.split(graph_x, self.graph_sizes)
+        alternated = [elt for surfgraph in zip(split_surfs, split_graphs) for elt in surfgraph]
+        return torch.cat(alternated)
+
+
 def compute_bipartite_graphs(surfaces, graphs, neigh_th=8, k=16, use_knn=False, gvp_feats=False):
     """
     Code to compute the graph tying surface vertices to graph nodes
@@ -91,6 +117,9 @@ def compute_bipartite_graphs(surfaces, graphs, neigh_th=8, k=16, use_knn=False, 
     vertsnormals_list = [surface.x[:, -3:] for surface in surfaces.to_data_list()]
     nodepos_list = [graph.node_pos for graph in graphs.to_data_list()]
     nodenormals_list = [torch.zeros_like(graph.node_pos) for graph in graphs.to_data_list()]
+
+    surface_sizes = [len(vert) for vert in verts_list]
+    graph_sizes = [len(nodes) for nodes in nodepos_list]
     sigma = neigh_th / 2
     with torch.no_grad():
         all_dists = [torch.cdist(vert, nodepos) for vert, nodepos in zip(verts_list, nodepos_list)]
@@ -142,6 +171,7 @@ def compute_bipartite_graphs(surfaces, graphs, neigh_th=8, k=16, use_knn=False, 
                        zip(vertsnormals_list, nodenormals_list)]
 
         if gvp_feats:
+            # TODO fix GVP batching
             bipartite_surfgraph = [get_gvp_graph(pos=pos, edge_index=neighbor, neigh_th=neigh_th, normals=normals)
                                    for pos, normals, neighbor in zip(all_pos, all_normals, neighbors)]
             bipartite_graphsurf = [get_gvp_graph(pos=pos, edge_index=rneighbor, neigh_th=neigh_th, normals=normals)
@@ -154,7 +184,15 @@ def compute_bipartite_graphs(surfaces, graphs, neigh_th=8, k=16, use_knn=False, 
                                    for pos, neighbor, weight in zip(all_pos, neighbors, weights)]
             bipartite_graphsurf = [Data(all_pos=pos, edge_index=rneighbor, edge_weight=weight)
                                    for pos, rneighbor, weight in zip(all_pos, reverse_neighbors, weights)]
-        return bipartite_graphsurf, bipartite_surfgraph
+            # addition
+            # we want to go from S1,G1,S2,G2.. to S1,S2,.. G1,...
+            # MAYBE CONSTRUCT as S1,S2.. directly ? just have to update neighbors and not use batch.from_data_list...
+            # It's not the pyg way, but might be faster..
+
+            bipartite_graphsurf_new = BPGraphBatch(bipartite_graphsurf, surface_sizes, graph_sizes)
+            bipartite_surfgraph_new = BPGraphBatch(bipartite_surfgraph, surface_sizes, graph_sizes)
+
+        return (bipartite_graphsurf, bipartite_graphsurf_new), (bipartite_surfgraph, bipartite_surfgraph_new)
 
 
 # todo check this and verify is behaves similar to the original function

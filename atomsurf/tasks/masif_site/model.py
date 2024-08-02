@@ -23,5 +23,11 @@ class MasifSiteNet(torch.nn.Module):
     def forward(self, batch):
         # forward pass
         surface, graph = self.encoder(graph=batch.graph, surface=batch.surface)
+        import time
+        import torch
+        t1 = time.perf_counter()
         surface.x = self.top_net(surface.x)
+        torch.cuda.synchronize()
+        time_model = time.perf_counter() - t1
+        print("Time top net", time_model)
         return surface

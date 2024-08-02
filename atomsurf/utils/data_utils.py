@@ -24,7 +24,7 @@ class GaussianDistance(object):
         :param d: shape (n,1)
         :return: shape (n,len(filters))
         """
-        return torch.exp(-0.5 * (d - self.filters) ** 2 / self.var ** 2)
+        return torch.exp(-(((d - self.filters) / self.var) ** 2))
 
 
 class SurfaceLoader:
@@ -53,13 +53,15 @@ class SurfaceLoader:
         if not self.config.use_surfaces:
             return Data()
         try:
+            # Timing for just one system: Loading: 1,297,731ns Expanding: 556,107ns, so approx 3/4 of time is loading
             surface = torch.load(os.path.join(self.data_dir, f"{surface_name}.pt"))
-            surface.expand_features(remove_feats=True,
-                                    feature_keys=self.config.feat_keys,
-                                    oh_keys=self.config.oh_keys,
-                                    feature_expander=self.feature_expander)
-            if torch.isnan(surface.x).any() or torch.isnan(surface.verts).any():
-                return None
+            with torch.no_grad():
+                surface.expand_features(remove_feats=True,
+                                        feature_keys=self.config.feat_keys,
+                                        oh_keys=self.config.oh_keys,
+                                        feature_expander=self.feature_expander)
+                if torch.isnan(surface.x).any() or torch.isnan(surface.verts).any():
+                    return None
             return surface
         except Exception:
             return None
@@ -122,6 +124,7 @@ def update_model_input_dim(cfg, dataset_temp):
 class AtomBatch(Data):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.all_times = []
 
     @staticmethod
     def batch_keys(batch, key):
@@ -156,12 +159,15 @@ class AtomBatch(Data):
         else:
             raise ValueError(f"Unsupported attribute type: {type(item)}, item : {item}, key : {key}")
 
-    @classmethod
-    def from_data_list(cls, data_list):
+    # @classmethod
+    def from_data_list(self, data_list):
+        import time
+
+        t0 = time.perf_counter()
         # Filter out None
         data_list = [x for x in data_list if x is not None]
 
-        batch = cls()
+        batch = AtomBatch()
         if len(data_list) == 0:
             batch.num_graphs = 0
             return batch
@@ -178,11 +184,18 @@ class AtomBatch(Data):
                 item = data[key]
                 batch[key].append(item)
 
+        del batch.all_times
         # Organize the keys together
         for key in batch.keys:
-            cls.batch_keys(batch, key)
+            AtomBatch.batch_keys(batch, key)
         batch = batch.contiguous()
         batch.num_graphs = len(data_list)
+        a = time.perf_counter() - t0
+        # print("Time batching:", a)
+        self.all_times.append(a)
+        import numpy as np
+        if not len(self.all_times) % 100:
+            print("Whole time batching", np.sum(self.all_times))
         return batch
 
 

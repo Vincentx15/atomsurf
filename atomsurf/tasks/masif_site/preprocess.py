@@ -155,4 +155,4 @@ if __name__ == '__main__':
             dataset = PreProcessPDBDataset(recompute_surfaces=recompute_surfaces, recompute_graphs=recompute_graphs,
                                            face_reduction_rate=face_red, use_pymesh=use_pymesh)
             # do_all(dataset, num_workers=0)
-            do_all(dataset, num_workers=40)
+            do_all(dataset, num_workers=30)
