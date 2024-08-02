@@ -86,7 +86,7 @@ class BPGraphBatch:
                                for surface_size, graph_size in zip(surface_sizes, graph_sizes)])
         self.surf_extracter = extracter == 1
         self.graph_extracter = extracter == 0
-        self.batch = batch #TODO not sure how to subclass the batch here
+        self.batch = batch  # TODO not sure how to subclass the batch here
 
     def get_surfs(self, x):
         return x[self.surf_extracter]
@@ -184,15 +184,13 @@ def compute_bipartite_graphs(surfaces, graphs, neigh_th=8, k=16, use_knn=False, 
                                    for pos, neighbor, weight in zip(all_pos, neighbors, weights)]
             bipartite_graphsurf = [Data(all_pos=pos, edge_index=rneighbor, edge_weight=weight)
                                    for pos, rneighbor, weight in zip(all_pos, reverse_neighbors, weights)]
-            # addition
-            # we want to go from S1,G1,S2,G2.. to S1,S2,.. G1,...
-            # MAYBE CONSTRUCT as S1,S2.. directly ? just have to update neighbors and not use batch.from_data_list...
-            # It's not the pyg way, but might be faster..
-
-            bipartite_graphsurf_new = BPGraphBatch(bipartite_graphsurf, surface_sizes, graph_sizes)
-            bipartite_surfgraph_new = BPGraphBatch(bipartite_surfgraph, surface_sizes, graph_sizes)
-
-        return (bipartite_graphsurf, bipartite_graphsurf_new), (bipartite_surfgraph, bipartite_surfgraph_new)
+        # addition
+        # we want to go from S1,G1,S2,G2.. to S1,S2,.. G1,...
+        # MAYBE CONSTRUCT as S1,S2.. directly ? just have to update neighbors and not use batch.from_data_list...
+        # It's not the pyg way, but might be faster..
+        bipartite_graphsurf = BPGraphBatch(bipartite_graphsurf, surface_sizes, graph_sizes)
+        bipartite_surfgraph = BPGraphBatch(bipartite_surfgraph, surface_sizes, graph_sizes)
+        return bipartite_graphsurf, bipartite_surfgraph
 
 
 # todo check this and verify is behaves similar to the original function
