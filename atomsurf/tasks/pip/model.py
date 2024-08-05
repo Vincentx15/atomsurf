@@ -4,7 +4,6 @@ import torch.nn as nn
 from atomsurf.networks.protein_encoder import ProteinEncoder
 
 
-
 def torch_rbf(points_1, points_2, feats_1, sigma=2.5, eps=0.01, concat=False):
     """
     Get the signal on the points1 onto the points 2
@@ -35,16 +34,17 @@ def torch_rbf(points_1, points_2, feats_1, sigma=2.5, eps=0.01, concat=False):
         return torch.cat((feats_2, torch.tanh(line_norms[:, None])), dim=1)
     return feats_2, line_norms
 
+
 class PIPNet(torch.nn.Module):
-    def __init__(self, hparams_encoder, hparams_head,use_graph_only):
+    def __init__(self, hparams_encoder, hparams_head, use_graph_only):
         super().__init__()
         self.hparams_head = hparams_head
         self.hparams_encoder = hparams_encoder
         self.encoder = ProteinEncoder(hparams_encoder)
-        self.sigma=2.5
-        self.use_graph_only=use_graph_only
+        self.sigma = 2.5
+        self.use_graph_only = use_graph_only
         if self.use_graph_only:
-            in_features=128*2# 12 
+            in_features = 128 * 2  # 12
             self.top_net = nn.Sequential(*[
                 nn.Linear(in_features, in_features),
                 nn.ReLU(),
@@ -52,7 +52,7 @@ class PIPNet(torch.nn.Module):
                 nn.Linear(in_features, 1)
             ])
         else:
-            in_features = 128*2+129*2# 12 
+            in_features = 128 * 2 + 129 * 2  # 12
             self.top_net = nn.Sequential(*[
                 nn.Linear(in_features, in_features),
                 nn.ReLU(),
@@ -78,8 +78,8 @@ class PIPNet(torch.nn.Module):
             dists = torch.cdist(torch.cat(batch.locs_right), graph_2.node_pos)
             min_indices = torch.argmin(dists, dim=1)
             processed_right = graph_2.x[min_indices]
-            x=torch.cat([processed_left,processed_right],dim=1)
-            x=self.top_net(x)
+            x = torch.cat([processed_left, processed_right], dim=1)
+            x = self.top_net(x)
             return x
         else:
             dists = torch.cdist(torch.cat(batch.locs_left), graph_1.node_pos)
@@ -89,8 +89,8 @@ class PIPNet(torch.nn.Module):
             min_indices = torch.argmin(dists, dim=1)
             processed_right = graph_2.x[min_indices]
             feats_left = torch_rbf(points_1=surface_1.verts, feats_1=surface_1.x,
-                                                 points_2=torch.cat(batch.locs_left), concat=True, sigma=self.sigma)
+                                   points_2=torch.cat(batch.locs_left), concat=True, sigma=self.sigma)
             feats_right = torch_rbf(points_1=surface_2.verts, feats_1=surface_2.x,
-                                                 points_2=torch.cat(batch.locs_right), concat=True, sigma=self.sigma)
-            x=self.top_net([processed_left,feats_left,processed_right,feats_right],dim=1)
+                                    points_2=torch.cat(batch.locs_right), concat=True, sigma=self.sigma)
+            x = self.top_net([processed_left, feats_left, processed_right, feats_right], dim=1)
             return x

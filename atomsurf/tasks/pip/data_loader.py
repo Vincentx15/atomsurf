@@ -1,73 +1,42 @@
 import os
 import sys
 
+from atom3d.datasets import LMDBDataset
+import math
 import numpy as np
 import pickle
 import pytorch_lightning as pl
 import torch
 from torch.utils.data import Dataset, DataLoader
 from torch_geometric.data import Data
-import math
 
 if __name__ == '__main__':
     script_dir = os.path.dirname(os.path.realpath(__file__))
     sys.path.append(os.path.join(script_dir, '..', '..', '..'))
 
-from atomsurf.utils.data_utils import AtomBatch
-
-from atom3d.datasets import LMDBDataset
 from atomsurf.tasks.pip.preprocess import get_subunits
+from atomsurf.utils.data_utils import SurfaceLoader, GraphLoader, AtomBatch, update_model_input_dim
 
 
-class SurfaceBuilder:
+class SurfaceLoaderPIP(SurfaceLoader):
     def __init__(self, config, mode):
-        self.config = config
-        self.data_dir = config.data_dir
-        self.mode = mode
-
-    def build(self, name):
-        if not self.config.use_surfaces:
-            return Data()
-        try:
-            surface = torch.load(os.path.join(self.data_dir, self.mode, 'surf_full', f"{name}.pt"))
-            surface.expand_features(remove_feats=True, feature_keys=self.config.feat_keys, oh_keys=self.config.oh_keys)
-            return surface
-        except:
-            return None
+        super().__init__(config)
+        self.data_dir = os.path.join(config.data_dir, mode, 'surf_full')
 
 
-class GraphBuilder:
+class GraphBuilderPIP(GraphLoader):
     def __init__(self, config, mode):
+        super().__init__(config)
         self.config = config
-        self.data_dir = config.data_dir
-        self.esm_dir = config.esm_dir
-        self.use_esm = config.use_esm
-        self.mode = mode
-
-    def build(self, name):
-        if not self.config.use_graphs:
-            return Data()
-        try:
-            graph = torch.load(os.path.join(self.data_dir, self.mode, 'rgraph', f"{name}.pt"))
-            feature_keys = self.config.feat_keys
-            if self.use_esm:
-                esm_feats_path = os.path.join(self.esm_dir, f"{name}_esm.pt")
-                esm_feats = torch.load(esm_feats_path)
-                graph.features.add_named_features('esm_feats', esm_feats)
-                if feature_keys != 'all':
-                    feature_keys.append('esm_feats')
-            graph.expand_features(remove_feats=True, feature_keys=feature_keys, oh_keys=self.config.oh_keys)
-        except:
-            return None
-        return graph
+        self.data_dir = os.path.join(config.data_dir, mode, 'rgraphs')
 
 
 class PIPDataset(Dataset):
 
     def __init__(self, data_dir, surface_builder, graph_builder, neg_to_pos_ratio=1, max_pos_regions_per_ensemble=5):
         self.systems = LMDBDataset(data_dir)
-        self.surface_builder = surface_builder
-        self.graph_builder = graph_builder
+        self.surface_loader = surface_builder
+        self.graph_loader = graph_builder
         self.neg_to_pos_ratio = neg_to_pos_ratio
         self.max_pos_regions_per_ensemble = max_pos_regions_per_ensemble
 
@@ -127,22 +96,21 @@ class PIPDataset(Dataset):
         idx_left = torch.cat((pos_array_sampled[0], neg_array_sampled[0]))
         idx_right = torch.cat((pos_array_sampled[1], neg_array_sampled[1]))
         labels = torch.cat((torch.ones(num_pos_to_use), torch.zeros(num_neg_to_use)))
-        surface_1 = self.surface_builder.build(names[0])
-        surface_2 = self.surface_builder.build(names[1])
-        graph_1 = self.graph_builder.build(names[0])
-        graph_2 = self.graph_builder.build(names[1])
+        surface_1 = self.surface_loader.build(names[0])
+        surface_2 = self.surface_loader.build(names[1])
+        graph_1 = self.graph_loader.build(names[0])
+        graph_2 = self.graph_loader.build(names[1])
         if surface_1 is None or surface_2 is None or graph_1 is None or graph_2 is None:
             return None
         if idx_left.dtype != torch.int64 and idx_right.dtype != torch.int64:
             return None
-        # TODO GDF EXPAND
         if idx_left.max() > len(graph_1.node_pos) or idx_right.max() > len(graph_2.node_pos):
             print('idx error', names)
             return None
         locs_left = graph_1.node_pos[idx_left]
         locs_right = graph_2.node_pos[idx_right]
+
         # TODO MISS transform and normalize
-        # item = Data(surface_1=surface_1, graph_1=graph_1,surface_2=surface_2, graph_2=graph_2, idx_left=idx_left,idx_right=idx_right, label=labels)
         item = Data(surface_1=surface_1, graph_1=graph_1, surface_2=surface_2, graph_2=graph_2, locs_left=locs_left,
                     locs_right=locs_right, labels_pip=labels)
         # print('process one data ',time.time()-t0)
@@ -163,37 +131,28 @@ class PIPDataModule(pl.LightningDataModule):
                             'batch_size': self.cfg.loader.batch_size,
                             'pin_memory': self.cfg.loader.pin_memory,
                             'prefetch_factor': self.cfg.loader.prefetch_factor,
-                            'shuffle': self.cfg.loader.shuffle,
                             'collate_fn': lambda x: AtomBatch.from_data_list(x)}
-        self.surface_builder_train = SurfaceBuilder(self.cfg.cfg_surface, mode='train')
-        self.graph_builder_train = GraphBuilder(self.cfg.cfg_graph, mode='train')
-        self.surface_builder_test = SurfaceBuilder(self.cfg.cfg_surface, mode='test')
-        self.graph_builder_test = GraphBuilder(self.cfg.cfg_graph, mode='test')
-        self.surface_builder_val = SurfaceBuilder(self.cfg.cfg_surface, mode='val')
-        self.graph_builder_val = GraphBuilder(self.cfg.cfg_graph, mode='val')
+        self.surface_builder_train = SurfaceLoaderPIP(self.cfg.cfg_surface, mode='train')
+        self.graph_builder_train = GraphBuilderPIP(self.cfg.cfg_graph, mode='train')
+        self.surface_builder_test = SurfaceLoaderPIP(self.cfg.cfg_surface, mode='test')
+        self.graph_builder_test = GraphBuilderPIP(self.cfg.cfg_graph, mode='test')
+        self.surface_builder_val = SurfaceLoaderPIP(self.cfg.cfg_surface, mode='val')
+        self.graph_builder_val = GraphBuilderPIP(self.cfg.cfg_graph, mode='val')
         # Useful to create a Model of the right input dims
-        train_dataset_temp = PIPDataset(self.systems[0], self.surface_builder_train, self.graph_builder_train)
-        train_dataset_temp = iter(train_dataset_temp)
-        exemple = None
-        while exemple is None:
-            exemple = next(train_dataset_temp)
-        from omegaconf import open_dict
-        with open_dict(cfg):
-            feat_encoder_kwargs = cfg.encoder.blocks[0].kwargs
-            feat_encoder_kwargs['graph_feat_dim'] = exemple.graph_1.x.shape[1]
-            feat_encoder_kwargs['surface_feat_dim'] = exemple.surface_1.x.shape[1]
+        train_dataset_temp = PIPDataset(self.systems[-1], self.surface_builder_train, self.graph_builder_train)
+        update_model_input_dim(cfg=cfg, dataset_temp=train_dataset_temp)
 
     def train_dataloader(self):
         dataset = PIPDataset(self.systems[0], self.surface_builder_train, self.graph_builder_train)
-        return DataLoader(dataset, **self.loader_args)
+        return DataLoader(dataset, shuffle=self.cfg.loader.shuffle, **self.loader_args)
 
     def val_dataloader(self):
         dataset = PIPDataset(self.systems[1], self.surface_builder_val, self.graph_builder_val)
-        return DataLoader(dataset, **self.loader_args)
+        return DataLoader(dataset, shuffle=False, **self.loader_args)
 
     def test_dataloader(self):
         dataset = PIPDataset(self.systems[2], self.surface_builder_test, self.graph_builder_test)
-        return DataLoader(dataset, **self.loader_args)
+        return DataLoader(dataset, shuffle=False, **self.loader_args)
 
 
 if __name__ == '__main__':

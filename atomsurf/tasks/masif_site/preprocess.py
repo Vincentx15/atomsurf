@@ -5,7 +5,7 @@ import time
 import numpy as np
 import torch
 
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 
 if __name__ == '__main__':
     script_dir = os.path.dirname(os.path.realpath(__file__))
@@ -15,6 +15,7 @@ from atomsurf.protein.graphs import parse_pdb_path
 from atomsurf.protein.surfaces import SurfaceObject
 from atomsurf.protein.atom_graph import AtomGraphBuilder
 from atomsurf.protein.residue_graph import ResidueGraphBuilder
+from atomsurf.utils.python_utils import do_all
 
 torch.multiprocessing.set_sharing_strategy('file_system')
 torch.set_num_threads(1)
@@ -127,23 +128,6 @@ class PreProcessPDBDataset(Dataset):
             print(pdb_name, e)
             success = 0
         return success
-
-
-def do_all(dataset, num_workers=4, prefetch_factor=100):
-    prefetch_factor = prefetch_factor if num_workers > 0 else 2
-    dataloader = DataLoader(dataset,
-                            num_workers=num_workers,
-                            batch_size=1,
-                            prefetch_factor=prefetch_factor,
-                            collate_fn=lambda x: x[0])
-    total_success = 0
-    t0 = time.time()
-    for i, success in enumerate(dataloader):
-        # if i > 5: break
-        total_success += int(success)
-        if not i % 5:
-            print(f'Processed {i + 1}/{len(dataloader)}, in {time.time() - t0:.3f}s, with {total_success} successes')
-            # => Processed 3351/3362, with 3328 successes ~1% failed systems, mostly missing ply files
 
 
 if __name__ == '__main__':

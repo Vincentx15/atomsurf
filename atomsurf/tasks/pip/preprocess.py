@@ -3,18 +3,20 @@ import sys
 import time
 import torch
 from atom3d.datasets import LMDBDataset
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 
 if __name__ == '__main__':
     script_dir = os.path.dirname(os.path.realpath(__file__))
     sys.path.append(os.path.join(script_dir, '..', '..', '..'))
 
-from atomsurf.protein.graphs import parse_pdb_path
-from atomsurf.protein.surfaces import SurfaceObject
 from atomsurf.protein.atom_graph import AtomGraphBuilder
+from atomsurf.protein.create_esm import get_esm_embedding_batch
+from atomsurf.protein.graphs import parse_pdb_path
 from atomsurf.protein.residue_graph import ResidueGraphBuilder
+from atomsurf.protein.surfaces import SurfaceObject
 from atomsurf.utils.atom_utils import df_to_pdb
-from atomsurf.protein.create_esm import get_esm_embedding_single
+from atomsurf.utils.python_utils import do_all
+
 torch.multiprocessing.set_sharing_strategy('file_system')
 torch.set_num_threads(1)
 
@@ -46,8 +48,8 @@ def get_subunits(ensemble):
 
 class ExtractPIPpdbDataset(Dataset):
     def __init__(self, datadir=None, mode='train'):
-        script_dir = os.path.dirname(os.path.realpath(__file__))
-        if datadir == None:
+        if datadir is None:
+            script_dir = os.path.dirname(os.path.realpath(__file__))
             datadir = os.path.join(script_dir, '..', '..', '..', 'data', 'DIPS-split', 'data', mode)
         else:
             datadir = os.path.join(datadir, mode)
@@ -63,26 +65,25 @@ class ExtractPIPpdbDataset(Dataset):
         protein_pair = self.dataset[idx]
         names, dfs = get_subunits(protein_pair['atoms_pairs'])
         for name, df in zip(names, dfs):
-            if name is not None and name + '.pdb' not in self.pdb_list:
+            if name is not None:
                 pdb_path = os.path.join(self.pdb_dir, name + '.pdb')
-                df_to_pdb(df, pdb_path)
-                self.pdb_list.append(name + '.pdb')
+                df_to_pdb(df, pdb_path, recompute=False)
         return 1
 
 
 class PreprocessPIPDataset(Dataset):
-    def __init__(self, datadir=None, recompute=False, mode='train', extract=True, max_vert_number=100000):
+    def __init__(self, datadir=None, recompute=False, mode='train', max_vert_number=100000):
         script_dir = os.path.dirname(os.path.realpath(__file__))
-        if datadir == None:
+        if datadir is None:
             datadir = os.path.join(script_dir, '..', '..', '..', 'data', 'DIPS-split', 'data', mode)
         else:
             datadir = os.path.join(datadir, mode)
 
         self.recompute = recompute
         self.pdb_dir = os.path.join(datadir, 'pdb')
-        self.out_surf_dir_full = os.path.join(datadir, 'surf_full')
-        self.out_rgraph_dir = os.path.join(datadir, 'rgraph')
-        self.out_agraph_dir = os.path.join(datadir, 'agraph')
+        self.out_surf_dir_full = os.path.join(datadir, 'surf_full', mode)
+        self.out_rgraph_dir = os.path.join(datadir, 'rgraph', mode)
+        self.out_agraph_dir = os.path.join(datadir, 'agraph', mode)
         os.makedirs(self.out_surf_dir_full, exist_ok=True)
         os.makedirs(self.out_rgraph_dir, exist_ok=True)
         os.makedirs(self.out_agraph_dir, exist_ok=True)
@@ -102,7 +103,7 @@ class PreprocessPIPDataset(Dataset):
             rgraph_dump = os.path.join(self.out_rgraph_dir, f'{name}.pt')
 
             if self.recompute or not os.path.exists(surface_full_dump):
-                surface = SurfaceObject.from_pdb_path(pdb_path, out_ply_path=None, max_vert_number=self.max_vert_number)
+                surface = SurfaceObject.from_pdb_path(pdb_path, max_vert_number=self.max_vert_number)
                 surface.add_geom_feats()
                 surface.save_torch(surface_full_dump)
 
@@ -125,54 +126,19 @@ class PreprocessPIPDataset(Dataset):
             success = 0
         return success
 
-class PreprocessESM(Dataset):
-    def __init__(self, datadir=None,outputdir=None,mode='Train'):
-        script_dir = os.path.dirname(os.path.realpath(__file__))
-        if datadir == None:
-            datadir = os.path.join(script_dir, '..', '..', '..', 'data', 'DIPS-split', 'data', mode)
-        else:
-            datadir = os.path.join(datadir, mode)
-
-        self.pdb_dir = os.path.join(datadir, 'pdb')
-        self.out_esm_dir = os.path.join(datadir, 'esm')
-        os.makedirs(self.out_esm_dir, exist_ok=True)
-        self.pdb_list = os.listdir(self.pdb_dir)
-
-    def __len__(self):
-        return len(self.pdb_list)
-
-    def __getitem__(self, idx):
-        protein = self.pdb_list[idx]
-        pdb_path = os.path.join(self.pdb_dir, protein)
-        name = protein[0:-4]
-        try:
-            embed=get_esm_embedding_single(pdb_path,self.out_esm_dir)
-            success = 1
-        except Exception as e:
-            print('*******failed******', protein, e)
-            success = 0
-        return success
-
-
-def do_all(dataset, num_workers=4, prefetch_factor=100):
-    prefetch_factor = prefetch_factor if num_workers > 0 else 2
-    dataloader = DataLoader(dataset,
-                            num_workers=num_workers,
-                            batch_size=1,
-                            prefetch_factor=prefetch_factor,
-                            collate_fn=lambda x: x[0])
-    total_success = 0
-    t0 = time.time()
-    for i, success in enumerate(dataloader):
-        # if i > 5: break
-        total_success += int(success)
-        if not i % 5:
-            print(f'Processed {i + 1}/{len(dataloader)}, in {time.time() - t0:.3f}s, with {total_success} successes')
-            # => Processed 3351/3362, with 3328 successes ~1% failed systems, mostly missing ply files
-
 
 if __name__ == '__main__':
     pass
     recompute = True
-    dataset = PreprocessPIPDataset(recompute=recompute)
-    do_all(dataset, num_workers=4)
+    for mode in ['train', 'valid', 'test']:
+        dataset = ExtractPIPpdbDataset(mode=mode)
+        do_all(dataset, num_workers=4)
+
+        dataset = PreprocessPIPDataset(mode=mode, recompute=recompute)
+        do_all(dataset, num_workers=4)
+
+    script_dir = os.path.dirname(os.path.realpath(__file__))
+    pip_data_dir = os.path.join(script_dir, '..', '..', '..', 'data', 'pip')
+    pdb_dir = os.path.join(pip_data_dir, 'pdb')
+    out_esm_dir = os.path.join(pip_data_dir, 'esm')
+    get_esm_embedding_batch(in_pdbs_dir=pdb_dir, dump_dir=out_esm_dir)

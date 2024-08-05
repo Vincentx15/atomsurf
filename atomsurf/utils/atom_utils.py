@@ -10,7 +10,7 @@ import time
 import torch
 
 
-def df_to_pdb(df, out_file_name, discard_hetatm=True):
+def df_to_pdb(df, out_file_name, discard_hetatm=True, recompute=True):
     """
     Utility function to go from a df object to a PDB file
     :param df:
@@ -37,6 +37,8 @@ def df_to_pdb(df, out_file_name, discard_hetatm=True):
                 chain.parent.detach_child(chain.id)
         return struct
 
+    if os.path.exists(out_file_name) and not recompute:
+        return
     structure = df_to_bp(df)
     structure = filter_notaa(structure) if discard_hetatm else structure
     io = bio.PDBIO()

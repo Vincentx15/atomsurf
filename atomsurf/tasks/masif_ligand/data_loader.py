@@ -12,7 +12,7 @@ if __name__ == '__main__':
     script_dir = os.path.dirname(os.path.realpath(__file__))
     sys.path.append(os.path.join(script_dir, '..', '..', '..'))
 
-from atomsurf.utils.data_utils import SurfaceLoader, GraphLoader, AtomBatch, update_model_input_dim, GaussianDistance
+from atomsurf.utils.data_utils import SurfaceLoader, GraphLoader, AtomBatch, update_model_input_dim
 
 ligands = ["ADP", "COA", "FAD", "HEM", "NAD", "NAP", "SAM"]
 type_idx = {type_: ix for ix, type_ in enumerate(ligands)}
@@ -110,7 +110,6 @@ class MasifLigandDataModule(pl.LightningDataModule):
             masif_ligand_data_dir = cfg.data_dir
         splits_dir = os.path.join(masif_ligand_data_dir, 'raw_data_MasifLigand', 'splits')
         ligands_path = os.path.join(masif_ligand_data_dir, 'raw_data_MasifLigand', 'ligand')
-        self.systems = []
         self.use_inmem = cfg.use_inmem
         if self.use_inmem:
             self.train_dir = os.path.join(cfg.data_dir, 'Inmemory_train_surfhmr_rggraph_esm.pt')
@@ -118,6 +117,7 @@ class MasifLigandDataModule(pl.LightningDataModule):
             self.test_dir = os.path.join(cfg.data_dir, 'Inmemory_test_surfhmr_rggraph_esm.pt')
             if not (os.path.isfile(self.train_dir) and os.path.isfile(self.val_dir) and os.path.isfile(self.test_dir)):
                 self.create_inmem_set(cfg)
+        self.systems = []
         for split in ['train', 'val', 'test']:
             splits_path = os.path.join(splits_dir, f'{split}-list.txt')
             out_path = os.path.join(splits_dir, f'{split}.p')
@@ -129,7 +129,6 @@ class MasifLigandDataModule(pl.LightningDataModule):
                             'batch_size': self.cfg.loader.batch_size,
                             'pin_memory': self.cfg.loader.pin_memory,
                             'prefetch_factor': self.cfg.loader.prefetch_factor,
-                            'shuffle': self.cfg.loader.shuffle,
                             'collate_fn': lambda x: AtomBatch.from_data_list(x)}
 
         if self.use_inmem:
@@ -160,21 +159,21 @@ class MasifLigandDataModule(pl.LightningDataModule):
             dataset = MasifLigandDataset_InMemory(self.train_dir)
         else:
             dataset = MasifLigandDataset(self.systems[0], self.surface_loader, self.graph_loader)
-        return DataLoader(dataset, **self.loader_args)
+        return DataLoader(dataset, shuffle=self.cfg.shuffle, **self.loader_args)
 
     def val_dataloader(self):
         if self.use_inmem:
             dataset = MasifLigandDataset_InMemory(self.val_dir)
         else:
             dataset = MasifLigandDataset(self.systems[1], self.surface_loader, self.graph_loader)
-        return DataLoader(dataset, **self.loader_args)
+        return DataLoader(dataset, shuffle=False, **self.loader_args)
 
     def test_dataloader(self):
         if self.use_inmem:
             dataset = MasifLigandDataset_InMemory(self.test_dir)
         else:
             dataset = MasifLigandDataset(self.systems[2], self.surface_loader, self.graph_loader)
-        return DataLoader(dataset, **self.loader_args)
+        return DataLoader(dataset, shuffle=False, **self.loader_args)
 
 
 if __name__ == '__main__':
