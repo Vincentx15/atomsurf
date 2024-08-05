@@ -33,6 +33,11 @@ class AtomGraph(Data, FeaturesHolder):
         else:
             self.features = features
 
+    def collapse_feats_residues(self, feats, reduce='mean'):
+        from torch_scatter import scatter
+        res_feats = scatter(feats, index=self.res_map.long(), reduce=reduce, dim=0)
+        return res_feats
+
 
 class AGraphBatch(Batch):
     """
@@ -88,4 +93,6 @@ if __name__ == "__main__":
     atom_graph = atom_graph_builder.pdb_to_atomgraph(pdb)
     torch.save(atom_graph, atomgraph_path)
     atom_graph = torch.load(atomgraph_path)
+    atom_graph.expand_features()
+    grouped = atom_graph.collapse_feats_residues(atom_graph.x)
     a = 1
