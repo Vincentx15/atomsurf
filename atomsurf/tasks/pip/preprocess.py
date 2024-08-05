@@ -50,7 +50,7 @@ class ExtractPIPpdbDataset(Dataset):
     def __init__(self, datadir=None, mode='train'):
         if datadir is None:
             script_dir = os.path.dirname(os.path.realpath(__file__))
-            datadir = os.path.join(script_dir, '..', '..', '..', 'data', 'DIPS-split', 'data', mode)
+            datadir = os.path.join(script_dir, '..', '..', '..', 'data', 'pip', 'DIPS-split', 'data', mode)
         else:
             datadir = os.path.join(datadir, mode)
         self.pdb_dir = os.path.join(datadir, 'pdb')
@@ -72,23 +72,24 @@ class ExtractPIPpdbDataset(Dataset):
 
 
 class PreprocessPIPDataset(Dataset):
-    def __init__(self, datadir=None, recompute=False, mode='train', max_vert_number=100000):
+    def __init__(self, datadir=None, recompute=False, mode='train', face_reduction_rate=1.0, use_pymesh=False):
         script_dir = os.path.dirname(os.path.realpath(__file__))
         if datadir is None:
-            datadir = os.path.join(script_dir, '..', '..', '..', 'data', 'DIPS-split', 'data', mode)
+            datadir = os.path.join(script_dir, '..', '..', '..', 'data', 'pip', 'DIPS-split', 'data', mode)
         else:
             datadir = os.path.join(datadir, mode)
 
         self.recompute = recompute
         self.pdb_dir = os.path.join(datadir, 'pdb')
-        self.out_surf_dir_full = os.path.join(datadir, 'surf_full', mode)
-        self.out_rgraph_dir = os.path.join(datadir, 'rgraph', mode)
-        self.out_agraph_dir = os.path.join(datadir, 'agraph', mode)
+        self.out_surf_dir_full = os.path.join(datadir, f'surfaces_{face_reduction_rate}')
+        self.out_rgraph_dir = os.path.join(datadir, 'rgraph')
+        self.out_agraph_dir = os.path.join(datadir, 'agraph')
         os.makedirs(self.out_surf_dir_full, exist_ok=True)
         os.makedirs(self.out_rgraph_dir, exist_ok=True)
         os.makedirs(self.out_agraph_dir, exist_ok=True)
         self.pdb_list = os.listdir(self.pdb_dir)
-        self.max_vert_number = max_vert_number
+        self.face_reduction_rate = face_reduction_rate
+        self.use_pymesh = use_pymesh
 
     def __len__(self):
         return len(self.pdb_list)
@@ -103,11 +104,13 @@ class PreprocessPIPDataset(Dataset):
             rgraph_dump = os.path.join(self.out_rgraph_dir, f'{name}.pt')
 
             if self.recompute or not os.path.exists(surface_full_dump):
-                surface = SurfaceObject.from_pdb_path(pdb_path, max_vert_number=self.max_vert_number)
+                surface = SurfaceObject.from_pdb_path(pdb_path,
+                                                      use_pymesh=self.use_pymesh,
+                                                      face_reduction_rate=self.face_reduction_rate)
                 surface.add_geom_feats()
                 surface.save_torch(surface_full_dump)
 
-            if self.recompute or not os.path.exists(surface_full_dump) or not os.path.exists(surface_full_dump):
+            if self.recompute or not os.path.exists(agraph_dump) or not os.path.exists(rgraph_dump):
                 arrays = parse_pdb_path(pdb_path)
                 # create atomgraph
                 if self.recompute or not os.path.exists(agraph_dump):
@@ -129,16 +132,19 @@ class PreprocessPIPDataset(Dataset):
 
 if __name__ == '__main__':
     pass
-    recompute = True
-    for mode in ['train', 'valid', 'test']:
-        dataset = ExtractPIPpdbDataset(mode=mode)
-        do_all(dataset, num_workers=4)
+    recompute = False
+    for mode in ['train', 'val', 'test']:
+    # for mode in ['test']:
+        # dataset = ExtractPIPpdbDataset(mode=mode)
+        # do_all(dataset, num_workers=20)
 
-        dataset = PreprocessPIPDataset(mode=mode, recompute=recompute)
-        do_all(dataset, num_workers=4)
+        dataset = PreprocessPIPDataset(mode=mode,
+                                       face_reduction_rate=0.1,
+                                       recompute=recompute)
+        do_all(dataset, num_workers=20)
 
-    script_dir = os.path.dirname(os.path.realpath(__file__))
-    pip_data_dir = os.path.join(script_dir, '..', '..', '..', 'data', 'pip')
-    pdb_dir = os.path.join(pip_data_dir, 'pdb')
-    out_esm_dir = os.path.join(pip_data_dir, 'esm')
-    get_esm_embedding_batch(in_pdbs_dir=pdb_dir, dump_dir=out_esm_dir)
+        script_dir = os.path.dirname(os.path.realpath(__file__))
+        pip_data_dir = os.path.join(script_dir, '..', '..', '..', 'data', 'pip', 'DIPS-split', 'data', mode)
+        pdb_dir = os.path.join(pip_data_dir, 'pdb')
+        out_esm_dir = os.path.join(pip_data_dir, 'esm')
+        get_esm_embedding_batch(in_pdbs_dir=pdb_dir, dump_dir=out_esm_dir)

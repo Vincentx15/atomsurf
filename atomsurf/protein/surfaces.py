@@ -145,7 +145,7 @@ class SurfaceObject(Data, FeaturesHolder):
                          max_vert_number=50000,
                          face_reduction_rate=1.,
                          use_fem_decomp=False,
-                         use_pymesh=True,
+                         use_pymesh=False,
                          out_ply_path=None):
         from atomsurf.protein.create_operators import compute_operators
         from atomsurf.protein.create_surface import mesh_simplification
