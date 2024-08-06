@@ -107,7 +107,7 @@ class GraphLoader:
         return graph
 
 
-def update_model_input_dim(cfg, dataset_temp):
+def update_model_input_dim(cfg, dataset_temp,gkey='graph',skey='surface'):
     # Useful to create a Model of the right input dims
     try:
         from omegaconf import open_dict
@@ -115,8 +115,8 @@ def update_model_input_dim(cfg, dataset_temp):
             if example is not None:
                 with open_dict(cfg):
                     feat_encoder_kwargs = cfg.encoder.blocks[0].kwargs
-                    feat_encoder_kwargs['graph_feat_dim'] = example.graph.x.shape[1]
-                    feat_encoder_kwargs['surface_feat_dim'] = example.surface.x.shape[1]
+                    feat_encoder_kwargs['graph_feat_dim'] = example[gkey].x.shape[1]
+                    feat_encoder_kwargs['surface_feat_dim'] = example[skey].x.shape[1]
                 break
             if i > 50:
                 raise Exception('All data returned by Dataloader is None')

@@ -28,12 +28,12 @@ class GraphBuilderPIP(GraphLoader):
     def __init__(self, config, mode):
         super().__init__(config)
         self.config = config
-        self.data_dir = os.path.join(config.data_dir, mode, 'rgraphs')
+        self.data_dir = os.path.join(config.data_dir, mode, 'rgraph')
 
 
 class PIPDataset(Dataset):
 
-    def __init__(self, data_dir, surface_builder, graph_builder, neg_to_pos_ratio=1, max_pos_regions_per_ensemble=5):
+    def __init__(self, data_dir, surface_builder, graph_builder, neg_to_pos_ratio=1, max_pos_regions_per_ensemble=-1):
         self.systems = LMDBDataset(data_dir)
         self.surface_loader = surface_builder
         self.graph_loader = graph_builder
@@ -96,11 +96,13 @@ class PIPDataset(Dataset):
         idx_left = torch.cat((pos_array_sampled[0], neg_array_sampled[0]))
         idx_right = torch.cat((pos_array_sampled[1], neg_array_sampled[1]))
         labels = torch.cat((torch.ones(num_pos_to_use), torch.zeros(num_neg_to_use)))
-        surface_1 = self.surface_loader.build(names[0])
-        surface_2 = self.surface_loader.build(names[1])
-        graph_1 = self.graph_loader.build(names[0])
-        graph_2 = self.graph_loader.build(names[1])
+        surface_1 = self.surface_loader.load(names[0])
+        surface_2 = self.surface_loader.load(names[1])
+        graph_1 = self.graph_loader.load(names[0])
+        graph_2 = self.graph_loader.load(names[1])
         if surface_1 is None or surface_2 is None or graph_1 is None or graph_2 is None:
+            return None
+        if graph_1.node_pos.shape[0]<20 or graph_2.node_pos.shape[0]<20 or surface_1.verts.shape[0]<20 or surface_2.verts.shape[0]<20:
             return None
         if idx_left.dtype != torch.int64 and idx_right.dtype != torch.int64:
             return None
@@ -111,8 +113,11 @@ class PIPDataset(Dataset):
         locs_right = graph_2.node_pos[idx_right]
 
         # TODO MISS transform and normalize
-        item = Data(surface_1=surface_1, graph_1=graph_1, surface_2=surface_2, graph_2=graph_2, locs_left=locs_left,
-                    locs_right=locs_right, labels_pip=labels)
+        # item = Data(surface_1=surface_1, graph_1=graph_1,surface_2=surface_2, graph_2=graph_2, idx_left=idx_left,idx_right=idx_right, label=labels)
+
+        item = Data(surface_1=surface_1, graph_1=graph_1,surface_2=surface_2, graph_2=graph_2, idx_left=idx_left,idx_right=idx_right, label=labels,g1_len=graph_1.node_pos.shape[0],g2_len=graph_2.node_pos.shape[0])
+        # item = Data(surface_1=surface_1, graph_1=graph_1, surface_2=surface_2, graph_2=graph_2, locs_left=locs_left,
+        #             locs_right=locs_right, labels_pip=labels)
         # print('process one data ',time.time()-t0)
         return item
 
@@ -139,8 +144,8 @@ class PIPDataModule(pl.LightningDataModule):
         self.surface_builder_val = SurfaceLoaderPIP(self.cfg.cfg_surface, mode='val')
         self.graph_builder_val = GraphBuilderPIP(self.cfg.cfg_graph, mode='val')
         # Useful to create a Model of the right input dims
-        train_dataset_temp = PIPDataset(self.systems[-1], self.surface_builder_train, self.graph_builder_train)
-        update_model_input_dim(cfg=cfg, dataset_temp=train_dataset_temp)
+        train_dataset_temp = PIPDataset(self.systems[0], self.surface_builder_train, self.graph_builder_train)
+        update_model_input_dim(cfg=cfg, dataset_temp=train_dataset_temp,gkey='graph_1',skey='surface_1')
 
     def train_dataloader(self):
         dataset = PIPDataset(self.systems[0], self.surface_builder_train, self.graph_builder_train)

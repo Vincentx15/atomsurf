@@ -46,6 +46,7 @@ class PIPModule(pl.LightningModule):
 
         if batch is None:
             return None, None, None
+
         labels = batch.labels_pip.reshape(-1,1)
         # return None, None, None
         outputs = self(batch)

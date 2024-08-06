@@ -6,7 +6,8 @@ import hydra
 import torch
 import pytorch_lightning as pl
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
-
+import os
+os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 # project
 if __name__ == '__main__':
     sys.path.append(str(Path(__file__).absolute().parents[3]))
@@ -49,14 +50,14 @@ def main(cfg=None):
     checkpoint_callback = pl.callbacks.ModelCheckpoint(
         filename="{epoch}-{accuracy_val:.2f}",
         dirpath=Path(tb_logger.log_dir) / "checkpoints",
-        monitor="accuracy_val",
+        monitor="auroc/val",
         mode="max",
         save_last=True,
         save_top_k=cfg.train.save_top_k,
         verbose=False,
     )
 
-    early_stop_callback = pl.callbacks.EarlyStopping(monitor='accuracy_val',
+    early_stop_callback = pl.callbacks.EarlyStopping(monitor='auroc/val',
                                                      patience=cfg.train.early_stoping_patience,
                                                      mode='max')
 
@@ -99,7 +100,7 @@ def main(cfg=None):
 
     # test
     trainer.test(model, ckpt_path="best", datamodule=datamodule)
-
+    trainer.test(model, ckpt_path="last", datamodule=datamodule)
 
 if __name__ == "__main__":
     main()

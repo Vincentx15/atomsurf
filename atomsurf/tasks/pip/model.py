@@ -71,23 +71,33 @@ class PIPNet(torch.nn.Module):
         # forward pass
         surface_1, graph_1 = self.encoder(graph=batch.graph_1, surface=batch.surface_1)
         surface_2, graph_2 = self.encoder(graph=batch.graph_2, surface=batch.surface_2)
+        # update idx
+        base_l=torch.cumsum(batch.g1_len,dim=0)
+        base_r=torch.cumsum(batch.g2_len,dim=0)
+        for i in range(1,len(batch.idx_left)):
+            batch.idx_left[i]=(batch.idx_left[i]+base_l[i-1])
+            batch.idx_right[i]=(batch.idx_right[i]+base_r[i-1])
+        batch.idx_left = torch.cat(batch.idx_left)
+        batch.idx_right = torch.cat(batch.idx_right)
         if self.use_graph_only:
-            dists = torch.cdist(torch.cat(batch.locs_left), graph_1.node_pos)
-            min_indices = torch.argmin(dists, dim=1)
-            processed_left = graph_1.x[min_indices]
-            dists = torch.cdist(torch.cat(batch.locs_right), graph_2.node_pos)
-            min_indices = torch.argmin(dists, dim=1)
-            processed_right = graph_2.x[min_indices]
+            # dists = torch.cdist(torch.cat(batch.locs_left), graph_1.node_pos)
+            processed_left = graph_1.x[batch.idx_left]
+            # min_indices = torch.argmin(dists, dim=1)
+            # processed_left = graph_1.x[min_indices]
+            # dists = torch.cdist(torch.cat(batch.locs_right), graph_2.node_pos)
+            # min_indices = torch.argmin(dists, dim=1)
+            # processed_right = graph_2.x[min_indices]s
+            processed_right = graph_2.x[batch.idx_right]
             x = torch.cat([processed_left, processed_right], dim=1)
             x = self.top_net(x)
             return x
         else:
-            dists = torch.cdist(torch.cat(batch.locs_left), graph_1.node_pos)
-            min_indices = torch.argmin(dists, dim=1)
-            processed_left = graph_1.x[min_indices]
-            dists = torch.cdist(torch.cat(batch.locs_right), graph_2.node_pos)
-            min_indices = torch.argmin(dists, dim=1)
-            processed_right = graph_2.x[min_indices]
+            # dists = torch.cdist(torch.cat(batch.locs_left), graph_1.node_pos)
+            # min_indices = torch.argmin(dists, dim=1)
+            processed_left = graph_1.x[batch.idx_left]
+            # dists = torch.cdist(torch.cat(batch.locs_right), graph_2.node_pos)
+            # min_indices = torch.argmin(dists, dim=1)
+            processed_right = graph_2.x[batch.idx_right]
             feats_left = torch_rbf(points_1=surface_1.verts, feats_1=surface_1.x,
                                    points_2=torch.cat(batch.locs_left), concat=True, sigma=self.sigma)
             feats_right = torch_rbf(points_1=surface_2.verts, feats_1=surface_2.x,

@@ -174,8 +174,9 @@ class SurfaceObject(Data, FeaturesHolder):
         :param kwargs: see arguments for from_verts_faces
         :return:
         """
-        from atomsurf.protein.create_surface import pdb_to_surf_with_min
-        verts, faces = pdb_to_surf_with_min(pdb_path)
+        from atomsurf.protein.create_surface import pdb_to_surf_with_min,pdb_to_surf
+        # verts, faces = pdb_to_surf_with_min(pdb_path)
+        verts, faces = pdb_to_surf(pdb_path)
         return cls.from_verts_faces(verts, faces, **kwargs)
 
     def __cat_dim__(self, key, value, *args, **kwargs):

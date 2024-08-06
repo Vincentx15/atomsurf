@@ -72,25 +72,30 @@ class ExtractPIPpdbDataset(Dataset):
 
 
 class PreprocessPIPDataset(Dataset):
-    def __init__(self, datadir=None, recompute=False, mode='train', face_reduction_rate=1.0, use_pymesh=False):
+    def __init__(self, datadir=None, recompute_s=False,recompute_g=False,mode='train', extract=True, max_vert_number=100000,face_reduction_rate=0.1):
         script_dir = os.path.dirname(os.path.realpath(__file__))
         if datadir is None:
             datadir = os.path.join(script_dir, '..', '..', '..', 'data', 'pip', 'DIPS-split', 'data', mode)
         else:
             datadir = os.path.join(datadir, mode)
 
-        self.recompute = recompute
+        # self.recompute = recompute
         self.pdb_dir = os.path.join(datadir, 'pdb')
+        self.max_vert_number = max_vert_number
+        self.face_reduction_rate = face_reduction_rate
         self.out_surf_dir_full = os.path.join(datadir, f'surfaces_{face_reduction_rate}')
         self.out_rgraph_dir = os.path.join(datadir, 'rgraph')
         self.out_agraph_dir = os.path.join(datadir, 'agraph')
         os.makedirs(self.out_surf_dir_full, exist_ok=True)
         os.makedirs(self.out_rgraph_dir, exist_ok=True)
         os.makedirs(self.out_agraph_dir, exist_ok=True)
-        self.pdb_list = os.listdir(self.pdb_dir)
-        self.face_reduction_rate = face_reduction_rate
-        self.use_pymesh = use_pymesh
-
+        self.pdb_list = []
+        for i in os.listdir(self.pdb_dir):
+            if '.pdb' in i :
+                self.pdb_list.append(i)
+        self.pdb_list=self.pdb_list
+        self.recompute_s = recompute_s
+        self.recompute_g = recompute_g
     def __len__(self):
         return len(self.pdb_list)
 
@@ -103,23 +108,22 @@ class PreprocessPIPDataset(Dataset):
             agraph_dump = os.path.join(self.out_agraph_dir, f'{name}.pt')
             rgraph_dump = os.path.join(self.out_rgraph_dir, f'{name}.pt')
 
-            if self.recompute or not os.path.exists(surface_full_dump):
-                surface = SurfaceObject.from_pdb_path(pdb_path,
-                                                      use_pymesh=self.use_pymesh,
-                                                      face_reduction_rate=self.face_reduction_rate)
+            if self.recompute_s or not os.path.exists(surface_full_dump):
+                # surface = SurfaceObject.from_pdb_path(pdb_path, out_ply_path=None, max_vert_number=self.max_vert_number)
+                surface = SurfaceObject.from_pdb_path(pdb_path, face_reduction_rate=self.face_reduction_rate,use_pymesh=False,max_vert_number=self.max_vert_number)
                 surface.add_geom_feats()
                 surface.save_torch(surface_full_dump)
 
-            if self.recompute or not os.path.exists(agraph_dump) or not os.path.exists(rgraph_dump):
+            if self.recompute_g or not os.path.exists(surface_full_dump) or not os.path.exists(surface_full_dump):
                 arrays = parse_pdb_path(pdb_path)
                 # create atomgraph
-                if self.recompute or not os.path.exists(agraph_dump):
+                if self.recompute_g or not os.path.exists(agraph_dump):
                     agraph_builder = AtomGraphBuilder()
                     agraph = agraph_builder.arrays_to_agraph(arrays)
                     torch.save(agraph, open(agraph_dump, 'wb'))
 
                 # create residuegraph
-                if self.recompute or not os.path.exists(rgraph_dump):
+                if self.recompute_g or not os.path.exists(rgraph_dump):
                     rgraph_builder = ResidueGraphBuilder(add_pronet=True, add_esm=False)
                     rgraph = rgraph_builder.arrays_to_resgraph(arrays)
                     torch.save(rgraph, open(rgraph_dump, 'wb'))

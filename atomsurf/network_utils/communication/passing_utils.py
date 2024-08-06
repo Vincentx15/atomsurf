@@ -125,6 +125,8 @@ def compute_bipartite_graphs(surfaces, graphs, neigh_th=8, k=16, use_knn=False, 
         all_dists = [torch.cdist(vert, nodepos) for vert, nodepos in zip(verts_list, nodepos_list)]
         if use_knn:
             neighbors = []
+            # for vert, nodepos in zip(verts_list, nodepos_list):
+            #     print(vert.shape,nodepos.shape)
             for x in all_dists:
                 min_indices = torch.topk(-x, k=k, dim=1).indices
                 vertex_ids = torch.arange(0, len(x), device=x.device)
