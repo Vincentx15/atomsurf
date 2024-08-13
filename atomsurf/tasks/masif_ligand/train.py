@@ -5,15 +5,13 @@ from pathlib import Path
 import hydra
 import torch
 import pytorch_lightning as pl
-import wandb
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
-from pytorch_lightning.loggers import WandbLogger
 
 # project
 if __name__ == '__main__':
     sys.path.append(str(Path(__file__).absolute().parents[3]))
 
-from atomsurf.utils.callbacks import CommandLoggerCallback
+from atomsurf.utils.callbacks import CommandLoggerCallback, add_wandb_logger
 from pl_model import MasifLigandModule
 from data_loader import MasifLigandDataModule
 
@@ -33,24 +31,13 @@ def main(cfg=None):
     # init model
     model = MasifLigandModule(cfg)
 
-    # init logger
-    if cfg.use_wandb:
-        wand_id = wandb.util.generate_id()
-
     version = TensorBoardLogger(save_dir=cfg.log_dir).version
-    version_name = f"version_{version}_{cfg.run_name}" if not cfg.use_wandb else f"version_{version}_{wand_id}_{cfg.run_name}"
+    version_name = f"version_{version}_{cfg.run_name}" if not cfg.use_wandb else f"version_{version}_{cfg.run_name}"
     tb_logger = TensorBoardLogger(save_dir=cfg.log_dir, version=version_name)
     loggers = [tb_logger]
 
     if cfg.use_wandb:
-        run_name = f"{Path(tb_logger.log_dir).stem}"
-        tags = []
-
-        Path(tb_logger.log_dir).absolute().mkdir(parents=True, exist_ok=True)
-        wandb_logger = WandbLogger(project="masif-ligand", name=run_name, tags=tags, version=Path(tb_logger.log_dir).stem, id=wand_id,
-                                   save_dir=tb_logger.log_dir, log_model=False)
-
-        loggers += [wandb_logger]
+        add_wandb_logger(loggers)
 
     # callbacks
     lr_logger = pl.callbacks.LearningRateMonitor()

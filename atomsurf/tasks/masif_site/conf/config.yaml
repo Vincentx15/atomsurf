@@ -24,6 +24,7 @@ epochs: 200
 device: 0
 path_model: "version_x/checkpoints/last.ckpt"
 min_batch_size: 2
+use_wandb: False
 
 scheduler:
   name: PolynomialLRWithWarmup

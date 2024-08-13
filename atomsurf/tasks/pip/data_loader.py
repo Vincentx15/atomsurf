@@ -122,7 +122,7 @@ class PIPDataModule(pl.LightningDataModule):
         self.graph_builders = []
         self.cfg = cfg
         for mode in ['train', 'val', 'test']:
-            # mode = 'test'
+            mode = 'test'
             self.systems.append(os.path.join(data_dir, mode))
             self.surface_builders.append(SurfaceLoaderPIP(self.cfg.cfg_surface, mode=mode))
             self.graph_builders.append(GraphBuilderPIP(self.cfg.cfg_graph, mode=mode))

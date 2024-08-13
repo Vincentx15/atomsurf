@@ -7,12 +7,13 @@ import torch
 import pytorch_lightning as pl
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 import os
+
 os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 # project
 if __name__ == '__main__':
     sys.path.append(str(Path(__file__).absolute().parents[3]))
 
-from atomsurf.utils.callbacks import CommandLoggerCallback
+from atomsurf.utils.callbacks import CommandLoggerCallback, add_wandb_logger
 from pl_model import PIPModule
 from data_loader import PIPDataModule
 
@@ -43,6 +44,9 @@ def main(cfg=None):
     version_name = f"version_{version}_{cfg.run_name}"
     tb_logger = TensorBoardLogger(save_dir=cfg.log_dir, version=version_name)
     loggers = [tb_logger]
+
+    if cfg.use_wandb:
+        add_wandb_logger(loggers)
 
     # callbacks
     lr_logger = pl.callbacks.LearningRateMonitor()
@@ -89,7 +93,7 @@ def main(cfg=None):
         detect_anomaly=cfg.train.detect_anomaly,
         # debugging
         overfit_batches=cfg.train.overfit_batches,
-        #monitor time
+        # monitor time
         profiler="simple",
         # gpu
         **params,
@@ -101,6 +105,7 @@ def main(cfg=None):
     # test
     trainer.test(model, ckpt_path="best", datamodule=datamodule)
     trainer.test(model, ckpt_path="last", datamodule=datamodule)
+
 
 if __name__ == "__main__":
     main()

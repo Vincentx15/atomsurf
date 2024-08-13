@@ -25,6 +25,7 @@ device: 0
 log_dir: "./"
 path_model: "version_x/checkpoints/last.ckpt"
 min_batch_size: 2
+use_wandb: False
 
 scheduler:
   name: ReduceLROnPlateau
