@@ -7,7 +7,3 @@ weight_decay: 0
 # StepLR scheduler
 step_size: 10
 gamma: 0.5
-
-# ReduceLROnPlateau scheduler
-patience: 5
-factor: 0.5

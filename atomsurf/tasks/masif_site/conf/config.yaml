@@ -3,9 +3,6 @@ defaults:
   - blocks_zoo
   - encoder: vanilla
   - dataset: vanilla
-  #  - dataset@trainset: [ masif_site_hmr ]
-  #  - dataset@valset: [ masif_site_hmr ]
-  #  - dataset@testset: [ masif_site_hmr ]
   - optimizer: adam
   - scheduler: reduce_lr_on_plateau
   - override hydra/job_logging: colorlog
@@ -20,17 +17,18 @@ hydra:
 # general params
 seed: 2024
 run_name: default
-out_dir: ../../../outputs/masif_site/out_dir
+out_dir: ../../../outputs/masif_site/out_dir # does not work for me with chdir=False
+log_dir: "./"
 test_freq: 5
 epochs: 200
 device: 0
-log_dir: "./"
 path_model: "version_x/checkpoints/last.ckpt"
 min_batch_size: 2
 
-lr_scheduler: PolynomialLRWithWarmup
-warmup_epochs: 10
-lr_eta_min: 1E-8
+scheduler:
+  name: PolynomialLRWithWarmup
+  warmup_epochs: 10
+  lr_eta_min: 1E-8
 
 # loader params
 loader:

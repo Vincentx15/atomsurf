@@ -11,7 +11,8 @@ from atomsurf.protein.surfaces import SurfaceObject, SurfaceBatch
 from atomsurf.protein.residue_graph import ResidueGraph, RGraphBatch
 from atomsurf.protein.atom_graph import AtomGraph, AGraphBatch
 
-from torch.optim.lr_scheduler import _LRScheduler, LinearLR, CosineAnnealingLR, SequentialLR, LambdaLR
+from torch.optim.lr_scheduler import _LRScheduler, ReduceLROnPlateau, LinearLR, CosineAnnealingLR, SequentialLR, \
+    LambdaLR
 
 
 class GaussianDistance(object):
@@ -62,7 +63,7 @@ class SurfaceLoader:
             if torch.isnan(surface.x).any() or torch.isnan(surface.verts).any():
                 return None
             return surface
-        except Exception:
+        except Exception as e:
             return None
 
 
@@ -107,7 +108,7 @@ class GraphLoader:
         return graph
 
 
-def update_model_input_dim(cfg, dataset_temp,gkey='graph',skey='surface'):
+def update_model_input_dim(cfg, dataset_temp, gkey='graph', skey='surface'):
     # Useful to create a Model of the right input dims
     try:
         from omegaconf import open_dict
@@ -259,39 +260,36 @@ class AtomPLModule(pl.LightningModule):
         self.test_res.append((logits, labels))
 
     def on_train_epoch_end(self) -> None:
-        logits, labels = [list(i) for i in zip(*self.train_res)]
-        self.get_metrics(logits, labels, 'train')
-        self.train_res = list()
-        pass
+        if len(self.train_res) > 0:
+            logits, labels = [list(i) for i in zip(*self.train_res)]
+            self.get_metrics(logits, labels, 'train')
+            self.train_res = list()
 
     def on_validation_epoch_end(self) -> None:
-        logits, labels = [list(i) for i in zip(*self.val_res)]
-        self.get_metrics(logits, labels, 'val')
-        self.val_res = list()
-        pass
+        if len(self.train_res) > 0:
+            logits, labels = [list(i) for i in zip(*self.val_res)]
+            self.get_metrics(logits, labels, 'val')
+            self.val_res = list()
 
     def on_test_epoch_end(self) -> None:
-        logits, labels = [list(i) for i in zip(*self.test_res)]
-        self.get_metrics(logits, labels, 'test')
-        self.test_res = list()
-        pass
+        if len(self.train_res) > 0:
+            logits, labels = [list(i) for i in zip(*self.test_res)]
+            self.get_metrics(logits, labels, 'test')
+            self.test_res = list()
 
     def transfer_batch_to_device(self, batch, device, dataloader_idx):
+        if batch is None:
+            return None
         batch = batch.to(device)
         return batch
 
     def configure_optimizers(self):
         opt_params = self.hparams.cfg.optimizer
+        sched_params = self.hparams.cfg.scheduler
         optimizer = torch.optim.Adam(self.parameters(), lr=opt_params.lr)
-        # scheduler_obj = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,
-        #                                                            patience=opt_params.patience,
-        #                                                            factor=opt_params.factor,
-        #                                                            mode='max')
-        scheduler_obj = get_lr_scheduler(scheduler=self.hparams.cfg.lr_scheduler,
+        scheduler_obj = get_lr_scheduler(scheduler=sched_params.name,
                                          optimizer=optimizer,
-                                         warmup_epochs=self.hparams.cfg.warmup_epochs,
-                                         total_epochs=self.hparams.cfg.epochs,
-                                         eta_min=self.hparams.cfg.lr_eta_min)
+                                         **sched_params)
         scheduler = {'scheduler': scheduler_obj,
                      'monitor': self.hparams.cfg.train.to_monitor,
                      'interval': "epoch",
@@ -302,28 +300,40 @@ class AtomPLModule(pl.LightningModule):
         return [optimizer], [scheduler]
 
 
-def get_lr_scheduler(scheduler, optimizer, warmup_epochs, total_epochs, eta_min=1E-8):
-    warmup_scheduler = LinearLR(optimizer,
-                                start_factor=1E-3,
-                                total_iters=warmup_epochs)
+def get_lr_scheduler(scheduler, optimizer, **kwargs):
+    warmup_epochs = kwargs['warmup_epochs'] if 'warmup_epochs' in kwargs else 0
 
     if scheduler == 'PolynomialLRWithWarmup':
+        total_epochs = kwargs['total_epochs']
         decay_scheduler = PolynomialLR(optimizer,
                                        total_iters=total_epochs - warmup_epochs,
                                        power=1)
     elif scheduler == 'CosineAnnealingLRWithWarmup':
+        total_epochs = kwargs['total_epochs']
+        eta_min = kwargs['eta_min'] if 'eta_min' in kwargs else 1e-8
         decay_scheduler = CosineAnnealingLR(optimizer,
                                             T_max=total_epochs - warmup_epochs,
                                             eta_min=eta_min)
     elif scheduler == 'constant':
         lambda1 = lambda epoch: 1.0  # noqa
         decay_scheduler = LambdaLR(optimizer, lr_lambda=lambda1)
+    elif scheduler == 'ReduceLROnPlateau':
+        decay_scheduler = ReduceLROnPlateau(optimizer,
+                                            patience=kwargs['patience'],
+                                            factor=kwargs['factor'],
+                                            mode='max')
     else:
         raise NotImplementedError
 
-    return SequentialLR(optimizer,
-                        schedulers=[warmup_scheduler, decay_scheduler],
-                        milestones=[warmup_epochs])
+    if warmup_epochs > 0:
+        warmup_scheduler = LinearLR(optimizer,
+                                    start_factor=1E-3,
+                                    total_iters=warmup_epochs)
+        return SequentialLR(optimizer,
+                            schedulers=[warmup_scheduler, decay_scheduler],
+                            milestones=[warmup_epochs])
+    else:
+        return decay_scheduler
 
 
 class PolynomialLR(_LRScheduler):

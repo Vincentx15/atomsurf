@@ -1,61 +1,31 @@
 import os
 import sys
 
-import pytorch_lightning as pl
 import torch
-import torch.nn.functional as F
 
 # project
 from atomsurf.tasks.pip.model import PIPNet
+from atomsurf.utils.data_utils import AtomPLModule
 from atomsurf.utils.metrics import compute_auroc, compute_accuracy
-from sklearn.metrics import roc_auc_score
-
-def compute_accuracy(predictions, labels):
-    # Convert predictions to binary labels (0 or 1)
-    predicted_labels = torch.round(predictions)
-    # Compare predicted labels with ground truth labels
-    correct_count = (predicted_labels == labels).sum().item()
-    total_count = labels.size(0)
-    # Compute accuracy
-    accuracy = correct_count / total_count
-    return accuracy
 
 
-def compute_auroc(predictions, labels):
-    labels = labels.detach().cpu().numpy()
-    predictions = predictions.detach().cpu().numpy()
-    try:
-        auroc = roc_auc_score(y_true=labels, y_score=predictions)
-        return auroc
-    except ValueError as e:
-        print("Auroc computation failed, ", e)
-        return 0.5
-    
-class PIPModule(pl.LightningModule):
-    def __init__(self, hparams) -> None:
-        super().__init__()
+class PIPModule(AtomPLModule):
+    def __init__(self, cfg) -> None:
+        super().__init__(cfg)
         self.save_hyperparameters()
-        self.criterion = torch.nn.BCEWithLogitsLoss()#pos_weight=torch.tensor([hparams.model.pos_weight])
-        self.model = PIPNet(hparams_encoder=hparams.encoder, hparams_head=hparams.cfg_head,use_graph_only=True)
-
-
-    def forward(self, x):
-        return self.model(x)
+        self.criterion = torch.nn.BCEWithLogitsLoss()  # pos_weight=torch.tensor([hparams.model.pos_weight])
+        self.model = PIPNet(hparams_encoder=cfg.encoder, hparams_head=cfg.cfg_head)
 
     def step(self, batch):
-
         if batch is None:
             return None, None, None
-
-        labels = batch.labels_pip.reshape(-1,1)
-        # return None, None, None
-        outputs = self(batch)
+        labels = torch.cat(batch.labels)
+        outputs = self(batch).flatten()
         loss = self.criterion(outputs, labels)
         # if torch.isnan(loss).any():
         #     print('Nan loss')
         #     return None, None, None
         return loss, outputs, labels
-
 
     def training_step(self, batch, batch_idx):
         loss, logits, labels = self.step(batch)
@@ -77,7 +47,7 @@ class PIPModule(pl.LightningModule):
             return None
         self.log_dict({"loss/val": loss.item()},
                       on_step=False, on_epoch=True, prog_bar=True, batch_size=len(logits))
-        acc = compute_accuracy(logits, labels) # TODO FIX
+        acc = compute_accuracy(logits, labels)
         auroc = compute_auroc(logits, labels)
         self.log_dict({"acc/val": acc, "auroc/val": auroc}, on_epoch=True, batch_size=len(logits))
         self.log("auroc_val", auroc, prog_bar=True, on_step=False, on_epoch=True, logger=False, batch_size=len(logits))
@@ -90,28 +60,6 @@ class PIPModule(pl.LightningModule):
             return None
         self.log_dict({"loss/test": loss.item()},
                       on_step=False, on_epoch=True, prog_bar=True, batch_size=len(logits))
-        acc = compute_accuracy(logits, labels) # TODO FIX
+        acc = compute_accuracy(logits, labels)
         auroc = compute_auroc(logits, labels)
         self.log_dict({"acc/test": acc, "auroc/test": auroc}, on_epoch=True, batch_size=len(logits))
-
-    def configure_optimizers(self):
-        opt_params = self.hparams.hparams.optimizer
-        optimizer = torch.optim.Adam(self.parameters(), lr=opt_params.lr)
-        scheduler_obj = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,
-                                                                   patience=opt_params.patience,
-                                                                   factor=opt_params.factor,
-                                                                   mode='max')
-        scheduler = {'scheduler': scheduler_obj,
-                     'monitor': "auroc_val",
-                     'interval': "epoch",
-                     'frequency': 1,
-                     "strict": True,
-                     'name': "epoch/lr"}
-        # return optimizer
-        return [optimizer], [scheduler]
-
-    def transfer_batch_to_device(self, batch, device, dataloader_idx):
-        if batch is None:
-            return None
-        batch = batch.to(device)
-        return batch
