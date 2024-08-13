@@ -41,9 +41,6 @@ class MasifSiteModule(AtomPLModule):
         self.save_hyperparameters()
         self.model = MasifSiteNet(cfg_encoder=cfg.encoder, cfg_head=cfg.cfg_head)
 
-    def forward(self, x):
-        return self.model(x)
-
     def step(self, batch):
         if batch is None:
             return None, None, None
