@@ -1,0 +1,8 @@
+name: pronet_gvpencoder
+
+
+blocks:
+  - ${GVPChemGeomFeatEncoder128_normals}
+  - ${gvp_128_normals_pronet}
+  - ${gvp_128_normals_pronet}
+  - ${gvp_128_normals_pronet}

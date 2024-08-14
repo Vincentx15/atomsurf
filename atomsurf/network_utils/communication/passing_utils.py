@@ -183,9 +183,9 @@ def compute_bipartite_graphs(surfaces, graphs, neigh_th=8, k=16, use_knn=False, 
             dists = [all_dist[neigh[0, :], (neigh[1, :] - all_dist.shape[0])] for all_dist, neigh in
                      zip(all_dists, neighbors)]
             weights = [torch.exp(-x / sigma) for x in dists]
-            bipartite_surfgraph = [Data(all_pos=pos, num_nodes=len(pos), edge_index=neighbor, edge_weight=weight)
+            bipartite_surfgraph = [Data(all_pos=pos, edge_index=neighbor, edge_weight=weight,num_nodes=len(pos))
                                    for pos, neighbor, weight in zip(all_pos, neighbors, weights)]
-            bipartite_graphsurf = [Data(all_pos=pos, num_nodes=len(pos), edge_index=rneighbor, edge_weight=weight)
+            bipartite_graphsurf = [Data(all_pos=pos, edge_index=rneighbor, edge_weight=weight,num_nodes=len(pos))
                                    for pos, rneighbor, weight in zip(all_pos, reverse_neighbors, weights)]
 
         # addition

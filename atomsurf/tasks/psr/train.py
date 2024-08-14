@@ -7,18 +7,18 @@ import torch
 import pytorch_lightning as pl
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 import os
-
 os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 # project
 if __name__ == '__main__':
     sys.path.append(str(Path(__file__).absolute().parents[3]))
 
-from atomsurf.utils.callbacks import CommandLoggerCallback, add_wandb_logger
-from pl_model import PIPModule
-from data_loader import PIPDataModule
+from atomsurf.utils.callbacks import CommandLoggerCallback
+from pl_model import PSRModule
+from data_loader import PSRDataModule
 import warnings
 warnings.filterwarnings("ignore")
 torch.multiprocessing.set_sharing_strategy('file_system')
+
 @hydra.main(config_path="conf", config_name="config")
 def main(cfg=None):
     command = f"python3 {' '.join(sys.argv)}"
@@ -27,7 +27,7 @@ def main(cfg=None):
     pl.seed_everything(seed, workers=True)
 
     # init datamodule
-    datamodule = PIPDataModule(cfg)
+    datamodule = PSRDataModule(cfg)
     # To debug while Trainer is buggy # TODO remove when trainer is fixed.
     # train_loader = datamodule.train_dataloader()
     # for i, batch in enumerate(train_loader):
@@ -38,7 +38,7 @@ def main(cfg=None):
     #     sys.exit()
 
     # init model
-    model = PIPModule(cfg)
+    model = PSRModule(cfg)
 
     # init logger
     version = TensorBoardLogger(save_dir=cfg.log_dir).version
@@ -46,23 +46,20 @@ def main(cfg=None):
     tb_logger = TensorBoardLogger(save_dir=cfg.log_dir, version=version_name)
     loggers = [tb_logger]
 
-    if cfg.use_wandb:
-        add_wandb_logger(loggers)
-
     # callbacks
     lr_logger = pl.callbacks.LearningRateMonitor()
 
     checkpoint_callback = pl.callbacks.ModelCheckpoint(
-        filename="{epoch}-{accuracy_val:.2f}",
+        filename="{epoch}-{mse_val:.2f}",
         dirpath=Path(tb_logger.log_dir) / "checkpoints",
-        monitor="auroc/val",
+        monitor="loss/val",
         mode="max",
         save_last=True,
         save_top_k=cfg.train.save_top_k,
         verbose=False,
     )
 
-    early_stop_callback = pl.callbacks.EarlyStopping(monitor='auroc/val',
+    early_stop_callback = pl.callbacks.EarlyStopping(monitor='loss/val',
                                                      patience=cfg.train.early_stoping_patience,
                                                      mode='max')
 
@@ -106,7 +103,6 @@ def main(cfg=None):
     # test
     trainer.test(model, ckpt_path="best", datamodule=datamodule)
     trainer.test(model, ckpt_path="last", datamodule=datamodule)
-
 
 if __name__ == "__main__":
     main()

@@ -1,0 +1,2 @@
+name: CosineAnnealingLR
+T_max: 10000  # could be chosen in function of train loader number of iterations

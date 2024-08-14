@@ -28,7 +28,7 @@ class GraphBuilderPIP(GraphLoader):
         super().__init__(config)
         self.config = config
         self.data_dir = os.path.join(config.data_dir, mode, 'rgraph')
-
+        self.esm_dir = os.path.join(config.data_dir, mode, 'esm')
 
 class PIPDataset(Dataset):
     def __init__(self, data_dir, surface_builder, graph_builder, neg_to_pos_ratio=1, max_pos_regions_per_ensemble=-1):
@@ -102,12 +102,18 @@ class PIPDataset(Dataset):
             return None
         if idx_left.dtype != torch.int64 and idx_right.dtype != torch.int64:
             return None
-        if idx_left.max() > len(graph_1.node_pos) or idx_right.max() > len(graph_2.node_pos):
+        if idx_left.max() >=len(graph_1.node_pos) or idx_right.max() >= len(graph_2.node_pos):
             print('idx error', names)
             return None
-        item = Data(surface_1=surface_1, graph_1=graph_1, surface_2=surface_2, graph_2=graph_2, idx_left=idx_left,
-                    idx_right=idx_right, labels=labels, g1_len=graph_1.node_pos.shape[0],
-                    g2_len=graph_2.node_pos.shape[0])
+        # locs_left = graph_1.node_pos[idx_left]
+        # locs_right = graph_2.node_pos[idx_right]
+        # TODO MISS transform and normalize
+        # item = Data(surface_1=surface_1, graph_1=graph_1,surface_2=surface_2, graph_2=graph_2, idx_left=idx_left,idx_right=idx_right, label=labels)
+
+        item = Data(surface_1=surface_1, graph_1=graph_1,surface_2=surface_2, graph_2=graph_2, idx_left=idx_left,idx_right=idx_right, label=labels,g1_len=graph_1.node_pos.shape[0],g2_len=graph_2.node_pos.shape[0])
+        # item = Data(surface_1=surface_1, graph_1=graph_1, surface_2=surface_2, graph_2=graph_2, locs_left=locs_left,
+        #             locs_right=locs_right, labels_pip=labels)
+        # print('process one data ',time.time()-t0)
         return item
 
 
@@ -146,7 +152,7 @@ class PIPDataModule(pl.LightningDataModule):
         return DataLoader(dataset, shuffle=False, **self.loader_args)
 
     def test_dataloader(self):
-        dataset = PIPDataset(self.systems[2], self.surface_builders[2], self.graph_builders[2])
+        dataset = PIPDataset(self.systems[2], self.surface_builder_test, self.graph_builder_test,max_pos_regions_per_ensemble=5)
         return DataLoader(dataset, shuffle=False, **self.loader_args)
 
 

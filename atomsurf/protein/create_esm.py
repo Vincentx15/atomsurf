@@ -38,7 +38,7 @@ def compute_one(pdb_path, outpath=None, model_objs=None):
 
 
 def get_esm_embedding_single(pdb_path, esm_path=None, recompute=False, model_objs=None):
-    name = pdb_path.split('/')[-1][0:4]
+    name = pdb_path.split('/')[-1][0:-4]
     if esm_path is not None and not os.path.exists(esm_path):
         os.makedirs(esm_path, exist_ok=True)
     embs_path = os.path.join(esm_path, f"{name}_esm.pt")
@@ -89,12 +89,12 @@ class PreProcessPDBDataset(Dataset):
         return pdb_name, seq
 
 
-def get_esm_embedding_batch(in_pdbs_dir, dump_dir):
+def get_esm_embedding_batch(in_pdbs_dir, dump_dir,num_workers,batch_size):
     dataset = PreProcessPDBDataset(in_pdbs_dir, dump_dir)
     dataloader = DataLoader(dataset,
                             collate_fn=lambda samples: samples,
-                            num_workers=4,
-                            batch_size=8)
+                            num_workers=num_workers,
+                            batch_size=batch_size)
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     model, alphabet = esm.pretrained.esm2_t33_650M_UR50D()

@@ -7,18 +7,16 @@ import torch
 import pytorch_lightning as pl
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 import os
-
 os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 # project
 if __name__ == '__main__':
     sys.path.append(str(Path(__file__).absolute().parents[3]))
 
-from atomsurf.utils.callbacks import CommandLoggerCallback, add_wandb_logger
+from atomsurf.utils.callbacks import CommandLoggerCallback
 from pl_model import PIPModule
 from data_loader import PIPDataModule
-import warnings
-warnings.filterwarnings("ignore")
-torch.multiprocessing.set_sharing_strategy('file_system')
+
+
 @hydra.main(config_path="conf", config_name="config")
 def main(cfg=None):
     command = f"python3 {' '.join(sys.argv)}"
@@ -28,45 +26,34 @@ def main(cfg=None):
 
     # init datamodule
     datamodule = PIPDataModule(cfg)
-    # To debug while Trainer is buggy # TODO remove when trainer is fixed.
-    # train_loader = datamodule.train_dataloader()
-    # for i, batch in enumerate(train_loader):
-    #     if i > 2:
-    #         break
-    #     print(batch.graph[0].x.shape)
-    #     print(batch.surface[0].x.shape)
-    #     sys.exit()
 
     # init model
     model = PIPModule(cfg)
 
     # init logger
-    version = TensorBoardLogger(save_dir=cfg.log_dir).version
-    version_name = f"version_{version}_{cfg.run_name}"
-    tb_logger = TensorBoardLogger(save_dir=cfg.log_dir, version=version_name)
-    loggers = [tb_logger]
-
-    if cfg.use_wandb:
-        add_wandb_logger(loggers)
+    # version = TensorBoardLogger(save_dir=cfg.log_dir).version
+    # version_name = f"version_{version}_{cfg.run_name}"
+    # tb_logger = TensorBoardLogger(save_dir=cfg.log_dir, version=version_name)
+    # loggers = [tb_logger]
 
     # callbacks
-    lr_logger = pl.callbacks.LearningRateMonitor()
+    # lr_logger = pl.callbacks.LearningRateMonitor()
 
-    checkpoint_callback = pl.callbacks.ModelCheckpoint(
-        filename="{epoch}-{accuracy_val:.2f}",
-        dirpath=Path(tb_logger.log_dir) / "checkpoints",
-        monitor="auroc/val",
-        mode="max",
-        save_last=True,
-        save_top_k=cfg.train.save_top_k,
-        verbose=False,
-    )
+    # checkpoint_callback = pl.callbacks.ModelCheckpoint(
+    #     filename="{epoch}-{accuracy_val:.2f}",
+    #     dirpath=Path(tb_logger.log_dir) / "checkpoints",
+    #     monitor="auroc/val",
+    #     mode="max",
+    #     save_last=True,
+    #     save_top_k=cfg.train.save_top_k,
+    #     verbose=False,
+    # )
 
-    early_stop_callback = pl.callbacks.EarlyStopping(monitor='auroc/val',
-                                                     patience=cfg.train.early_stoping_patience,
-                                                     mode='max')
+    # early_stop_callback = pl.callbacks.EarlyStopping(monitor='auroc/val',
+    #                                                  patience=cfg.train.early_stoping_patience,
+    #                                                  mode='max')
 
-    callbacks = [lr_logger, checkpoint_callback, early_stop_callback, CommandLoggerCallback(command)]
+    # callbacks = [lr_logger, checkpoint_callback, early_stop_callback, CommandLoggerCallback(command)]
 
     if torch.cuda.is_available():
         params = {"accelerator": "gpu", "devices": [cfg.device]}
@@ -75,8 +62,6 @@ def main(cfg=None):
 
     # init trainer
     trainer = pl.Trainer(
-        callbacks=callbacks,
-        logger=loggers,
         # epochs, batch size and when to val
         max_epochs=cfg.epochs,
         accumulate_grad_batches=cfg.train.accumulate_grad_batches,
@@ -101,12 +86,10 @@ def main(cfg=None):
     )
 
     # train
-    trainer.fit(model, datamodule=datamodule)
+    # trainer.fit(model, datamodule=datamodule)
 
     # test
-    trainer.test(model, ckpt_path="best", datamodule=datamodule)
-    trainer.test(model, ckpt_path="last", datamodule=datamodule)
-
+    trainer.test(model, ckpt_path=cfg.path_model, datamodule=datamodule)
 
 if __name__ == "__main__":
     main()
