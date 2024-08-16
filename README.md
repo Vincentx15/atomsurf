@@ -2,28 +2,7 @@
 
 
 ## :construction_worker: Installation
-This implementation requires Python >= 3.7.
-
-We have a dependency on pymesh, which can be installed following their homepage.
-```bash
-git clone https://github.com/PyMesh/PyMesh.git
-cd PyMesh
-git submodule update --init
-export PYMESH_PATH=`pwd`
-
-# Install Pymesh dependencies with apt-get
-apt-get install libeigen3-dev libgmp-dev libgmpxx4ldbl libmpfr-dev libboost-dev libboost-thread-dev libtbb-dev python3-dev
-# Or in jean zay by loading modules
-module load gmp/6.1.2 eigen/3.3.7-mpi cmake/3.21.3 mpfr/4.0.2 boost/1.70.0
-
-./setup.py build
-./setup.py install
-
-# Check everything works ok :
-python -c "import pymesh; pymesh.test()"
-```
-
-Install the remaining dependencies using conda and pip:
+This implementation requires Python >= 3.7. Install the remaining dependencies using conda and pip:
 
 ```bash
 conda create -n atomsurf -y
