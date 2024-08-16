@@ -141,8 +141,7 @@ class PreProcessPDBDataset(Dataset):
             agraph_dump = os.path.join(self.out_agraph_dir, f'{name}.pt')
             rgraph_dump = os.path.join(self.out_rgraph_dir, f'{name}.pt')
 
-            # if self.recompute or not os.path.exists(surface_full_dump):
-            if False:
+            if self.recompute or not os.path.exists(surface_full_dump):
                 surface = SurfaceObject.from_pdb_path(pdb_path,
                                                       face_reduction_rate=self.face_reduction_rate,
                                                       use_pymesh=self.use_pymesh,
