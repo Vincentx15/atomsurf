@@ -159,7 +159,7 @@ class MasifLigandDataModule(pl.LightningDataModule):
             dataset = MasifLigandDataset_InMemory(self.train_dir)
         else:
             dataset = MasifLigandDataset(self.systems[0], self.surface_loader, self.graph_loader)
-        return DataLoader(dataset, shuffle=self.cfg.shuffle, **self.loader_args)
+        return DataLoader(dataset, shuffle=self.cfg.loader.shuffle, **self.loader_args)
 
     def val_dataloader(self):
         if self.use_inmem:
