@@ -89,7 +89,7 @@ def main(cfg=None):
     trainer.fit(model, datamodule=datamodule)
 
     # test
-    print('*****************test besst ckpt*****************')
+    print('*****************test best ckpt*****************')
     trainer.test(model, ckpt_path="best", datamodule=datamodule)
     print('*****************test last ckpt*****************')
     trainer.test(model, ckpt_path="last", datamodule=datamodule)
