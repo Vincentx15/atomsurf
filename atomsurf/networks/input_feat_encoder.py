@@ -58,7 +58,7 @@ class ChemGeomFeatEncoder(nn.Module):
 
         if self.use_neigh:
             self.surf_chem_mlp = nn.Sequential(
-                nn.Linear(chem_feat_dim + 2 * self.num_gdf, h_dim),
+                nn.Linear(h_dim + 2 * self.num_gdf, h_dim), #chem_feat_dim
                 nn.Dropout(dropout),
                 nn.BatchNorm1d(h_dim),
                 nn.SiLU(),
@@ -111,7 +111,7 @@ class ChemGeomFeatEncoder(nn.Module):
             neigh_verts, neigh_graphs = neighbors[0, :], neighbors[1, :]
 
             # extract relevant chem features
-            all_chem_feats = chem_feats[neigh_graphs]
+            all_chem_feats = h_chem[neigh_graphs] #chem_feats
             verts_normals = torch.cat([surf.x[:, -3:] for surf in surface.to_data_list()], dim=0)
             all_normals = verts_normals[neigh_verts]
             edge_vecs = graph.node_pos[neigh_graphs] - surface.verts[neigh_verts]
@@ -132,8 +132,12 @@ class ChemGeomFeatEncoder(nn.Module):
             h_chem_geom = nbr_filter * nbr_core
             h_chem_geom = scatter(h_chem_geom, neigh_verts, dim=0, reduce="sum")
             h_geom = self.feat_mlp(torch.cat((h_chem_geom, h_geom), dim=-1))
+            del neighbors, neigh_verts, neigh_graphs, all_chem_feats, verts_normals, all_normals, edge_vecs, edge_dists, normed_edge_vecs, nbr_angular, encoded_dists, encoded_angles, expanded_message_features, embedded_messages, nbr_filter, nbr_core, h_chem_geom
+            torch.cuda.empty_cache()
         graph.x = h_chem
         surface.x = h_geom
+        del h_chem, h_geom
+        torch.cuda.empty_cache()
         return surface, graph
 
 

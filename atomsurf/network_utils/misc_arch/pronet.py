@@ -567,20 +567,25 @@ class InteractionBlock(torch.nn.Module):
         h0 = self.lin0(h0)
         h0 = self.act(h0)
         h0 = self.dropout(h0)
-
+        del feature0
+        torch.cuda.empty_cache()
         feature1 = self.lin_feature1(feature1)
         h1 = self.conv1(x_lin_1, edge_index, feature1)
         h1 = self.lin1(h1)
         h1 = self.act(h1)
         h1 = self.dropout(h1)
-
+        del feature1
+        torch.cuda.empty_cache()
         feature2 = self.lin_feature2(pos_emb)
         h2 = self.conv2(x_lin_1, edge_index, feature2)
         h2 = self.lin2(h2)
         h2 = self.act(h2)
         h2 = self.dropout(h2)
-
+        del feature2, pos_emb
+        torch.cuda.empty_cache()
         h = torch.cat((h0, h1, h2), 1)
+        del h0, h1, h2
+        torch.cuda.empty_cache()
         for lin in self.lins_cat:
             h = self.act(lin(h))
 
@@ -750,7 +755,7 @@ class ProNet(nn.Module):
         j, i = edge_index
 
         # Calculate distances.
-        dist = (pos[i] - pos[j]).norm(dim=1)
+        dist = (pos[i] - pos[j]).norm(dim=1)+1e-5
 
         num_nodes = len(z)
 
@@ -759,17 +764,18 @@ class ProNet(nn.Module):
         refi1 = (i + 1) % num_nodes
 
         a = ((pos[j] - pos[i]) * (pos[refi0] - pos[i])).sum(dim=-1)
-        b = torch.cross(pos[j] - pos[i], pos[refi0] - pos[i]).norm(dim=-1)
+        b = torch.cross(pos[j] - pos[i], pos[refi0] - pos[i]).norm(dim=-1)+1e-5
         theta = torch.atan2(b, a)
 
         plane1 = torch.cross(pos[refi0] - pos[i], pos[refi1] - pos[i])
         plane2 = torch.cross(pos[refi0] - pos[i], pos[j] - pos[i])
         a = (plane1 * plane2).sum(dim=-1)
-        b = (torch.cross(plane1, plane2) * (pos[refi0] - pos[i])).sum(dim=-1) / ((pos[refi0] - pos[i]).norm(dim=-1))
+        b = (torch.cross(plane1, plane2) * (pos[refi0] - pos[i])).sum(dim=-1) / ((pos[refi0] - pos[i]).norm(dim=-1)+1e-5)
         phi = torch.atan2(b, a)
 
         feature0 = self.feature0(dist, theta, phi)
-
+        del a, b, plane1, plane2, refi0, refi1
+        torch.cuda.empty_cache()
         if self.level == 'backbone' or self.level == 'allatom':
             # Calculate Euler angles.
             Or1_x = pos_n[i] - pos[i]
@@ -797,7 +803,8 @@ class ProNet(nn.Module):
 
             feature1 = torch.cat(
                 (self.feature1(dist, angle1), self.feature1(dist, angle2), self.feature1(dist, angle3)), 1)
-
+            del Or1_x, Or1_z, Or1_z_length, Or2_x, Or2_z, Or2_z_length, Or1_Or2_N, angle1, angle2, angle3
+            torch.cuda.empty_cache()
         elif self.level == 'aminoacid':
             refi = (i - 1) % num_nodes
 
@@ -817,7 +824,8 @@ class ProNet(nn.Module):
             tau = torch.atan2(b, a)
 
             feature1 = self.feature1(dist, tau)
-
+            del plane1, plane2, a, b, tau, refi, refj0, refj, refj1
+            torch.cuda.empty_cache()
         # Interaction blocks.
         for i, interaction_block in enumerate(self.interaction_blocks):
             if self.data_augment_eachlayer:
@@ -826,7 +834,8 @@ class ProNet(nn.Module):
                                             max=0.1)
                 x += gaussian_noise
             x = interaction_block(x, feature0, feature1, pos_emb, edge_index, batch)
-
+        del feature0, feature1, pos_emb, dist
+        torch.cuda.empty_cache()
         graph_data.x = x
         return graph_data
         # y = scatter(x, batch, dim=0)

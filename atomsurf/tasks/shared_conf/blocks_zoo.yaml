@@ -3,7 +3,7 @@ ChemGeomFeatEncoder:
   instanciate:
     _target_: atomsurf.networks.ChemGeomFeatEncoder
   kwargs:
-    use_neigh: False
+    use_neigh: True
     h_dim: 128
     dropout: 0.1
     num_gdf: 16
