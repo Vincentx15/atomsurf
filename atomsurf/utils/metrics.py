@@ -5,8 +5,10 @@ import torch
 from torchmetrics.functional import accuracy, precision, recall, f1_score, auroc
 
 
-def compute_accuracy(predictions, labels):
+def compute_accuracy(predictions, labels, add_sigmoid=False):
     # Convert predictions to binary labels (0 or 1)
+    if add_sigmoid:
+        predictions = torch.sigmoid(predictions)
     predicted_labels = torch.round(predictions)
     # Compare predicted labels with ground truth labels
     correct_count = (predicted_labels == labels).sum().item()

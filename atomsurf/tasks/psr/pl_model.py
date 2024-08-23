@@ -1,16 +1,15 @@
 import os
 import sys
 
-import pytorch_lightning as pl
-import torch
-import torch.nn.functional as F
 from collections import defaultdict
+import numpy as np
+import pytorch_lightning as pl
+import scipy
+import torch
+
 # project
 from atomsurf.tasks.psr.model import PSRNet
-from atomsurf.utils.metrics import compute_auroc, compute_accuracy
-from sklearn.metrics import roc_auc_score
-import numpy as np
-import scipy
+
 
 def safe_spearman(gt, pred):
     if np.all(np.isclose(pred, pred[0])):
@@ -31,13 +30,14 @@ def rs_metric(reslist, resdict):
         local_r.append(safe_spearman(gt, pred))
     local_r = float(np.mean(local_r))
     return global_r, local_r
-    
+
+
 class PSRModule(pl.LightningModule):
     def __init__(self, hparams) -> None:
         super().__init__()
         self.save_hyperparameters()
         self.criterion = torch.nn.MSELoss()
-        self.model = PSRNet(hparams_encoder=hparams.encoder, hparams_head=hparams.cfg_head,use_graph_only=True)
+        self.model = PSRNet(hparams_encoder=hparams.encoder, hparams_head=hparams.cfg_head, use_graph_only=True)
         self.val_reslist = list()
         self.val_resdict = defaultdict(list)
 
@@ -49,22 +49,21 @@ class PSRModule(pl.LightningModule):
 
     def step(self, batch):
 
-        if batch is None :
+        if batch is None:
             return None, None, None
-        if len(set(batch.graph.batch.cpu().numpy()))<2:
+        if len(set(batch.graph.batch.cpu().numpy())) < 2:
             return None, None, None
-        scores = batch.score.reshape(-1,1)
+        scores = batch.score.reshape(-1, 1)
         outputs = self(batch)
         loss = self.criterion(outputs, scores)
         names = batch.name
         if torch.isnan(loss).any():
             print('Nan loss')
             return None, None, None
-        return loss, outputs, scores,names
-
+        return loss, outputs, scores, names
 
     def training_step(self, batch, batch_idx):
-        loss, logits, scores,names = self.step(batch)
+        loss, logits, scores, names = self.step(batch)
         if loss is None:
             return None
         self.log_dict({"loss/train": loss.item()},
@@ -73,7 +72,7 @@ class PSRModule(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx: int):
         self.model.eval()
-        loss, logits, scores,names = self.step(batch)
+        loss, logits, scores, names = self.step(batch)
         if loss is None or logits.isnan().any() or scores.isnan().any():
             return None
         for name, logit, score in zip(names, logits, scores):
@@ -85,7 +84,7 @@ class PSRModule(pl.LightningModule):
 
     def test_step(self, batch, batch_idx: int):
         self.model.eval()
-        loss, logits, scores,names = self.step(batch)
+        loss, logits, scores, names = self.step(batch)
         if loss is None or logits.isnan().any() or scores.isnan().any():
             return None
         for name, logit, score in zip(names, logits, scores):
@@ -94,7 +93,6 @@ class PSRModule(pl.LightningModule):
             self.test_resdict[name[0:5]].append(reslist)
         self.log_dict({"loss/test": loss.item()},
                       on_step=False, on_epoch=True, prog_bar=True, batch_size=len(logits))
-
 
     def configure_optimizers(self):
         opt_params = self.hparams.hparams.optimizer
@@ -127,7 +125,6 @@ class PSRModule(pl.LightningModule):
         self.log_dict({"global_r/val": global_r})
         self.log_dict({"local_r/val": local_r})
         self.log("global_r_val", global_r, prog_bar=True, on_step=False, on_epoch=True, logger=False)
-
 
     def on_test_epoch_end(self) -> None:
         global_r, local_r = rs_metric(self.test_reslist, self.test_resdict)

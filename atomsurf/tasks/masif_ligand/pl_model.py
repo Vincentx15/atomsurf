@@ -1,10 +1,7 @@
 import os
 import sys
-from typing import Any
 
-import pytorch_lightning as pl
 import torch
-import torch.nn.functional as F
 
 # project
 from atomsurf.tasks.masif_ligand.model import MasifLigandNet
