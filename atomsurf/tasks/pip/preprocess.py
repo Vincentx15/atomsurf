@@ -9,12 +9,9 @@ if __name__ == '__main__':
     script_dir = os.path.dirname(os.path.realpath(__file__))
     sys.path.append(os.path.join(script_dir, '..', '..', '..'))
 
-from atomsurf.protein.atom_graph import AtomGraphBuilder
 from atomsurf.protein.create_esm import get_esm_embedding_batch
-from atomsurf.protein.graphs import parse_pdb_path
-from atomsurf.protein.residue_graph import ResidueGraphBuilder
-from atomsurf.protein.surfaces import SurfaceObject
 from atomsurf.utils.atom_utils import df_to_pdb
+from atomsurf.utils.data_utils import pdb_to_surf_graphs, PreprocessDataset
 from atomsurf.utils.python_utils import do_all
 
 torch.multiprocessing.set_sharing_strategy('file_system')
@@ -71,66 +68,23 @@ class ExtractPIPpdbDataset(Dataset):
         return 1
 
 
-class PreprocessPIPDataset(Dataset):
-    def __init__(self, datadir=None, recompute_s=False,recompute_g=False,mode='train', extract=True, max_vert_number=100000,face_reduction_rate=0.1):
+class PreprocessPIPDataset(PreprocessDataset):
+    def __init__(self, datadir=None, recompute_s=False, recompute_g=False, mode='train',
+                 max_vert_number=100000, face_reduction_rate=0.1):
         script_dir = os.path.dirname(os.path.realpath(__file__))
         if datadir is None:
             datadir = os.path.join(script_dir, '..', '..', '..', 'data', 'pip', 'DIPS-split', 'data', mode)
         else:
             datadir = os.path.join(datadir, mode)
 
-        # self.recompute = recompute
-        self.pdb_dir = os.path.join(datadir, 'pdb')
-        self.max_vert_number = max_vert_number
-        self.face_reduction_rate = face_reduction_rate
-        self.out_surf_dir_full = os.path.join(datadir, f'surfaces_{face_reduction_rate}')
-        self.out_rgraph_dir = os.path.join(datadir, 'rgraph')
-        self.out_agraph_dir = os.path.join(datadir, 'agraph')
-        os.makedirs(self.out_surf_dir_full, exist_ok=True)
-        os.makedirs(self.out_rgraph_dir, exist_ok=True)
-        os.makedirs(self.out_agraph_dir, exist_ok=True)
-        self.pdb_list = []
-        for i in os.listdir(self.pdb_dir):
-            if '.pdb' in i :
-                self.pdb_list.append(i)
-        self.pdb_list=self.pdb_list
-        self.recompute_s = recompute_s
-        self.recompute_g = recompute_g
-    def __len__(self):
-        return len(self.pdb_list)
+        super().__init__(datadir=datadir, recompute_s=recompute_s, recompute_g=recompute_g,
+                         max_vert_number=max_vert_number, face_reduction_rate=face_reduction_rate)
+        self.all_pdbs = self.get_all_pdbs()
 
     def __getitem__(self, idx):
-        protein = self.pdb_list[idx]
-        name = protein[0:-4]
-        pdb_path = os.path.join(self.pdb_dir, protein)
-        try:
-            surface_full_dump = os.path.join(self.out_surf_dir_full, f'{name}.pt')
-            agraph_dump = os.path.join(self.out_agraph_dir, f'{name}.pt')
-            rgraph_dump = os.path.join(self.out_rgraph_dir, f'{name}.pt')
-
-            if self.recompute_s or not os.path.exists(surface_full_dump):
-                # surface = SurfaceObject.from_pdb_path(pdb_path, out_ply_path=None, max_vert_number=self.max_vert_number)
-                surface = SurfaceObject.from_pdb_path(pdb_path, face_reduction_rate=self.face_reduction_rate,use_pymesh=False,max_vert_number=self.max_vert_number)
-                surface.add_geom_feats()
-                surface.save_torch(surface_full_dump)
-
-            if self.recompute_g or not os.path.exists(surface_full_dump) or not os.path.exists(surface_full_dump):
-                arrays = parse_pdb_path(pdb_path)
-                # create atomgraph
-                if self.recompute_g or not os.path.exists(agraph_dump):
-                    agraph_builder = AtomGraphBuilder()
-                    agraph = agraph_builder.arrays_to_agraph(arrays)
-                    torch.save(agraph, open(agraph_dump, 'wb'))
-
-                # create residuegraph
-                if self.recompute_g or not os.path.exists(rgraph_dump):
-                    rgraph_builder = ResidueGraphBuilder(add_pronet=True, add_esm=False)
-                    rgraph = rgraph_builder.arrays_to_resgraph(arrays)
-                    torch.save(rgraph, open(rgraph_dump, 'wb'))
-            success = 1
-        except Exception as e:
-            print('*******failed******', protein, e)
-            success = 0
+        pdb = self.all_pdbs[idx]
+        name = pdb[0:-4]
+        success = self.name_to_surf_graphs(name)
         return success
 
 
@@ -138,13 +92,14 @@ if __name__ == '__main__':
     pass
     recompute = False
     for mode in ['train', 'val', 'test']:
-    # for mode in ['test']:
+        # for mode in ['test']:
         # dataset = ExtractPIPpdbDataset(mode=mode)
         # do_all(dataset, num_workers=20)
 
         dataset = PreprocessPIPDataset(mode=mode,
                                        face_reduction_rate=0.1,
-                                       recompute=recompute)
+                                       recompute_g=recompute,
+                                       recompute_s=recompute)
         do_all(dataset, num_workers=20)
 
         script_dir = os.path.dirname(os.path.realpath(__file__))

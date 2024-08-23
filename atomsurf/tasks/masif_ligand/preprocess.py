@@ -11,11 +11,9 @@ if __name__ == '__main__':
     script_dir = os.path.dirname(os.path.realpath(__file__))
     sys.path.append(os.path.join(script_dir, '..', '..', '..'))
 
-from atomsurf.protein.graphs import parse_pdb_path
 from atomsurf.protein.surfaces import SurfaceObject
-from atomsurf.protein.atom_graph import AtomGraphBuilder
-from atomsurf.protein.residue_graph import ResidueGraphBuilder
 from atomsurf.protein.create_esm import get_esm_embedding_batch
+from atomsurf.utils.data_utils import PreprocessDataset
 from atomsurf.utils.python_utils import do_all
 
 torch.multiprocessing.set_sharing_strategy('file_system')
@@ -101,88 +99,46 @@ class PreprocessPatchDataset(Dataset):
         return success
 
 
-class PreProcessPDBDataset(Dataset):
+class PreProcessPDBDataset(PreprocessDataset):
 
-    def __init__(self, recompute=True, data_dir=None, max_vert_number=100000, face_reduction_rate=1.0, use_pymesh=True):
+    def __init__(self, datadir=None, recompute_s=False, recompute_g=False,
+                 max_vert_number=100000, face_reduction_rate=1.0, use_pymesh=True):
+        if datadir is None:
+            script_dir = os.path.dirname(os.path.realpath(__file__))
+            datadir = os.path.join(script_dir, '..', '..', '..', 'data', 'masif_ligand')
 
-        script_dir = os.path.dirname(os.path.realpath(__file__))
-        if data_dir is None:
-            masif_ligand_data_dir = os.path.join(script_dir, '..', '..', '..', 'data', 'masif_ligand')
-        else:
-            masif_ligand_data_dir = data_dir
-        self.pdb_dir = os.path.join(masif_ligand_data_dir, 'raw_data_MasifLigand', 'pdb')
-        self.out_surf_dir_full = os.path.join(masif_ligand_data_dir, 'surf_full')
-        # self.ply_dir = os.path.join(masif_ligand_data_dir, 'ply_dir')
-        self.out_rgraph_dir = os.path.join(masif_ligand_data_dir, 'rgraph')
-        self.out_agraph_dir = os.path.join(masif_ligand_data_dir, 'agraph')
+        super().__init__(datadir=datadir, recompute_s=recompute_s, recompute_g=recompute_g,
+                         max_vert_number=max_vert_number, face_reduction_rate=face_reduction_rate)
+        # Compared to super(), we redefine the original PDB location and the
+        # out_surf dir (since those are "_full", as opposed to patches)
+        self.pdb_dir = os.path.join(datadir, 'raw_data_MasifLigand', 'pdb')
+        surface_dirname = f'surfaces_full_{face_reduction_rate}{f"_{use_pymesh}" if use_pymesh is not None else ""}'
+        self.out_surf_dir = os.path.join(datadir, surface_dirname)
+        os.makedirs(self.out_surf_dir, exist_ok=True)
 
-        # os.makedirs(self.ply_dir, exist_ok=True)
-        os.makedirs(self.out_surf_dir_full, exist_ok=True)
-        os.makedirs(self.out_rgraph_dir, exist_ok=True)
-        os.makedirs(self.out_agraph_dir, exist_ok=True)
-
-        self.face_reduction_rate = face_reduction_rate
-        self.use_pymesh = use_pymesh
-
-        self.all_pdbs = os.listdir(self.pdb_dir)  # TODO filter
-        self.recompute = recompute
-        self.max_vert_number = max_vert_number
-
-    def __len__(self):
-        return len(self.all_pdbs)
+        self.all_pdbs = self.get_all_pdbs()
 
     def __getitem__(self, idx):
         pdb = self.all_pdbs[idx]
-        try:
-            pdb_path = os.path.join(self.pdb_dir, pdb)
-            name = pdb.rstrip('.pdb')
-            surface_full_dump = os.path.join(self.out_surf_dir_full, f'{name}.pt')
-            # ply_full_dump = os.path.join(self.ply_dir, f'{name}.ply')
-            agraph_dump = os.path.join(self.out_agraph_dir, f'{name}.pt')
-            rgraph_dump = os.path.join(self.out_rgraph_dir, f'{name}.pt')
-
-            if self.recompute or not os.path.exists(surface_full_dump):
-                surface = SurfaceObject.from_pdb_path(pdb_path,
-                                                      face_reduction_rate=self.face_reduction_rate,
-                                                      use_pymesh=self.use_pymesh,
-                                                      # out_ply_path=ply_full_dump,
-                                                      max_vert_number=self.max_vert_number)
-                surface.add_geom_feats()
-                surface.save_torch(surface_full_dump)
-
-            if self.recompute or not os.path.exists(agraph_dump) or not os.path.exists(rgraph_dump):
-                arrays = parse_pdb_path(pdb_path)
-
-                # create atomgraph
-                if self.recompute or not os.path.exists(agraph_dump):
-                    agraph_builder = AtomGraphBuilder()
-                    agraph = agraph_builder.arrays_to_agraph(arrays)
-                    torch.save(agraph, open(agraph_dump, 'wb'))
-
-                # create residuegraph
-                if self.recompute or not os.path.exists(rgraph_dump):
-                    rgraph_builder = ResidueGraphBuilder(add_pronet=True, add_esm=False)
-                    rgraph = rgraph_builder.arrays_to_resgraph(arrays)
-                    torch.save(rgraph, open(rgraph_dump, 'wb'))
-            success = 1
-        except Exception as e:
-            print(pdb, e)
-            success = 0
+        name = pdb[0:-4]
+        success = self.name_to_surf_graphs(name)
         return success
-
 
 
 if __name__ == '__main__':
     pass
     recompute = False
+    recompute_s = True
+    recompute_g = False
     use_pymesh = False
     dataset = PreprocessPatchDataset(recompute=recompute,
                                      face_reduction_rate=1.0,
                                      use_pymesh=use_pymesh)
     # do_all(dataset, num_workers=20)
 
-    dataset = PreProcessPDBDataset(recompute=recompute,
-                                   face_reduction_rate=1.0,
+    dataset = PreProcessPDBDataset(recompute_g=recompute_g,
+                                   recompute_s=recompute_s,
+                                   face_reduction_rate=0.5,
                                    use_pymesh=use_pymesh)
     do_all(dataset, num_workers=20)
 
@@ -191,6 +147,3 @@ if __name__ == '__main__':
     pdb_dir = os.path.join(masif_ligand_data_dir, 'raw_data_MasifLigand', 'pdb')
     out_esm_dir = os.path.join(masif_ligand_data_dir, 'esm_embs')
     get_esm_embedding_batch(in_pdbs_dir=pdb_dir, dump_dir=out_esm_dir)
-
-
-

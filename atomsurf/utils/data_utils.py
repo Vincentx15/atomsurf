@@ -2,17 +2,17 @@ import os
 import re
 
 import torch
+from torch.utils.data import Dataset
 from torch_geometric.data import Data
 from torch_geometric.data import Batch
 from torch_sparse import SparseTensor
 import pytorch_lightning as pl
 
 from atomsurf.protein.surfaces import SurfaceObject, SurfaceBatch
-from atomsurf.protein.residue_graph import ResidueGraph, RGraphBatch
-from atomsurf.protein.atom_graph import AtomGraph, AGraphBatch
-
-from torch.optim.lr_scheduler import _LRScheduler, ReduceLROnPlateau, LinearLR, CosineAnnealingLR, SequentialLR, \
-    LambdaLR
+from atomsurf.protein.graphs import parse_pdb_path
+from atomsurf.protein.atom_graph import AtomGraph, AGraphBatch, AtomGraphBuilder
+from atomsurf.protein.residue_graph import ResidueGraph, RGraphBatch, ResidueGraphBuilder
+from atomsurf.utils.learning_utils import get_lr_scheduler
 
 
 class GaussianDistance(object):
@@ -108,21 +108,89 @@ class GraphLoader:
         return graph
 
 
-def update_model_input_dim(cfg, dataset_temp, gkey='graph', skey='surface'):
-    # Useful to create a Model of the right input dims
+def pdb_to_surf_graphs(pdb_path, surface_dump, agraph_dump, rgraph_dump, face_reduction_rate, max_vert_number,
+                       use_pymesh=None, compute_s=True, compute_g=True, recompute_s=False, recompute_g=False):
+    """
+    Wrapper code to go from a PDB to a surface, an AtomGraph and a ResidueGraph
+    """
     try:
-        from omegaconf import open_dict
-        for i, example in enumerate(dataset_temp):
-            if example is not None:
-                with open_dict(cfg):
-                    feat_encoder_kwargs = cfg.encoder.blocks[0].kwargs
-                    feat_encoder_kwargs['graph_feat_dim'] = example[gkey].x.shape[1]
-                    feat_encoder_kwargs['surface_feat_dim'] = example[skey].x.shape[1]
-                break
-            if i > 50:
-                raise Exception('All data returned by Dataloader is None')
+        if compute_s and (recompute_s or not os.path.exists(surface_dump)):
+            use_pymesh = False if use_pymesh is None else use_pymesh
+            surface = SurfaceObject.from_pdb_path(pdb_path, face_reduction_rate=face_reduction_rate,
+                                                  use_pymesh=use_pymesh, max_vert_number=max_vert_number)
+            surface.add_geom_feats()
+            surface.save_torch(surface_dump)
+
+        if compute_g and (recompute_g or not os.path.exists(agraph_dump) or not os.path.exists(rgraph_dump)):
+            arrays = parse_pdb_path(pdb_path)
+            # create atomgraph
+            if recompute_g or not os.path.exists(agraph_dump):
+                agraph = AtomGraphBuilder().arrays_to_agraph(arrays)
+                torch.save(agraph, open(agraph_dump, 'wb'))
+
+            # create residuegraph
+            if recompute_g or not os.path.exists(rgraph_dump):
+                rgraph = ResidueGraphBuilder(add_pronet=True, add_esm=False).arrays_to_resgraph(arrays)
+                torch.save(rgraph, open(rgraph_dump, 'wb'))
+        success = 1
     except Exception as e:
-        raise Exception('Could not update model input dims because of error: ', e)
+        print('*******failed******', pdb_path, e)
+        success = 0
+    return success
+
+
+class PreprocessDataset(Dataset):
+    """
+    Small utility class that handles the boilerplate code of setting up the right repository structure.
+    Given a datadir/ as input, expected to hold a datadir/pdb/{}.pdb of pdb files, this dataset will loop through
+    those files and generate rgraphs/ agraphs/ and surfaces/ directories and files.
+    """
+
+    def __init__(self, datadir, recompute_s=False, recompute_g=False, compute_s=True, compute_g=True,
+                 max_vert_number=100000, face_reduction_rate=0.1, use_pymesh=None):
+        self.pdb_dir = os.path.join(datadir, 'pdb')
+
+        # Surf params
+        self.max_vert_number = max_vert_number
+        self.face_reduction_rate = face_reduction_rate
+        self.use_pymesh = use_pymesh
+        surface_dirname = f'surfaces_{face_reduction_rate}{f"_{use_pymesh}" if use_pymesh is not None else ""}'
+        self.out_surf_dir = os.path.join(datadir, surface_dirname)
+
+        # Graph dirs
+        self.out_rgraph_dir = os.path.join(datadir, 'rgraph')
+        self.out_agraph_dir = os.path.join(datadir, 'agraph')
+
+        # Setup
+        os.makedirs(self.out_surf_dir, exist_ok=True)
+        os.makedirs(self.out_rgraph_dir, exist_ok=True)
+        os.makedirs(self.out_agraph_dir, exist_ok=True)
+        self.recompute_s = recompute_s
+        self.recompute_g = recompute_g
+        self.compute_s = compute_s
+        self.compute_g = compute_g
+
+    def get_all_pdbs(self):
+        pdb_list = sorted([file_name for file_name in os.listdir(self.pdb_dir) if '.pdb' in file_name])
+        return pdb_list
+
+    def __len__(self):
+        return len(self.all_pdbs)
+
+    def path_to_surf_graphs(self, pdb_path, surface_dump, agraph_dump, rgraph_dump):
+        return pdb_to_surf_graphs(pdb_path, surface_dump, agraph_dump, rgraph_dump,
+                                  face_reduction_rate=self.face_reduction_rate,
+                                  max_vert_number=self.max_vert_number,
+                                  use_pymesh=self.use_pymesh,
+                                  recompute_s=self.recompute_s,
+                                  recompute_g=self.recompute_g)
+
+    def name_to_surf_graphs(self, name):
+        pdb_path = os.path.join(self.pdb_dir, f'{name}.pdb')
+        surface_dump = os.path.join(self.out_surf_dir, f'{name}.pt')
+        agraph_dump = os.path.join(self.out_agraph_dir, f'{name}.pt')
+        rgraph_dump = os.path.join(self.out_rgraph_dir, f'{name}.pt')
+        return self.path_to_surf_graphs(pdb_path, surface_dump, agraph_dump, rgraph_dump)
 
 
 class AtomBatch(Data):
@@ -190,6 +258,23 @@ class AtomBatch(Data):
         batch = batch.contiguous()
         batch.num_graphs = len(data_list)
         return batch
+
+
+def update_model_input_dim(cfg, dataset_temp, gkey='graph', skey='surface'):
+    # Useful to create a Model of the right input dims
+    try:
+        from omegaconf import open_dict
+        for i, example in enumerate(dataset_temp):
+            if example is not None:
+                with open_dict(cfg):
+                    feat_encoder_kwargs = cfg.encoder.blocks[0].kwargs
+                    feat_encoder_kwargs['graph_feat_dim'] = example[gkey].x.shape[1]
+                    feat_encoder_kwargs['surface_feat_dim'] = example[skey].x.shape[1]
+                break
+            if i > 50:
+                raise Exception('All data returned by Dataloader is None')
+    except Exception as e:
+        raise Exception('Could not update model input dims because of error: ', e)
 
 
 class AtomPLModule(pl.LightningModule):
@@ -298,54 +383,3 @@ class AtomPLModule(pl.LightningModule):
                      'name': "epoch/lr"}
         # return optimizer
         return [optimizer], [scheduler]
-
-
-def get_lr_scheduler(scheduler, optimizer, **kwargs):
-    warmup_epochs = kwargs['warmup_epochs'] if 'warmup_epochs' in kwargs else 0
-
-    if scheduler == 'PolynomialLRWithWarmup':
-        total_epochs = kwargs['total_epochs']
-        decay_scheduler = PolynomialLR(optimizer,
-                                       total_iters=total_epochs - warmup_epochs,
-                                       power=1)
-    elif scheduler == 'CosineAnnealingLRWithWarmup':
-        total_epochs = kwargs['total_epochs']
-        eta_min = kwargs['eta_min'] if 'eta_min' in kwargs else 1e-8
-        decay_scheduler = CosineAnnealingLR(optimizer,
-                                            T_max=total_epochs - warmup_epochs,
-                                            eta_min=eta_min)
-    elif scheduler == 'constant':
-        lambda1 = lambda epoch: 1.0  # noqa
-        decay_scheduler = LambdaLR(optimizer, lr_lambda=lambda1)
-    elif scheduler == 'ReduceLROnPlateau':
-        decay_scheduler = ReduceLROnPlateau(optimizer,
-                                            patience=kwargs['patience'],
-                                            factor=kwargs['factor'],
-                                            mode='max')
-    else:
-        raise NotImplementedError
-
-    if warmup_epochs > 0:
-        warmup_scheduler = LinearLR(optimizer,
-                                    start_factor=1E-3,
-                                    total_iters=warmup_epochs)
-        return SequentialLR(optimizer,
-                            schedulers=[warmup_scheduler, decay_scheduler],
-                            milestones=[warmup_epochs])
-    else:
-        return decay_scheduler
-
-
-class PolynomialLR(_LRScheduler):
-    def __init__(self, optimizer, total_iters, power, last_epoch=-1, verbose=False):
-        self.total_iters = total_iters
-        self.power = power
-        super().__init__(optimizer, last_epoch, verbose)
-
-    def get_lr(self):
-        if self.last_epoch == 0 or self.last_epoch > self.total_iters:
-            return [group['lr'] for group in self.optimizer.param_groups]
-
-        decay_factor = ((1.0 - self.last_epoch / self.total_iters) /
-                        (1.0 - (self.last_epoch - 1) / self.total_iters)) ** self.power
-        return [group['lr'] * decay_factor for group in self.optimizer.param_groups]
