@@ -6,9 +6,9 @@ from pytorch_lightning.loggers import WandbLogger
 import wandb
 
 
-def add_wandb_logger(loggers,projectname):
+def add_wandb_logger(loggers, projectname):
     # init logger
-    wandb.init(reinit=True,entity='vincent-mallet-cri-lpi')
+    wandb.init(reinit=True, entity='vincent-mallet-cri-lpi')
     wand_id = wandb.util.generate_id()
     tb_logger = loggers[-1]
     run_name = f"{Path(tb_logger.log_dir).stem}"

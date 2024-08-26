@@ -2,7 +2,6 @@ defaults:
   - _self_
   - blocks_zoo
   - encoder: debug
-  - dataset: vanilla
   - optimizer: adam
   - scheduler: reduce_lr_on_plateau
   - override hydra/job_logging: colorlog
@@ -28,9 +27,15 @@ min_batch_size: 2
 use_wandb: False
 
 scheduler:
+  # ReduceLROnPlateau scheduler
   name: ReduceLROnPlateau
   patience: 5
   factor: 0.5
+  # StepLR scheduler
+#  name: StepLR
+#  step_size: 10
+#  gamma: 0.5
+
 
 # loader params
 loader:
@@ -81,4 +86,4 @@ cfg_graph:
 
 cfg_head:
   toto: false
-  encoded_dims: 24
+  encoded_dims: 12

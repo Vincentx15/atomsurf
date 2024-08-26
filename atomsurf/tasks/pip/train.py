@@ -17,8 +17,11 @@ from atomsurf.utils.callbacks import CommandLoggerCallback, add_wandb_logger
 from pl_model import PIPModule
 from data_loader import PIPDataModule
 import warnings
+
 warnings.filterwarnings("ignore")
 torch.multiprocessing.set_sharing_strategy('file_system')
+
+
 @hydra.main(config_path="conf", config_name="config")
 def main(cfg=None):
     command = f"python3 {' '.join(sys.argv)}"
@@ -28,14 +31,6 @@ def main(cfg=None):
 
     # init datamodule
     datamodule = PIPDataModule(cfg)
-    # To debug while Trainer is buggy # TODO remove when trainer is fixed.
-    # train_loader = datamodule.train_dataloader()
-    # for i, batch in enumerate(train_loader):
-    #     if i > 2:
-    #         break
-    #     print(batch.graph[0].x.shape)
-    #     print(batch.surface[0].x.shape)
-    #     sys.exit()
 
     # init model
     model = PIPModule(cfg)
@@ -47,7 +42,7 @@ def main(cfg=None):
     loggers = [tb_logger]
 
     if cfg.use_wandb:
-        add_wandb_logger(loggers)
+        add_wandb_logger(loggers, projectname='pip')
 
     # callbacks
     lr_logger = pl.callbacks.LearningRateMonitor()
@@ -94,7 +89,7 @@ def main(cfg=None):
         detect_anomaly=cfg.train.detect_anomaly,
         # debugging
         overfit_batches=cfg.train.overfit_batches,
-        #monitor time
+        # monitor time
         # profiler="simple",
         # gpu
         **params,

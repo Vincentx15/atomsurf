@@ -123,14 +123,13 @@ class PIPDataset(Dataset):
 class PIPDataModule(pl.LightningDataModule):
     def __init__(self, cfg):
         super().__init__()
-
-        script_dir = os.path.dirname(os.path.realpath(__file__))
         data_dir = cfg.data_dir
         self.systems = []
         self.surface_builders = []
         self.graph_builders = []
         self.cfg = cfg
         for mode in ['train', 'val', 'test']:
+        # for mode in ['test']*3:
             self.systems.append(os.path.join(data_dir, mode))
             self.surface_builders.append(SurfaceLoaderPIP(self.cfg.cfg_surface, mode=mode))
             self.graph_builders.append(GraphBuilderPIP(self.cfg.cfg_graph, mode=mode))
@@ -154,7 +153,7 @@ class PIPDataModule(pl.LightningDataModule):
         return DataLoader(dataset, shuffle=False, **self.loader_args)
 
     def test_dataloader(self):
-        dataset = PIPDataset(self.systems[2], self.surface_builder_test, self.graph_builder_test,
+        dataset = PIPDataset(self.systems[2], self.surface_builders[2], self.graph_builders[2],
                              max_pos_regions_per_ensemble=5)
         return DataLoader(dataset, shuffle=False, **self.loader_args)
 

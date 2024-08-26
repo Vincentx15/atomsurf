@@ -6,7 +6,7 @@ import torch.nn.functional as F
 
 # project
 from atomsurf.tasks.masif_site.model import MasifSiteNet
-from atomsurf.utils.data_utils import AtomPLModule
+from atomsurf.utils.learning_utils import AtomPLModule
 from atomsurf.utils.metrics import compute_accuracy, compute_auroc
 
 
@@ -42,9 +42,8 @@ class MasifSiteModule(AtomPLModule):
         self.model = MasifSiteNet(cfg_encoder=cfg.encoder, cfg_head=cfg.cfg_head)
 
     def step(self, batch):
-        if batch is None:
+        if batch.num_graphs < self.hparams.cfg.min_batch_size:
             return None, None, None
-
         labels = torch.concatenate(batch.label)
         out_surface_batch = self(batch)
         outputs = out_surface_batch.x.flatten()
@@ -58,7 +57,4 @@ class MasifSiteModule(AtomPLModule):
         logits, labels = torch.cat(logits, dim=0), torch.cat(labels, dim=0)
         auroc = compute_auroc(predictions=logits, labels=labels)
         acc = compute_accuracy(predictions=logits, labels=labels, add_sigmoid=True)
-        self.log_dict({
-            f"auroc/{prefix}": auroc,
-            f"acc/{prefix}": acc,
-        }, on_epoch=True, batch_size=len(logits))
+        self.log_dict({f"auroc/{prefix}": auroc, f"acc/{prefix}": acc, }, on_epoch=True, batch_size=len(logits))

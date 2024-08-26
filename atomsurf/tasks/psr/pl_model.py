@@ -48,10 +48,7 @@ class PSRModule(pl.LightningModule):
         return self.model(x)
 
     def step(self, batch):
-
-        if batch is None:
-            return None, None, None
-        if len(set(batch.graph.batch.cpu().numpy())) < 2:
+        if batch is None or batch.num_graphs < self.hparams.cfg.min_batch_size:
             return None, None, None
         scores = batch.score.reshape(-1, 1)
         outputs = self(batch)
