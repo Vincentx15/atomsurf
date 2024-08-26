@@ -735,6 +735,7 @@ gvp_128_normals_pronet:
         neigh_thresh: 8
         sigma: 2.5
         
+
 diffusionpip128|pronet|gvp:
   name: ProteinEncoder
   instanciate:
@@ -799,6 +800,7 @@ diffusionpip128|pronet|gvp:
 
         neigh_thresh: 8
         sigma: 2.5
+
 ChemGeomFeatEncoder128_neigh:
   name: ChemGeomFeatEncoder
   instanciate:

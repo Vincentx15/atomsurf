@@ -22,14 +22,13 @@ class PolynomialLR(_LRScheduler):
 
 def get_lr_scheduler(scheduler, optimizer, **kwargs):
     warmup_epochs = kwargs['warmup_epochs'] if 'warmup_epochs' in kwargs else 0
+    total_epochs = kwargs['num_epochs']
 
-    if scheduler == 'PolynomialLRWithWarmup':
-        total_epochs = kwargs['total_epochs']
+    if scheduler == 'PolynomialLR':
         decay_scheduler = PolynomialLR(optimizer,
                                        total_iters=total_epochs - warmup_epochs,
                                        power=1)
     elif scheduler == 'CosineAnnealingLR':
-        total_epochs = kwargs['total_epochs']
         eta_min = kwargs['eta_min'] if 'eta_min' in kwargs else 1e-8
         decay_scheduler = CosineAnnealingLR(optimizer,
                                             T_max=total_epochs - warmup_epochs,
@@ -144,12 +143,14 @@ class AtomPLModule(pl.LightningModule):
     def configure_optimizers(self):
         opt_params = self.hparams.cfg.optimizer
         sched_params = self.hparams.cfg.scheduler
+        num_epochs = self.hparams.cfg.epochs
         optimizer = torch.optim.Adam(self.parameters(), lr=opt_params.lr)
 
         # Set up the scheduler.
         # For schedulers others than ReduceLROnPlateau, we don't need to monitor any metrics, so we don't need them
         scheduler_obj = get_lr_scheduler(scheduler=sched_params.name,
                                          optimizer=optimizer,
+                                         num_epochs=num_epochs,
                                          **sched_params)
         needs_monitor = sched_params.name == 'ReduceLROnPlateau'
         monitor = None if not needs_monitor else self.hparams.cfg.train.to_monitor

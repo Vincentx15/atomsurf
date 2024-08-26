@@ -11,7 +11,7 @@ if __name__ == '__main__':
 
 from atomsurf.protein.create_esm import get_esm_embedding_batch
 from atomsurf.utils.atom_utils import df_to_pdb
-from atomsurf.utils.data_utils import pdb_to_surf_graphs, PreprocessDataset
+from atomsurf.utils.data_utils import PreprocessDataset
 from atomsurf.utils.python_utils import do_all
 
 torch.multiprocessing.set_sharing_strategy('file_system')

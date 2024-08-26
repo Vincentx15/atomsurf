@@ -3,33 +3,28 @@ defaults:
   - blocks_zoo
   - encoder: vanilla
   - dataset: vanilla
-#  - dataset@trainset: [ masif_ligand_hmr ]
-#  - dataset@valset: [ masif_ligand_hmr ]
-#  - dataset@testset: [ masif_ligand_hmr ]
   - optimizer: adam
   - scheduler: reduce_lr_on_plateau
   - override hydra/job_logging: colorlog
   - override hydra/hydra_logging: colorlog
 
-# hydra:
-#   job:
-#     chdir: False
+hydra:
+  job:
+    chdir: False
+  searchpath:
+    - main/../../shared_conf/
 
 # general params
 seed: 2024
 run_name: default
 data_dir: /work/lpdi/users/ymiao/code/psrdata/split-by-year/data/
-out_dir:  /work/lpdi/users/ymiao/code/psr_out_dir
+out_dir: /work/lpdi/users/ymiao/code/psr_out_dir
 test_freq: 5
 epochs: 100
 device: 0
 log_dir: "./"
 path_model: "version_x/checkpoints/last.ckpt"
 min_batch_size: 2
-
-lr_scheduler: PolynomialLRWithWarmup
-warmup_epochs: 10
-lr_eta_min: 1E-8
 
 # loader params
 loader:
@@ -75,15 +70,6 @@ cfg_graph:
   oh_keys: 'all'
   esm_dir: '/work/lpdi/users/ymiao/code/psrdata/split-by-year/data/'
   use_esm: false
-
-
-#cfg_graph:
-#  use_graphs: true
-#  data_dir: ../../../data/masif_ligand/agraph
-#  feat_keys: 'all'
-#  oh_keys: 'all'
-#  esm_dir: ../../../data/masif_ligand/esm
-#  use_esm: false
 
 cfg_head:
   toto: false

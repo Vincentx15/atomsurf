@@ -4,7 +4,7 @@ defaults:
   - encoder: vanilla
   - dataset: vanilla
   - optimizer: adam
-  - scheduler: reduce_lr_on_plateau
+  - scheduler: polynomial_lr
   - override hydra/job_logging: colorlog
   - override hydra/hydra_logging: colorlog
 
@@ -25,11 +25,6 @@ device: 0
 path_model: "version_x/checkpoints/last.ckpt"
 min_batch_size: 2
 use_wandb: False
-
-scheduler:
-  name: PolynomialLRWithWarmup
-  warmup_epochs: 10
-  lr_eta_min: 1E-8
 
 # loader params
 loader:

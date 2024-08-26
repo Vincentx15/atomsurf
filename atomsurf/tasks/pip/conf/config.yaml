@@ -74,5 +74,4 @@ cfg_graph:
 
 
 cfg_head:
-  toto: false
   encoded_dims: 12

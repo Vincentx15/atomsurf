@@ -1,3 +1,3 @@
-name: PolynomialLRWithWarmup
+name: PolynomialLR
 warmup_epochs: 10
 lr_eta_min: 1E-8

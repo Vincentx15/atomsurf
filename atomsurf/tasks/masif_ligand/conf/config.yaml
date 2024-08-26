@@ -2,9 +2,8 @@ defaults:
   - _self_
   - blocks_zoo
   - encoder: debug
-  - dataset: vanilla
   - optimizer: adam
-  - scheduler: reduce_lr_on_plateau
+  - scheduler: polynomial_lr
   - override hydra/job_logging: colorlog
   - override hydra/hydra_logging: colorlog
 
@@ -27,8 +26,6 @@ log_dir: "./"
 path_model: "version_x/checkpoints/last.ckpt"
 min_batch_size: 2
 use_inmem: False
-
-scheduler:
 
 
 # loader params
