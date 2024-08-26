@@ -1,149 +1,3 @@
-ChemGeomFeatEncoder:
-  name: ChemGeomFeatEncoder
-  instanciate:
-    _target_: atomsurf.networks.ChemGeomFeatEncoder
-  kwargs:
-    use_neigh: True
-    h_dim: 128
-    dropout: 0.1
-    num_gdf: 16
-    num_signatures: 16
-
-ChemGeomFeatEncoder12:
-  name: ChemGeomFeatEncoder
-  instanciate:
-    _target_: atomsurf.networks.ChemGeomFeatEncoder
-  kwargs:
-    use_neigh: False
-    h_dim: 12
-    dropout: 0.1
-    num_gdf: 16
-    num_signatures: 16
-
-ChemGeomFeatEncoder24:
-  name: ChemGeomFeatEncoder
-  instanciate:
-    _target_: atomsurf.networks.ChemGeomFeatEncoder
-  kwargs:
-    use_neigh: False
-    h_dim: 24
-    dropout: 0.1
-    num_gdf: 16
-    num_signatures: 16
-
-ChemGeomFeatEncoder12_neigh:
-  name: ChemGeomFeatEncoder
-  instanciate:
-    _target_: atomsurf.networks.ChemGeomFeatEncoder
-  kwargs:
-    use_neigh: True
-    h_dim: 12
-    dropout: 0.1
-    num_gdf: 16
-    num_signatures: 16
-
-HMRChemGeomFeatEncoder24:
-  name: HMRChemGeomFeatEncoder
-  instanciate:
-    _target_: atomsurf.networks.HMRChemGeomFeatEncoder
-  kwargs:
-    h_dim: 24
-    dropout: 0.1
-    num_gdf: 16
-    num_signatures: 16
-    use_bp: true
-    use_gat: false
-    use_v2: false
-    use_gvp: true
-    use_knn: false
-    bp_self_loops: false
-    bp_s_dim_in: 24
-    bp_s_dim_out: 24
-    bp_g_dim_in: 24
-    bp_g_dim_out: 24
-    bp_fill_value: "mean"
-    neigh_thresh: 8
-    sigma: 2.5
-
-GVPChemGeomFeatEncoder12:
-  name: HMRChemGeomFeatEncoder
-  instanciate:
-    _target_: atomsurf.networks.HMRChemGeomFeatEncoder
-  kwargs:
-    h_dim: 12
-    dropout: 0.1
-    num_gdf: 16
-    num_signatures: 16
-    use_bp: true
-    use_gvp: true
-    use_knn: false
-    neigh_thresh: 8
-    sigma: 2.5
-
-GVPChemGeomFeatEncoder12_normals:
-  name: HMRChemGeomFeatEncoder
-  instanciate:
-    _target_: atomsurf.networks.HMRChemGeomFeatEncoder
-  kwargs:
-    h_dim: 12
-    dropout: 0.1
-    num_gdf: 16
-    num_signatures: 16
-    use_bp: true
-    use_gvp: true
-    use_knn: false
-    use_normals: true
-    neigh_thresh: 8
-    sigma: 2.5
-
-GVPChemGeomFeatEncoder12_knn:
-  name: HMRChemGeomFeatEncoder
-  instanciate:
-    _target_: atomsurf.networks.HMRChemGeomFeatEncoder
-  kwargs:
-    h_dim: 12
-    dropout: 0.1
-    num_gdf: 16
-    num_signatures: 16
-    use_bp: true
-    use_gvp: true
-    use_knn: true
-    use_normals: true
-    neigh_thresh: 8
-    sigma: 2.5
-
-GVPChemGeomFeatEncoder128:
-  name: GVPChemGeomFeatEncoder
-  instanciate:
-    _target_: atomsurf.networks.HMRChemGeomFeatEncoder
-  kwargs:
-    h_dim: 128
-    dropout: 0.1
-    num_gdf: 16
-    num_signatures: 16
-    use_bp: true
-    use_gvp: true
-    use_knn: false
-    use_normals: false
-    neigh_thresh: 8
-    sigma: 2.5
-
-GVPChemGeomFeatEncoder128_normals:
-  name: GVPChemGeomFeatEncoder
-  instanciate:
-    _target_: atomsurf.networks.HMRChemGeomFeatEncoder
-  kwargs:
-    h_dim: 128
-    dropout: 0.1
-    num_gdf: 16
-    num_signatures: 16
-    use_bp: true
-    use_gvp: true
-    use_knn: false
-    use_normals: true
-    neigh_thresh: 8
-    sigma: 2.5
-
 diffusion128|gcn128|concurent:
   name: ProteinEncoder
   instanciate:
@@ -151,66 +5,6 @@ diffusion128|gcn128|concurent:
   kwargs:
     surface_encoder:
       name: DiffusionNetBlockBatch
-      instanciate:
-        _target_: atomsurf.network_utils.DiffusionNetBlockBatch  # diffusion_net.DiffusionNet
-      kwargs:
-        C_width: 128
-        mlp_hidden_dims: [ 128, 128 ]
-        dropout: 0.0
-        use_bn: true
-        init_time: 2.0  # either null (for constant init) or a float
-        init_std: 2.0
-    graph_encoder:
-      name: GCNx2Block
-      instanciate:
-        _target_: atomsurf.network_utils.GCNx2Block
-      kwargs:
-        dim_in: 128
-        hidden_dims: 128
-        dim_out: 128
-        dropout: 0.0
-        use_bn: true
-        use_weighted_edge_distance: false
-    communication_block:
-      name: ConcurrentCommunication
-      instanciate:
-        _target_: atomsurf.network_utils.ConcurrentCommunication
-      kwargs:
-        use_bp: true
-        pre_s_block: linear
-        pre_g_block: linear
-        pre_s_dim_in: 128
-        pre_s_dim_out: 64
-        pre_g_dim_in: 128
-        pre_g_dim_out: 64
-
-        use_gat: true
-        use_v2: false
-        bp_self_loops: false
-        bp_fill_value: "mean"
-        bp_s_dim_in: 64
-        bp_s_dim_out: 64
-        bp_g_dim_in: 64
-        bp_g_dim_out: 64
-
-        post_s_block: cat_post_process
-        post_g_block: cat_post_process
-        post_s_dim_in: 128
-        post_s_dim_out: 128
-        post_g_dim_in: 128
-        post_g_dim_out: 128
-
-        neigh_thresh: 8
-        sigma: 2.5
-
-
-diffusionpip128|gcn128|concurent:
-  name: ProteinEncoder
-  instanciate:
-    _target_: atomsurf.networks.ProteinEncoderBlock
-  kwargs:
-    surface_encoder:
-      name: DiffusionNetPipBlock
       instanciate:
         _target_: diffusion_net.DiffusionNetBlock
       kwargs:
@@ -272,7 +66,7 @@ diffusion12|gcn12|concurent:
     surface_encoder:
       name: DiffusionNetBlockBatch
       instanciate:
-        _target_: atomsurf.network_utils.DiffusionNetBlockBatch
+        _target_: diffusion_net.DiffusionNetBlock
       kwargs:
         C_width: 12
         mlp_hidden_dims: [ 12, 12 ]
@@ -331,7 +125,7 @@ diffusion128|gcn128|concurent_dout:
     surface_encoder:
       name: DiffusionNetBlockBatch
       instanciate:
-        _target_: atomsurf.network_utils.DiffusionNetBlockBatch  # diffusion_net.DiffusionNet
+        _target_: diffusion_net.DiffusionNetBlock
       kwargs:
         C_width: 128
         mlp_hidden_dims: [ 128, 128 ]
@@ -390,7 +184,7 @@ diffusion12|gcn12|concurent_dout:
     surface_encoder:
       name: DiffusionNetBlockBatch
       instanciate:
-        _target_: atomsurf.network_utils.DiffusionNetBlockBatch
+        _target_: diffusion_net.DiffusionNetBlock
       kwargs:
         C_width: 12
         mlp_hidden_dims: [ 12, 12 ]
@@ -449,7 +243,7 @@ diffusion24|gcn24|concurent_dout:
     surface_encoder:
       name: DiffusionNetBlockBatch
       instanciate:
-        _target_: atomsurf.network_utils.DiffusionNetBlockBatch
+        _target_: diffusion_net.DiffusionNetBlock
       kwargs:
         C_width: 24
         mlp_hidden_dims: [ 24, 24 ]
@@ -508,7 +302,7 @@ gvp_128:
     surface_encoder:
       name: DiffusionNetBlockBatch
       instanciate:
-        _target_: atomsurf.network_utils.DiffusionNetBlockBatch  # diffusion_net.DiffusionNet
+        _target_: diffusion_net.DiffusionNetBlock
       kwargs:
         C_width: 128
         mlp_hidden_dims: [ 128, 128 ]
@@ -565,7 +359,7 @@ gvp_128_normals:
     surface_encoder:
       name: DiffusionNetBlockBatch
       instanciate:
-        _target_: atomsurf.network_utils.DiffusionNetBlockBatch  # diffusion_net.DiffusionNet
+        _target_: diffusion_net.DiffusionNetBlock
       kwargs:
         C_width: 128
         mlp_hidden_dims: [ 128, 128 ]
@@ -622,7 +416,7 @@ gvp_12_normals:
     surface_encoder:
       name: DiffusionNetBlockBatch
       instanciate:
-        _target_: atomsurf.network_utils.DiffusionNetBlockBatch  # diffusion_net.DiffusionNet
+        _target_: diffusion_net.DiffusionNetBlock
       kwargs:
         C_width: 12
         mlp_hidden_dims: [ 12, 12 ]
@@ -670,7 +464,7 @@ gvp_12_normals:
         neigh_thresh: 8
         sigma: 2.5
 
-gvp_128_normals_pronet:
+pronet|gvp_128_normals:
   name: ProteinEncoder
   instanciate:
     _target_: atomsurf.networks.ProteinEncoderBlock
@@ -678,77 +472,11 @@ gvp_128_normals_pronet:
     surface_encoder:
       name: DiffusionNetBlockBatch
       instanciate:
-        _target_: atomsurf.network_utils.DiffusionNetBlockBatch  # diffusion_net.DiffusionNet
-      kwargs:
-        C_width: 128
-        mlp_hidden_dims: [ 128, 128 ]
-        dropout: 0.1
-        use_bn: true
-        init_time: 2.0  # either null (for constant init) or a float
-        init_std: 2.0
-    graph_encoder:
-      name: ProNet
-      instanciate:
-        _target_: atomsurf.network_utils.ProNet
-      kwargs:
-        level: allatom
-        num_blocks: 4
-        hidden_channels: 128
-        mid_emb: 64
-        num_radial: 6
-        num_spherical: 2
-        cutoff: 10.0
-        max_num_neighbors: 32
-        int_emb_layers: 3
-        num_pos_emb: 16
-        dropout: 0.1
-        data_augment_eachlayer: False
-        euler_noise: False
-        add_seq_emb: False
-    communication_block:
-      name: ConcurrentCommunication
-      instanciate:
-        _target_: atomsurf.network_utils.ConcurrentCommunication
-      kwargs:
-        use_bp: true
-        pre_s_block: linear
-        pre_g_block: linear
-        pre_s_dim_in: 128
-        pre_s_dim_out: 64
-        pre_g_dim_in: 128
-        pre_g_dim_out: 64
-
-        use_gvp: true
-        use_normals: true
-        bp_s_dim_in: 64
-        bp_s_dim_out: 64
-        bp_g_dim_in: 64
-        bp_g_dim_out: 64
-
-        post_s_block: cat_post_process
-        post_g_block: cat_post_process
-        post_s_dim_in: 128
-        post_s_dim_out: 128
-        post_g_dim_in: 128
-        post_g_dim_out: 128
-
-        neigh_thresh: 8
-        sigma: 2.5
-        
-
-diffusionpip128|pronet|gvp:
-  name: ProteinEncoder
-  instanciate:
-    _target_: atomsurf.networks.ProteinEncoderBlock
-  kwargs:
-    surface_encoder:
-      name: DiffusionNetPipBlock
-      instanciate:
         _target_: diffusion_net.DiffusionNetBlock
       kwargs:
         C_width: 128
         mlp_hidden_dims: [ 128, 128 ]
-        dropout: 0.0
+        dropout: 0.1
         use_bn: true
         init_time: 2.0  # either null (for constant init) or a float
         init_std: 2.0
@@ -800,14 +528,3 @@ diffusionpip128|pronet|gvp:
 
         neigh_thresh: 8
         sigma: 2.5
-
-ChemGeomFeatEncoder128_neigh:
-  name: ChemGeomFeatEncoder
-  instanciate:
-    _target_: atomsurf.networks.ChemGeomFeatEncoder
-  kwargs:
-    use_neigh: True
-    h_dim: 128
-    dropout: 0.1
-    num_gdf: 16
-    num_signatures: 16

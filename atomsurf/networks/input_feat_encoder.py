@@ -143,7 +143,6 @@ class ChemGeomFeatEncoder(nn.Module):
 
 class HMRChemGeomFeatEncoder(SurfaceGraphCommunication):
     def __init__(self, hparams, **kwargs):
-
         use_bp = hparams.use_bp
         use_gvp = hparams.use_gvp if "use_gvp" in hparams else False
         use_normals = hparams.use_normals if "use_gvp" in hparams else False

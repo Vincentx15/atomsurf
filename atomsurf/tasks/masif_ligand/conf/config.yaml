@@ -1,6 +1,7 @@
 defaults:
   - _self_
   - blocks_zoo
+  - blocks_zoo_input
   - encoder: debug
   - optimizer: adam
   - scheduler: polynomial_lr

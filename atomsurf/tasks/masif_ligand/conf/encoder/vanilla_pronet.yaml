@@ -2,6 +2,6 @@ name: vanilla_pronet
 
 blocks:
   - ${GVPChemGeomFeatEncoder128_normals}
-  - ${gvp_128_normals_pronet}
-  - ${gvp_128_normals_pronet}
-  - ${gvp_128_normals_pronet}
+  - ${pronet|gvp_128_normals}
+  - ${pronet|gvp_128_normals}
+  - ${pronet|gvp_128_normals}

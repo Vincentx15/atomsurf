@@ -1,8 +1,8 @@
 defaults:
   - _self_
   - blocks_zoo
+  - blocks_zoo_input
   - encoder: vanilla
-  - dataset: vanilla
   - optimizer: adam
   - scheduler: polynomial_lr
   - override hydra/job_logging: colorlog
