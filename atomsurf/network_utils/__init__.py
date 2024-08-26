@@ -1,6 +1,5 @@
-from .communication.blocks import ConcurrentCommunication, SequentialCommunication, ParallelCommunicationV1, SequentialCommunicationV1, GATCommunicationV1
-from .diffusion_net.diffusion_net import DiffusionNet, DiffusionNetBlock
-from .diffusion_net.diffusion_net_batch import DiffusionNetBatch, DiffusionNetBlockBatch
+from .communication.blocks import ConcurrentCommunication, SequentialCommunication, ParallelCommunicationV1, \
+    SequentialCommunicationV1, GATCommunicationV1
 from .misc_arch.graph_blocks import GCNx2Block
 from .misc_arch.deltaconv import DeltaConv
 from .misc_arch.dgcnn import DGCNN, DGCNNLayer
@@ -10,10 +9,6 @@ from .misc_arch.pronet import ProNet
 __all__ = [
     "ConcurrentCommunication",
     "SequentialCommunication",
-    "DiffusionNet",
-    "DiffusionNetBlock",
-    "DiffusionNetBatch",
-    "DiffusionNetBlockBatch",
     "GCNx2Block",
     "DeltaConv",
     "DGCNN",
@@ -22,5 +17,5 @@ __all__ = [
     "ParallelCommunicationV1",
     "SequentialCommunicationV1",
     "GATCommunicationV1",
-     "ProNet",
+    "ProNet",
 ]
