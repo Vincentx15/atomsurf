@@ -28,7 +28,7 @@ def get_lr_scheduler(scheduler, optimizer, **kwargs):
         decay_scheduler = PolynomialLR(optimizer,
                                        total_iters=total_epochs - warmup_epochs,
                                        power=1)
-    elif scheduler == 'CosineAnnealingLRWithWarmup':
+    elif scheduler == 'CosineAnnealingLR':
         total_epochs = kwargs['total_epochs']
         eta_min = kwargs['eta_min'] if 'eta_min' in kwargs else 1e-8
         decay_scheduler = CosineAnnealingLR(optimizer,

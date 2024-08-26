@@ -106,17 +106,9 @@ class PIPDataset(Dataset):
         if idx_left.max() >= len(graph_1.node_pos) or idx_right.max() >= len(graph_2.node_pos):
             print('idx error', names)
             return None
-        # locs_left = graph_1.node_pos[idx_left]
-        # locs_right = graph_2.node_pos[idx_right]
-        # TODO MISS transform and normalize
-        # item = Data(surface_1=surface_1, graph_1=graph_1,surface_2=surface_2, graph_2=graph_2, idx_left=idx_left,idx_right=idx_right, label=labels)
-
         item = Data(surface_1=surface_1, graph_1=graph_1, surface_2=surface_2, graph_2=graph_2, idx_left=idx_left,
                     idx_right=idx_right, label=labels, g1_len=graph_1.node_pos.shape[0],
                     g2_len=graph_2.node_pos.shape[0])
-        # item = Data(surface_1=surface_1, graph_1=graph_1, surface_2=surface_2, graph_2=graph_2, locs_left=locs_left,
-        #             locs_right=locs_right, labels_pip=labels)
-        # print('process one data ',time.time()-t0)
         return item
 
 
@@ -129,7 +121,7 @@ class PIPDataModule(pl.LightningDataModule):
         self.graph_builders = []
         self.cfg = cfg
         for mode in ['train', 'val', 'test']:
-        # for mode in ['test']*3:
+        # for mode in ['test'] * 3:
             self.systems.append(os.path.join(data_dir, mode))
             self.surface_builders.append(SurfaceLoaderPIP(self.cfg.cfg_surface, mode=mode))
             self.graph_builders.append(GraphBuilderPIP(self.cfg.cfg_graph, mode=mode))

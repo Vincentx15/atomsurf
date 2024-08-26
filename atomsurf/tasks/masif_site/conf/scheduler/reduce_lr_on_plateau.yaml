@@ -1,3 +1,0 @@
-name: ReduceLROnPlateau
-patience: 5
-factor: 0.5

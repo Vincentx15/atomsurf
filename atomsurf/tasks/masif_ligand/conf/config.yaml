@@ -9,10 +9,10 @@ defaults:
   - override hydra/hydra_logging: colorlog
 
 hydra:
- job:
-   chdir: False
- searchpath:
-   - main/../../shared_conf/
+  job:
+    chdir: False
+  searchpath:
+    - main/../../shared_conf/
 
 # general params
 seed: 2024
@@ -29,9 +29,7 @@ min_batch_size: 2
 use_inmem: False
 
 scheduler:
-  name: PolynomialLRWithWarmup
-  warmup_epochs: 10
-  lr_eta_min: 1E-8
+
 
 # loader params
 loader:
@@ -80,14 +78,6 @@ cfg_graph:
   oh_keys: 'all'
   esm_dir: ../../../data/masif_ligand/esm
   use_esm: false
-
-#cfg_graph:
-#  use_graphs: true
-#  data_dir: ../../../data/masif_ligand/agraph
-#  feat_keys: 'all'
-#  oh_keys: 'all'
-#  esm_dir: ../../../data/masif_ligand/esm
-#  use_esm: false
 
 cfg_head:
   encoded_dims: 12

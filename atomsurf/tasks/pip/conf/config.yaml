@@ -26,17 +26,6 @@ path_model: "version_x/checkpoints/last.ckpt"
 min_batch_size: 2
 use_wandb: False
 
-scheduler:
-  # ReduceLROnPlateau scheduler
-  name: ReduceLROnPlateau
-  patience: 5
-  factor: 0.5
-  # StepLR scheduler
-#  name: StepLR
-#  step_size: 10
-#  gamma: 0.5
-
-
 # loader params
 loader:
   num_workers: 0
