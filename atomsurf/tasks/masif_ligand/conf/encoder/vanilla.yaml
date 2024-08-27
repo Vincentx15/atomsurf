@@ -1,9 +1,0 @@
-name: vanilla
-
-
-blocks:
-  - ${ChemGeomFeatEncoder}
-  - ${diffusion128|gcn128|concurent}
-  - ${diffusion128|gcn128|concurent}
-  - ${diffusion128|gcn128|concurent}
-  - ${diffusion128|gcn128|concurent}

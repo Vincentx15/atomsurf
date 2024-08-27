@@ -1,9 +1,0 @@
-name: vanilla_useneigh
-
-
-blocks:
-  - ${ChemGeomFeatEncoder128_neigh}
-  - ${diffusion128|gcn128|concurent}
-  - ${diffusion128|gcn128|concurent}
-  - ${diffusion128|gcn128|concurent}
-  - ${diffusion128|gcn128|concurent}

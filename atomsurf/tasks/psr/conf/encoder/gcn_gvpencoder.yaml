@@ -1,9 +1,0 @@
-name: gcn_gvpencoder
-
-
-blocks:
-  - ${GVPChemGeomFeatEncoder128_normals}
-  - ${diffusion128|gcn128|concurent}
-  - ${diffusion128|gcn128|concurent}
-  - ${diffusion128|gcn128|concurent}
-  - ${diffusion128|gcn128|concurent}

@@ -1,7 +1,0 @@
-name: vanilla_gvp
-
-blocks:
-  - ${GVPChemGeomFeatEncoder128_normals}
-  - ${gvp_128_normals}
-  - ${gvp_128_normals}
-  - ${gvp_128_normals}

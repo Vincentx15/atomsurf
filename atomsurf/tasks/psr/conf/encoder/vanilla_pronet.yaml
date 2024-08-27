@@ -1,8 +1,0 @@
-name: vanilla_pronet
-
-
-blocks:
-  - ${ChemGeomFeatEncoder128_neigh}
-  - ${gvp_128_normals_pronet}
-  - ${gvp_128_normals_pronet}
-  - ${gvp_128_normals_pronet}

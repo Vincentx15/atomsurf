@@ -1,8 +1,0 @@
-name: vanilla2_pronet
-
-
-blocks:
-  - ${ChemGeomFeatEncoder128_neigh}
-  - ${diffusionpip128|pronet|gvp}
-  - ${diffusionpip128|pronet|gvp}
-  - ${diffusionpip128|pronet|gvp}

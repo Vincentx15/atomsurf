@@ -1,8 +1,0 @@
-name: debug
-
-blocks:
-  - ${ChemGeomFeatEncoder12_neigh}
-  - ${diffusion12|gcn12|concurent}
-  - ${diffusion12|gcn12|concurent}
-  - ${diffusion12|gcn12|concurent}
-  - ${diffusion12|gcn12|concurent}
