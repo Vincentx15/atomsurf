@@ -3,7 +3,7 @@ name: gcn_gvpencoder
 
 blocks:
   - ${GVPChemGeomFeatEncoder128_normals}
-  - ${diffusion128|gcn128|concurent}
-  - ${diffusion128|gcn128|concurent}
-  - ${diffusion128|gcn128|concurent}
-  - ${diffusion128|gcn128|concurent}
+  - ${diff|gcn|gat_128_nodout}
+  - ${diff|gcn|gat_128_nodout}
+  - ${diff|gcn|gat_128_nodout}
+  - ${diff|gcn|gat_128_nodout}

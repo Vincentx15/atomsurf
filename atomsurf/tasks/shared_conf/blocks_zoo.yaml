@@ -1,4 +1,4 @@
-diffusion128|gcn128|concurent:
+diff|gcn|gat_128_nodout:
   name: ProteinEncoder
   instanciate:
     _target_: atomsurf.networks.ProteinEncoderBlock
@@ -57,67 +57,7 @@ diffusion128|gcn128|concurent:
         neigh_thresh: 8
         sigma: 2.5
 
-
-diffusion12|gcn12|concurent:
-  name: ProteinEncoder
-  instanciate:
-    _target_: atomsurf.networks.ProteinEncoderBlock
-  kwargs:
-    surface_encoder:
-      name: DiffusionNetBlockBatch
-      instanciate:
-        _target_: diffusion_net.DiffusionNetBlock
-      kwargs:
-        C_width: 12
-        mlp_hidden_dims: [ 12, 12 ]
-        dropout: 0.0
-        use_bn: true
-        init_time: 2.0  # either null (for constant init) or a float
-        init_std: 2.0
-    graph_encoder:
-      name: GCNx2Block
-      instanciate:
-        _target_: atomsurf.network_utils.GCNx2Block
-      kwargs:
-        dim_in: 12
-        hidden_dims: 12
-        dim_out: 12
-        dropout: 0.0
-        use_bn: true
-        use_weighted_edge_distance: false
-    communication_block:
-      name: ConcurrentCommunication
-      instanciate:
-        _target_: atomsurf.network_utils.ConcurrentCommunication
-      kwargs:
-        use_bp: true
-        pre_s_block: linear
-        pre_g_block: linear
-        pre_s_dim_in: 12
-        pre_s_dim_out: 6
-        pre_g_dim_in: 12
-        pre_g_dim_out: 6
-
-        use_gat: true
-        use_v2: false
-        bp_self_loops: false
-        bp_fill_value: "mean"
-        bp_s_dim_in: 6
-        bp_s_dim_out: 6
-        bp_g_dim_in: 6
-        bp_g_dim_out: 6
-
-        post_s_block: cat_post_process
-        post_g_block: cat_post_process
-        post_s_dim_in: 12
-        post_s_dim_out: 12
-        post_g_dim_in: 12
-        post_g_dim_out: 12
-
-        neigh_thresh: 8
-        sigma: 2.5
-
-diffusion128|gcn128|concurent_dout:
+diff|gcn|gat_128_dout:
   name: ProteinEncoder
   instanciate:
     _target_: atomsurf.networks.ProteinEncoderBlock
@@ -176,7 +116,66 @@ diffusion128|gcn128|concurent_dout:
         neigh_thresh: 8
         sigma: 2.5
 
-diffusion12|gcn12|concurent_dout:
+diff|gcn|gat_12_nodout:
+  name: ProteinEncoder
+  instanciate:
+    _target_: atomsurf.networks.ProteinEncoderBlock
+  kwargs:
+    surface_encoder:
+      name: DiffusionNetBlockBatch
+      instanciate:
+        _target_: diffusion_net.DiffusionNetBlock
+      kwargs:
+        C_width: 12
+        mlp_hidden_dims: [ 12, 12 ]
+        dropout: 0.0
+        use_bn: true
+        init_time: 2.0  # either null (for constant init) or a float
+        init_std: 2.0
+    graph_encoder:
+      name: GCNx2Block
+      instanciate:
+        _target_: atomsurf.network_utils.GCNx2Block
+      kwargs:
+        dim_in: 12
+        hidden_dims: 12
+        dim_out: 12
+        dropout: 0.0
+        use_bn: true
+        use_weighted_edge_distance: false
+    communication_block:
+      name: ConcurrentCommunication
+      instanciate:
+        _target_: atomsurf.network_utils.ConcurrentCommunication
+      kwargs:
+        use_bp: true
+        pre_s_block: linear
+        pre_g_block: linear
+        pre_s_dim_in: 12
+        pre_s_dim_out: 6
+        pre_g_dim_in: 12
+        pre_g_dim_out: 6
+
+        use_gat: true
+        use_v2: false
+        bp_self_loops: false
+        bp_fill_value: "mean"
+        bp_s_dim_in: 6
+        bp_s_dim_out: 6
+        bp_g_dim_in: 6
+        bp_g_dim_out: 6
+
+        post_s_block: cat_post_process
+        post_g_block: cat_post_process
+        post_s_dim_in: 12
+        post_s_dim_out: 12
+        post_g_dim_in: 12
+        post_g_dim_out: 12
+
+        neigh_thresh: 8
+        sigma: 2.5
+
+diff|gcn|gat_12_dout:
   name: ProteinEncoder
   instanciate:
     _target_: atomsurf.networks.ProteinEncoderBlock
@@ -231,65 +230,6 @@ diffusion12|gcn12|concurent_dout:
         post_s_dim_out: 12
         post_g_dim_in: 12
         post_g_dim_out: 12
-
-        neigh_thresh: 8
-        sigma: 2.5
-
-diffusion24|gcn24|concurent_dout:
-  name: ProteinEncoder
-  instanciate:
-    _target_: atomsurf.networks.ProteinEncoderBlock
-  kwargs:
-    surface_encoder:
-      name: DiffusionNetBlockBatch
-      instanciate:
-        _target_: diffusion_net.DiffusionNetBlock
-      kwargs:
-        C_width: 24
-        mlp_hidden_dims: [ 24, 24 ]
-        dropout: 0.1
-        use_bn: true
-        init_time: 2.0  # either null (for constant init) or a float
-        init_std: 2.0
-    graph_encoder:
-      name: GCNx2Block
-      instanciate:
-        _target_: atomsurf.network_utils.GCNx2Block
-      kwargs:
-        dim_in: 24
-        hidden_dims: 24
-        dim_out: 24
-        dropout: 0.1
-        use_bn: true
-        use_weighted_edge_distance: false
-    communication_block:
-      name: ConcurrentCommunication
-      instanciate:
-        _target_: atomsurf.network_utils.ConcurrentCommunication
-      kwargs:
-        use_bp: true
-        pre_s_block: linear
-        pre_g_block: linear
-        pre_s_dim_in: 24
-        pre_s_dim_out: 12
-        pre_g_dim_in: 24
-        pre_g_dim_out: 12
-
-        use_gat: true
-        use_v2: false
-        bp_self_loops: false
-        bp_fill_value: "mean"
-        bp_s_dim_in: 12
-        bp_s_dim_out: 12
-        bp_g_dim_in: 12
-        bp_g_dim_out: 12
-
-        post_s_block: cat_post_process
-        post_g_block: cat_post_process
-        post_s_dim_in: 24
-        post_s_dim_out: 24
-        post_g_dim_in: 24
-        post_g_dim_out: 24
 
         neigh_thresh: 8
         sigma: 2.5

@@ -1,17 +1,5 @@
 # HMR like encoder : angles to normals are computed and 16 nearest are sent to vertices
-
-ChemGeomFeatEncoder:
-  name: ChemGeomFeatEncoder
-  instanciate:
-    _target_: atomsurf.networks.ChemGeomFeatEncoder
-  kwargs:
-    use_neigh: True
-    h_dim: 128
-    dropout: 0.1
-    num_gdf: 16
-    num_signatures: 16
-
-ChemGeomFeatEncoder12:
+ChemGeomFeatEncoder12_noneigh:
   name: ChemGeomFeatEncoder
   instanciate:
     _target_: atomsurf.networks.ChemGeomFeatEncoder
@@ -29,6 +17,17 @@ ChemGeomFeatEncoder12_neigh:
   kwargs:
     use_neigh: True
     h_dim: 12
+    dropout: 0.1
+    num_gdf: 16
+    num_signatures: 16
+
+ChemGeomFeatEncoder128_noneigh:
+  name: ChemGeomFeatEncoder
+  instanciate:
+    _target_: atomsurf.networks.ChemGeomFeatEncoder
+  kwargs:
+    use_neigh: False
+    h_dim: 128
     dropout: 0.1
     num_gdf: 16
     num_signatures: 16

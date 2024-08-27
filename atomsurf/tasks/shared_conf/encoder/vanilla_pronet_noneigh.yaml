@@ -2,7 +2,7 @@ name: vanilla_pronet_noneigh
 
 
 blocks:
-  - ${ChemGeomFeatEncoder}
+  - ${ChemGeomFeatEncoder128_neigh}
   - ${pronet|gvp_128_normals}
   - ${pronet|gvp_128_normals}
   - ${pronet|gvp_128_normals}

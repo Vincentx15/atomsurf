@@ -3,7 +3,7 @@ name: vanilla_useneigh
 
 blocks:
   - ${ChemGeomFeatEncoder128_neigh}
-  - ${diffusion128|gcn128|concurent}
-  - ${diffusion128|gcn128|concurent}
-  - ${diffusion128|gcn128|concurent}
-  - ${diffusion128|gcn128|concurent}
+  - ${diff|gcn|gat_128_nodout}
+  - ${diff|gcn|gat_128_nodout}
+  - ${diff|gcn|gat_128_nodout}
+  - ${diff|gcn|gat_128_nodout}
