@@ -11,10 +11,11 @@ class ChemGeomFeatEncoder(nn.Module):
     def __init__(self, hparams):
         super().__init__()
 
-        h_dim = hparams.h_dim
-        dropout = hparams.dropout
         self.num_gdf = hparams.num_gdf
         self.use_neigh = hparams.use_neigh
+
+        h_dim = hparams.h_dim
+        dropout = hparams.dropout
         chem_feat_dim = hparams.graph_feat_dim
         geom_feat_dim = hparams.surface_feat_dim
 
@@ -25,9 +26,9 @@ class ChemGeomFeatEncoder(nn.Module):
             nn.Dropout(dropout),
             nn.BatchNorm1d(h_dim),
             nn.SiLU(),
-            nn.Linear(h_dim, h_dim),
+            nn.Linear(h_dim, 2 * h_dim),
             nn.Dropout(dropout),
-            nn.BatchNorm1d(h_dim),
+            nn.BatchNorm1d(2 * h_dim)
         )
         self.sigmoid = nn.Sigmoid()
         self.softplus = nn.Softplus()
@@ -80,10 +81,15 @@ class ChemGeomFeatEncoder(nn.Module):
             )
 
     def forward(self, surface, graph):
-        chem_feats, geom_feats = graph.x, surface.x
         # First, let us get geom and chem features
+        chem_feats, geom_feats = graph.x, surface.x
         h_geom = self.geom_mlp(geom_feats)
+        # HMR introduced this weird self filtering
         h_chem = self.chem_mlp(chem_feats)
+        nbr_filter, nbr_core = h_chem.chunk(2, dim=-1)
+        nbr_filter = self.sigmoid(nbr_filter)
+        nbr_core = self.softplus(nbr_core)
+        h_chem = nbr_filter * nbr_core
 
         # If we additionally use neighboring info, we need to compute it and propagate a message that
         # uses dists and angles
