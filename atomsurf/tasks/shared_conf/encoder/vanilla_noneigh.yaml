@@ -1,8 +1,8 @@
-name: vanilla_useneigh
+name: vanilla_noneigh
 
 
 blocks:
-  - ${ChemGeomFeatEncoder128_neigh}
+  - ${ChemGeomFeatEncoder128_noneigh}
   - ${diff|gcn|gat_128_nodout}
   - ${diff|gcn|gat_128_nodout}
   - ${diff|gcn|gat_128_nodout}
