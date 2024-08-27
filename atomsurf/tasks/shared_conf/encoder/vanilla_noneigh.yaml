@@ -2,7 +2,7 @@ name: vanilla_noneigh
 
 
 blocks:
-  - ${ChemGeomFeatEncoder_noneigh}
+  - ${hmr_input_encoder_noneigh}
   - ${diff|gcn|gat}
   - ${diff|gcn|gat}
   - ${diff|gcn|gat}

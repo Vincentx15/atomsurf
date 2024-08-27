@@ -1,8 +1,8 @@
 # HMR like encoder : angles to normals are computed and 16 nearest are sent to vertices
-ChemGeomFeatEncoder_noneigh:
-  name: ChemGeomFeatEncoder
+hmr_input_encoder_noneigh:
+  name: HMRInputEncoder
   instanciate:
-    _target_: atomsurf.networks.ChemGeomFeatEncoder
+    _target_: atomsurf.networks.HMRInputEncoder
   kwargs:
     h_dim: ${model_hdim}
     use_neigh: False
@@ -10,10 +10,10 @@ ChemGeomFeatEncoder_noneigh:
     num_gdf: 16
     num_signatures: 16
 
-ChemGeomFeatEncoder_neigh:
-  name: ChemGeomFeatEncoder
+hmr_input_encoder_neigh:
+  name: HMRInputEncoder
   instanciate:
-    _target_: atomsurf.networks.ChemGeomFeatEncoder
+    _target_: atomsurf.networks.HMRInputEncoder
   kwargs:
     h_dim: ${model_hdim}
     use_neigh: True
@@ -24,10 +24,10 @@ ChemGeomFeatEncoder_neigh:
 
 # Message passing based encoder, messages goes both ways
 
-GVPChemGeomFeatEncoder:
-  name: HMRChemGeomFeatEncoder
+input_encoder:
+  name: InputEncoder
   instanciate:
-    _target_: atomsurf.networks.HMRChemGeomFeatEncoder
+    _target_: atomsurf.networks.InputEncoder
   kwargs:
     h_dim: ${model_hdim}
     dropout: ${model_dropout}
@@ -39,10 +39,10 @@ GVPChemGeomFeatEncoder:
     neigh_thresh: 8
     sigma: 2.5
 
-GVPChemGeomFeatEncoder_normals:
-  name: HMRChemGeomFeatEncoder
+input_encoder_normals:
+  name: InputEncoder
   instanciate:
-    _target_: atomsurf.networks.HMRChemGeomFeatEncoder
+    _target_: atomsurf.networks.InputEncoder
   kwargs:
     h_dim: ${model_hdim}
     dropout: ${model_dropout}
@@ -55,10 +55,10 @@ GVPChemGeomFeatEncoder_normals:
     neigh_thresh: 8
     sigma: 2.5
 
-GVPChemGeomFeatEncoder_knn:
-  name: HMRChemGeomFeatEncoder
+input_encoder_knn:
+  name: InputEncoder
   instanciate:
-    _target_: atomsurf.networks.HMRChemGeomFeatEncoder
+    _target_: atomsurf.networks.InputEncoder
   kwargs:
     h_dim: ${model_hdim}
     dropout: ${model_dropout}

@@ -2,7 +2,7 @@ name: vanilla_pronet_noneigh
 
 
 blocks:
-  - ${ChemGeomFeatEncoder_noneigh}
+  - ${hmr_input_encoder_no_neigh}
   - ${pronet|gvp_normals}
   - ${pronet|gvp_normals}
   - ${pronet|gvp_normals}

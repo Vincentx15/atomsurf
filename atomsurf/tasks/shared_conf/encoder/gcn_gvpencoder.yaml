@@ -2,7 +2,7 @@ name: gcn_gvpencoder
 
 
 blocks:
-  - ${GVPChemGeomFeatEncoder_normals}
+  - ${input_encoder_normals}
   - ${diff|gcn|gat}
   - ${diff|gcn|gat}
   - ${diff|gcn|gat}

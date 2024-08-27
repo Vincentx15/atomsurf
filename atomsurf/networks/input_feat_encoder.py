@@ -7,7 +7,7 @@ from atomsurf.network_utils.communication.utils_blocks import init_block
 from atomsurf.network_utils.communication.passing_utils import _rbf
 
 
-class ChemGeomFeatEncoder(nn.Module):
+class HMRInputEncoder(nn.Module):
     def __init__(self, hparams):
         super().__init__()
 
@@ -59,7 +59,7 @@ class ChemGeomFeatEncoder(nn.Module):
 
         if self.use_neigh:
             self.surf_chem_mlp = nn.Sequential(
-                nn.Linear(h_dim + 2 * self.num_gdf, h_dim), #chem_feat_dim
+                nn.Linear(h_dim + 2 * self.num_gdf, h_dim),  # chem_feat_dim
                 nn.Dropout(dropout),
                 nn.BatchNorm1d(h_dim),
                 nn.SiLU(),
@@ -117,7 +117,7 @@ class ChemGeomFeatEncoder(nn.Module):
             neigh_verts, neigh_graphs = neighbors[0, :], neighbors[1, :]
 
             # extract relevant chem features
-            all_chem_feats = h_chem[neigh_graphs] #chem_feats
+            all_chem_feats = h_chem[neigh_graphs]  # chem_feats
             verts_normals = torch.cat([surf.x[:, -3:] for surf in surface.to_data_list()], dim=0)
             all_normals = verts_normals[neigh_verts]
             edge_vecs = graph.node_pos[neigh_graphs] - surface.verts[neigh_verts]
@@ -147,7 +147,7 @@ class ChemGeomFeatEncoder(nn.Module):
         return surface, graph
 
 
-class HMRChemGeomFeatEncoder(SurfaceGraphCommunication):
+class InputEncoder(SurfaceGraphCommunication):
     def __init__(self, hparams, **kwargs):
         use_bp = hparams.use_bp
         use_gvp = hparams.use_gvp if "use_gvp" in hparams else False

@@ -2,7 +2,7 @@ name: vanilla
 
 
 blocks:
-  - ${ChemGeomFeatEncoder_neigh}
+  - ${hmr_input_encoder_neigh}
   - ${diff|gcn|gat}
   - ${diff|gcn|gat}
   - ${diff|gcn|gat}
