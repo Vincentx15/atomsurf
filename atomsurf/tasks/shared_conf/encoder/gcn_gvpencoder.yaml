@@ -2,8 +2,8 @@ name: gcn_gvpencoder
 
 
 blocks:
-  - ${GVPChemGeomFeatEncoder128_normals}
-  - ${diff|gcn|gat_128_nodout}
-  - ${diff|gcn|gat_128_nodout}
-  - ${diff|gcn|gat_128_nodout}
-  - ${diff|gcn|gat_128_nodout}
+  - ${GVPChemGeomFeatEncoder_normals}
+  - ${diff|gcn|gat}
+  - ${diff|gcn|gat}
+  - ${diff|gcn|gat}
+  - ${diff|gcn|gat}

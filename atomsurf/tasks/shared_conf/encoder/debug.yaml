@@ -2,6 +2,6 @@ name: debug
 
 blocks:
   - ${ChemGeomFeatEncoder_neigh}
-  - ${diff|gcn|gat_12_nodout}
-  - ${diff|gcn|gat_12_nodout}
-  - ${diff|gcn|gat_12_nodout}
+  - ${diff|gcn|gat}
+  - ${diff|gcn|gat}
+  - ${diff|gcn|gat}

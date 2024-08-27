@@ -1,6 +1,3 @@
-model_hdim: 128
-model_dropout: 0.1
-
 # HMR like encoder : angles to normals are computed and 16 nearest are sent to vertices
 ChemGeomFeatEncoder_noneigh:
   name: ChemGeomFeatEncoder

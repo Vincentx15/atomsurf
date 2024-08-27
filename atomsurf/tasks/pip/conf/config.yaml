@@ -1,6 +1,7 @@
 defaults:
-  - blocks_zoo
+  - model_global_variables
   - blocks_zoo_input
+  - blocks_zoo
   - encoder: debug
   - optimizer: adam
   - scheduler: reduce_lr_on_plateau
@@ -75,4 +76,4 @@ cfg_graph:
 
 
 cfg_head:
-  encoded_dims: 12
+  encoded_dims: ${model_hdim}

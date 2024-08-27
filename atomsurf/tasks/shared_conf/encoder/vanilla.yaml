@@ -2,8 +2,8 @@ name: vanilla
 
 
 blocks:
-  - ${ChemGeomFeatEncoder128_neigh}
-  - ${diff|gcn|gat_128_nodout}
-  - ${diff|gcn|gat_128_nodout}
-  - ${diff|gcn|gat_128_nodout}
-  - ${diff|gcn|gat_128_nodout}
+  - ${ChemGeomFeatEncoder_neigh}
+  - ${diff|gcn|gat}
+  - ${diff|gcn|gat}
+  - ${diff|gcn|gat}
+  - ${diff|gcn|gat}

@@ -21,6 +21,7 @@ from data_loader import PIPDataModule
 @hydra.main(config_path="conf", config_name="config")
 def main(cfg=None):
     command = f"python3 {' '.join(sys.argv)}"
+    OmegaConf.register_new_resolver("eval", eval)
     OmegaConf.resolve(cfg)
 
     seed = cfg.seed

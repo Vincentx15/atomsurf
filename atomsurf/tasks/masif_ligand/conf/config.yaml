@@ -1,4 +1,5 @@
 defaults:
+  - model_global_variables
   - blocks_zoo_input
   - blocks_zoo
   - encoder: debug
@@ -27,9 +28,6 @@ log_dir: "./"
 path_model: "version_x/checkpoints/last.ckpt"
 min_batch_size: 2
 use_inmem: False
-
-model_hdim: 12
-
 
 # loader params
 loader:
@@ -80,5 +78,5 @@ cfg_graph:
   use_esm: false
 
 cfg_head:
-  encoded_dims: 12
+  encoded_dims: ${model_hdim}
   output_dims: 7

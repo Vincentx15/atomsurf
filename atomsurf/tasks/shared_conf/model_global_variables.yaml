@@ -1,0 +1,2 @@
+model_hdim: 128
+model_dropout: 0.1

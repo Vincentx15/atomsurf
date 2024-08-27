@@ -2,7 +2,7 @@ name: pronet_gvpencoder
 
 
 blocks:
-  - ${GVPChemGeomFeatEncoder128_normals}
-  - ${pronet|gvp_128_normals}
-  - ${pronet|gvp_128_normals}
-  - ${pronet|gvp_128_normals}
+  - ${GVPChemGeomFeatEncoder_normals}
+  - ${pronet|gvp}
+  - ${pronet|gvp}
+  - ${pronet|gvp}
