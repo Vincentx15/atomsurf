@@ -4,6 +4,7 @@ from pathlib import Path
 # 3p
 import hydra
 import torch
+from omegaconf import OmegaConf
 import pytorch_lightning as pl
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 
@@ -19,6 +20,7 @@ from data_loader import MasifSiteDataModule
 @hydra.main(config_path="conf", config_name="config")
 def main(cfg=None):
     command = f"python3 {' '.join(sys.argv)}"
+    OmegaConf.resolve(cfg)
 
     seed = cfg.seed
     pl.seed_everything(seed, workers=True)

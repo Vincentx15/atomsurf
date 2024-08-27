@@ -5,6 +5,7 @@ from pathlib import Path
 import hydra
 import torch
 import pytorch_lightning as pl
+from omegaconf import OmegaConf
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 import os
 os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
@@ -20,6 +21,7 @@ from data_loader import PIPDataModule
 @hydra.main(config_path="conf", config_name="config")
 def main(cfg=None):
     command = f"python3 {' '.join(sys.argv)}"
+    OmegaConf.resolve(cfg)
 
     seed = cfg.seed
     pl.seed_everything(seed, workers=True)

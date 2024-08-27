@@ -1,12 +1,15 @@
 # std
+import os
 import sys
 from pathlib import Path
 # 3p
 import hydra
-import torch
+from omegaconf import OmegaConf
 import pytorch_lightning as pl
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
-import os
+import torch
+import warnings
+
 os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 # project
 if __name__ == '__main__':
@@ -15,13 +18,15 @@ if __name__ == '__main__':
 from atomsurf.utils.callbacks import CommandLoggerCallback
 from pl_model import PSRModule
 from data_loader import PSRDataModule
-import warnings
+
 warnings.filterwarnings("ignore")
 torch.multiprocessing.set_sharing_strategy('file_system')
+
 
 @hydra.main(config_path="conf", config_name="config")
 def main(cfg=None):
     command = f"python3 {' '.join(sys.argv)}"
+    OmegaConf.resolve(cfg)
 
     seed = cfg.seed
     pl.seed_everything(seed, workers=True)
@@ -91,7 +96,7 @@ def main(cfg=None):
         detect_anomaly=cfg.train.detect_anomaly,
         # debugging
         overfit_batches=cfg.train.overfit_batches,
-        #monitor time
+        # monitor time
         # profiler="simple",
         # gpu
         **params,
@@ -103,6 +108,7 @@ def main(cfg=None):
     # test
     trainer.test(model, ckpt_path="best", datamodule=datamodule)
     trainer.test(model, ckpt_path="last", datamodule=datamodule)
+
 
 if __name__ == "__main__":
     main()

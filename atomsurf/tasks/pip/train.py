@@ -1,12 +1,14 @@
-# std
+import os
 import sys
+# std
 from pathlib import Path
 # 3p
 import hydra
-import torch
+from omegaconf import OmegaConf
 import pytorch_lightning as pl
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
-import os
+import torch
+import warnings
 
 os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 # project
@@ -16,7 +18,6 @@ if __name__ == '__main__':
 from atomsurf.utils.callbacks import CommandLoggerCallback, add_wandb_logger
 from pl_model import PIPModule
 from data_loader import PIPDataModule
-import warnings
 
 warnings.filterwarnings("ignore")
 torch.multiprocessing.set_sharing_strategy('file_system')
@@ -25,6 +26,7 @@ torch.multiprocessing.set_sharing_strategy('file_system')
 @hydra.main(config_path="conf", config_name="config")
 def main(cfg=None):
     command = f"python3 {' '.join(sys.argv)}"
+    OmegaConf.resolve(cfg)
 
     seed = cfg.seed
     pl.seed_everything(seed, workers=True)

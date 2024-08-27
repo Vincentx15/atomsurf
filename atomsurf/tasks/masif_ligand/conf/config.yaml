@@ -1,12 +1,12 @@
 defaults:
-  - _self_
-  - blocks_zoo
   - blocks_zoo_input
+  - blocks_zoo
   - encoder: debug
   - optimizer: adam
   - scheduler: polynomial_lr
   - override hydra/job_logging: colorlog
   - override hydra/hydra_logging: colorlog
+  - _self_
 
 hydra:
   job:

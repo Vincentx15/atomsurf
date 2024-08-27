@@ -3,6 +3,7 @@ import sys
 from pathlib import Path
 # 3p
 import hydra
+from omegaconf import OmegaConf
 import torch
 import pytorch_lightning as pl
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
@@ -21,6 +22,7 @@ torch.multiprocessing.set_sharing_strategy('file_system')
 @hydra.main(config_path="conf", config_name="config")
 def main(cfg=None):
     command = f"python3 {' '.join(sys.argv)}"
+    OmegaConf.resolve(cfg)
 
     seed = cfg.seed
     pl.seed_everything(seed, workers=True)
@@ -37,7 +39,7 @@ def main(cfg=None):
     loggers = [tb_logger]
 
     if cfg.use_wandb:
-        add_wandb_logger(loggers,projectname='masif_ligand')
+        add_wandb_logger(loggers, projectname='masif_ligand')
 
     # callbacks
     lr_logger = pl.callbacks.LearningRateMonitor()
