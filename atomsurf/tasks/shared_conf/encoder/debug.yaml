@@ -1,7 +1,7 @@
 name: debug
 
 blocks:
-  - ${ChemGeomFeatEncoder12_neigh}
+  - ${ChemGeomFeatEncoder_neigh}
   - ${diff|gcn|gat_12_nodout}
   - ${diff|gcn|gat_12_nodout}
   - ${diff|gcn|gat_12_nodout}

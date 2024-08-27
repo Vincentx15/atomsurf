@@ -1,58 +1,39 @@
+model_hdim: 128
+model_dropout: 0.1
+
 # HMR like encoder : angles to normals are computed and 16 nearest are sent to vertices
-ChemGeomFeatEncoder12_noneigh:
+ChemGeomFeatEncoder_noneigh:
   name: ChemGeomFeatEncoder
   instanciate:
     _target_: atomsurf.networks.ChemGeomFeatEncoder
   kwargs:
+    h_dim: ${model_hdim}
     use_neigh: False
-    h_dim: 12
-    dropout: 0.1
+    dropout: ${model_dropout}
     num_gdf: 16
     num_signatures: 16
 
-ChemGeomFeatEncoder12_neigh:
+ChemGeomFeatEncoder_neigh:
   name: ChemGeomFeatEncoder
   instanciate:
     _target_: atomsurf.networks.ChemGeomFeatEncoder
   kwargs:
+    h_dim: ${model_hdim}
     use_neigh: True
-    h_dim: 12
-    dropout: 0.1
-    num_gdf: 16
-    num_signatures: 16
-
-ChemGeomFeatEncoder128_noneigh:
-  name: ChemGeomFeatEncoder
-  instanciate:
-    _target_: atomsurf.networks.ChemGeomFeatEncoder
-  kwargs:
-    use_neigh: False
-    h_dim: 128
-    dropout: 0.1
-    num_gdf: 16
-    num_signatures: 16
-
-ChemGeomFeatEncoder128_neigh:
-  name: ChemGeomFeatEncoder
-  instanciate:
-    _target_: atomsurf.networks.ChemGeomFeatEncoder
-  kwargs:
-    use_neigh: True
-    h_dim: 128
-    dropout: 0.1
+    dropout: ${model_dropout}
     num_gdf: 16
     num_signatures: 16
 
 
 # Message passing based encoder, messages goes both ways
 
-GVPChemGeomFeatEncoder12:
+GVPChemGeomFeatEncoder:
   name: HMRChemGeomFeatEncoder
   instanciate:
     _target_: atomsurf.networks.HMRChemGeomFeatEncoder
   kwargs:
-    h_dim: 12
-    dropout: 0.1
+    h_dim: ${model_hdim}
+    dropout: ${model_dropout}
     num_gdf: 16
     num_signatures: 16
     use_bp: true
@@ -61,13 +42,13 @@ GVPChemGeomFeatEncoder12:
     neigh_thresh: 8
     sigma: 2.5
 
-GVPChemGeomFeatEncoder12_normals:
+GVPChemGeomFeatEncoder_normals:
   name: HMRChemGeomFeatEncoder
   instanciate:
     _target_: atomsurf.networks.HMRChemGeomFeatEncoder
   kwargs:
-    h_dim: 12
-    dropout: 0.1
+    h_dim: ${model_hdim}
+    dropout: ${model_dropout}
     num_gdf: 16
     num_signatures: 16
     use_bp: true
@@ -77,50 +58,18 @@ GVPChemGeomFeatEncoder12_normals:
     neigh_thresh: 8
     sigma: 2.5
 
-GVPChemGeomFeatEncoder12_knn:
+GVPChemGeomFeatEncoder_knn:
   name: HMRChemGeomFeatEncoder
   instanciate:
     _target_: atomsurf.networks.HMRChemGeomFeatEncoder
   kwargs:
-    h_dim: 12
-    dropout: 0.1
+    h_dim: ${model_hdim}
+    dropout: ${model_dropout}
     num_gdf: 16
     num_signatures: 16
     use_bp: true
     use_gvp: true
     use_knn: true
-    use_normals: true
-    neigh_thresh: 8
-    sigma: 2.5
-
-GVPChemGeomFeatEncoder128:
-  name: GVPChemGeomFeatEncoder
-  instanciate:
-    _target_: atomsurf.networks.HMRChemGeomFeatEncoder
-  kwargs:
-    h_dim: 128
-    dropout: 0.1
-    num_gdf: 16
-    num_signatures: 16
-    use_bp: true
-    use_gvp: true
-    use_knn: false
-    use_normals: false
-    neigh_thresh: 8
-    sigma: 2.5
-
-GVPChemGeomFeatEncoder128_normals:
-  name: GVPChemGeomFeatEncoder
-  instanciate:
-    _target_: atomsurf.networks.HMRChemGeomFeatEncoder
-  kwargs:
-    h_dim: 128
-    dropout: 0.1
-    num_gdf: 16
-    num_signatures: 16
-    use_bp: true
-    use_gvp: true
-    use_knn: false
     use_normals: true
     neigh_thresh: 8
     sigma: 2.5

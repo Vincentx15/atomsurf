@@ -28,6 +28,8 @@ path_model: "version_x/checkpoints/last.ckpt"
 min_batch_size: 2
 use_inmem: False
 
+model_hdim: 12
+
 
 # loader params
 loader:
