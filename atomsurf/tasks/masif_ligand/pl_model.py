@@ -17,7 +17,7 @@ class MasifLigandModule(AtomPLModule):
 
     def step(self, batch):
         if batch.num_graphs < self.hparams.cfg.min_batch_size:
-            return None
+            return None, None, None
         labels = batch.label
         outputs = self(batch)
         loss = self.criterion(outputs, labels)
