@@ -59,17 +59,19 @@ train:
 
 cfg_surface:
   use_surfaces: true
-  data_dir: ../../../data/psr/PSR-split-by-year/split-by-year/data
+  data_dir: ${data_dir}
+  data_name: 'surfaces_0.1'
   feat_keys: 'all'
   oh_keys: 'all'
 
 # python train.py 'cfg_graph.feat_keys=[hphobs]' 'cfg_graph.oh_keys=[amino_types]' cfg_graph.use_esm=True
 cfg_graph:
   use_graphs: true
-  data_dir: ../../../data/psr/PSR-split-by-year/split-by-year/data
+  data_dir: ${data_dir}
+  data_name: 'rgraph'
   feat_keys: 'all'
   oh_keys: 'all'
-  esm_dir: ../../../data/psr/PSR-split-by-year/split-by-year/data
+  esm_dir: ${data_dir}
   use_esm: false
 
 cfg_head:

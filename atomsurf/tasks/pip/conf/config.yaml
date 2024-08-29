@@ -60,17 +60,19 @@ train:
 
 cfg_surface:
   use_surfaces: true
-  data_dir: ../../../data/pip/DIPS-split/data/
+  data_dir: ${datadir}
+  data_name: 'surfaces_0.1'
   feat_keys: 'all'
   oh_keys: 'all'
 
 # python train.py 'cfg_graph.feat_keys=[hphobs]' 'cfg_graph.oh_keys=[amino_types]' cfg_graph.use_esm=True
 cfg_graph:
   use_graphs: true
-  data_dir: ../../../data/pip/DIPS-split/data/
+  data_dir: ${datadir}
+  data_name: 'rgraph'
   feat_keys: 'all'
   oh_keys: 'all'
-  esm_dir: ../../../data/pip/DIPS-split/data/
+  esm_dir: ${datadir}
   use_esm: false
 
 

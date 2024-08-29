@@ -20,14 +20,14 @@ from atomsurf.utils.data_utils import SurfaceLoader, GraphLoader, AtomBatch, upd
 class SurfaceLoaderPIP(SurfaceLoader):
     def __init__(self, config, mode):
         super().__init__(config)
-        self.data_dir = os.path.join(config.data_dir, mode, 'surfaces_0.1')
+        self.data_dir = os.path.join(config.data_dir, mode, config.data_name)
 
 
 class GraphLoaderPIP(GraphLoader):
     def __init__(self, config, mode):
         super().__init__(config)
         self.config = config
-        self.data_dir = os.path.join(config.data_dir, mode, 'rgraph')
+        self.data_dir = os.path.join(config.data_dir, mode, config.data_name)
         self.esm_dir = os.path.join(config.data_dir, mode, 'esm')
 
 
