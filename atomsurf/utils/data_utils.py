@@ -133,7 +133,7 @@ def pdb_to_surf_graphs(pdb_path, surface_dump, agraph_dump, rgraph_dump, face_re
                 torch.save(rgraph, open(rgraph_dump, 'wb'))
         success = 1
     except Exception as e:
-        print('*******failed******', pdb_path, e)
+        print('pdb_to_surf failed for : ', pdb_path, e)
         success = 0
     return success
 
