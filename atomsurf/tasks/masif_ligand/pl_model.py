@@ -11,7 +11,7 @@ from atomsurf.utils.metrics import multi_class_eval
 
 class MasifLigandModule(AtomPLModule):
     def __init__(self, cfg) -> None:
-        super().__init__(cfg)
+        super().__init__()
         self.criterion = torch.nn.CrossEntropyLoss(reduction='mean')
         self.model = MasifLigandNet(cfg_encoder=cfg.encoder, cfg_head=cfg.cfg_head)
 

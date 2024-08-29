@@ -23,7 +23,7 @@ class SurfaceLoaderPIP(SurfaceLoader):
         self.data_dir = os.path.join(config.data_dir, mode, 'surfaces_0.1')
 
 
-class GraphBuilderPIP(GraphLoader):
+class GraphLoaderPIP(GraphLoader):
     def __init__(self, config, mode):
         super().__init__(config)
         self.config = config
@@ -117,14 +117,14 @@ class PIPDataModule(pl.LightningDataModule):
         super().__init__()
         data_dir = cfg.data_dir
         self.systems = []
-        self.surface_builders = []
-        self.graph_builders = []
+        self.surface_loaders = []
+        self.graph_loaders = []
         self.cfg = cfg
         for mode in ['train', 'val', 'test']:
             # for mode in ['test'] * 3:
             self.systems.append(os.path.join(data_dir, mode))
-            self.surface_builders.append(SurfaceLoaderPIP(self.cfg.cfg_surface, mode=mode))
-            self.graph_builders.append(GraphBuilderPIP(self.cfg.cfg_graph, mode=mode))
+            self.surface_loaders.append(SurfaceLoaderPIP(self.cfg.cfg_surface, mode=mode))
+            self.graph_loaders.append(GraphLoaderPIP(self.cfg.cfg_graph, mode=mode))
 
         self.loader_args = {'num_workers': self.cfg.loader.num_workers,
                             'batch_size': self.cfg.loader.batch_size,
@@ -133,19 +133,19 @@ class PIPDataModule(pl.LightningDataModule):
                             'collate_fn': lambda x: AtomBatch.from_data_list(x)}
 
         # Useful to create a Model of the right input dims
-        train_dataset_temp = PIPDataset(self.systems[0], self.surface_builders[0], self.graph_builders[0])
+        train_dataset_temp = PIPDataset(self.systems[0], self.surface_loaders[0], self.graph_loaders[0])
         update_model_input_dim(cfg=cfg, dataset_temp=train_dataset_temp, gkey='graph_1', skey='surface_1')
 
     def train_dataloader(self):
-        dataset = PIPDataset(self.systems[0], self.surface_builders[0], self.graph_builders[0])
+        dataset = PIPDataset(self.systems[0], self.surface_loaders[0], self.graph_loaders[0])
         return DataLoader(dataset, shuffle=self.cfg.loader.shuffle, **self.loader_args)
 
     def val_dataloader(self):
-        dataset = PIPDataset(self.systems[1], self.surface_builders[1], self.graph_builders[1])
+        dataset = PIPDataset(self.systems[1], self.surface_loaders[1], self.graph_loaders[1])
         return DataLoader(dataset, shuffle=False, **self.loader_args)
 
     def test_dataloader(self):
-        dataset = PIPDataset(self.systems[2], self.surface_builders[2], self.graph_builders[2],
+        dataset = PIPDataset(self.systems[2], self.surface_loaders[2], self.graph_loaders[2],
                              max_pos_regions_per_ensemble=5)
         return DataLoader(dataset, shuffle=False, **self.loader_args)
 

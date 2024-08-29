@@ -60,7 +60,7 @@ class AtomPLModule(pl.LightningModule):
     A generic PL module to subclass
     """
 
-    def __init__(self, cfg) -> None:
+    def __init__(self) -> None:
         super().__init__()
         self.save_hyperparameters()
         self.train_res = list()

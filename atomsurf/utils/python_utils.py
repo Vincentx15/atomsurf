@@ -13,7 +13,7 @@ def silentremove(filename):
             raise  # re-raise exception if a different error occurred
 
 
-def do_all(dataset, num_workers=4, prefetch_factor=100):
+def do_all(dataset, num_workers=4, prefetch_factor=100, max_sys=None):
     """
     Given a pytorch dataset, uses pytorch multiprocessing system for easy parallelization.
     :param dataset:
@@ -30,7 +30,7 @@ def do_all(dataset, num_workers=4, prefetch_factor=100):
     total_success = 0
     t0 = time.time()
     for i, success in enumerate(dataloader):
-        # if i > 5: break
+        if max_sys is not None and i > max_sys: break
         total_success += int(success)
         if not i % 5:
             print(f'Processed {i + 1}/{len(dataloader)}, in {time.time() - t0:.3f}s, with {total_success} successes')

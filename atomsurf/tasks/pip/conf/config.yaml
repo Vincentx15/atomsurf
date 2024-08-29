@@ -60,7 +60,6 @@ train:
 
 cfg_surface:
   use_surfaces: true
-  use_whole_surfaces: true
   data_dir: ../../../data/pip/DIPS-split/data/
   feat_keys: 'all'
   oh_keys: 'all'
@@ -77,3 +76,4 @@ cfg_graph:
 
 cfg_head:
   encoded_dims: ${model_hdim}
+  dropout: 0.25

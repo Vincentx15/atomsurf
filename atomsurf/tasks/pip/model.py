@@ -15,7 +15,7 @@ class PIPNet(torch.nn.Module):
         self.top_net = nn.Sequential(*[
             nn.Linear(in_features, in_features),
             nn.ReLU(),
-            nn.Dropout(p=0.25),
+            nn.Dropout(p=hparams_head.dropout),
             nn.Linear(in_features, 1)
         ])
 

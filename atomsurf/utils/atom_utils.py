@@ -3,11 +3,6 @@ import sys
 
 from atom3d.util.formats import df_to_bp
 import Bio.PDB as bio
-import numpy as np
-import pandas as pd
-import scipy.spatial as spa
-import time
-import torch
 
 
 def df_to_pdb(df, out_file_name, discard_hetatm=True, recompute=True):

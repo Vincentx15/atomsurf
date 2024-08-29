@@ -37,7 +37,7 @@ def masif_site_loss(preds, labels):
 
 class MasifSiteModule(AtomPLModule):
     def __init__(self, cfg) -> None:
-        super().__init__(cfg)
+        super().__init__()
         self.save_hyperparameters()
         self.model = MasifSiteNet(cfg_encoder=cfg.encoder, cfg_head=cfg.cfg_head)
 
