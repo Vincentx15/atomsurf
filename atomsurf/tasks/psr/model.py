@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch_geometric
 
 from atomsurf.networks.protein_encoder import ProteinEncoder
 
@@ -22,11 +23,6 @@ class PSRNet(torch.nn.Module):
     def forward(self, batch):
         # forward pass
         surface, graph = self.encoder(graph=batch.graph, surface=batch.surface)
-        # Calculate the mean pooling by dividing sum by count
-        sum_result = torch.zeros(graph.batch.max() + 1, graph.x.shape[1]).to(graph.x.device)
-        count_result = torch.zeros(graph.batch.max() + 1, graph.x.shape[1]).to(graph.x.device)
-        sum_result.scatter_add_(0, graph.batch.unsqueeze(-1).expand_as(graph.x), graph.x)
-        count_result.scatter_add_(0, graph.batch.unsqueeze(-1).expand_as(graph.x), torch.ones_like(graph.x))
-        mean_result = sum_result / count_result
-        mean_result = self.top_net(mean_result)
-        return mean_result
+        mean_result = torch_geometric.nn.pool.global_mean_pool(graph.x, graph.batch)
+        predictions = self.top_net(mean_result)
+        return predictions
