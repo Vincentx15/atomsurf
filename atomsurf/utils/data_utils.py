@@ -141,24 +141,24 @@ def pdb_to_surf_graphs(pdb_path, surface_dump, agraph_dump, rgraph_dump, face_re
 class PreprocessDataset(Dataset):
     """
     Small utility class that handles the boilerplate code of setting up the right repository structure.
-    Given a datadir/ as input, expected to hold a datadir/pdb/{}.pdb of pdb files, this dataset will loop through
+    Given a data_dir/ as input, expected to hold a data_dir/pdb/{}.pdb of pdb files, this dataset will loop through
     those files and generate rgraphs/ agraphs/ and surfaces/ directories and files.
     """
 
-    def __init__(self, datadir, recompute_s=False, recompute_g=False, compute_s=True, compute_g=True,
+    def __init__(self, data_dir, recompute_s=False, recompute_g=False, compute_s=True, compute_g=True,
                  max_vert_number=100000, face_reduction_rate=0.1, use_pymesh=None):
-        self.pdb_dir = os.path.join(datadir, 'pdb')
+        self.pdb_dir = os.path.join(data_dir, 'pdb')
 
         # Surf params
         self.max_vert_number = max_vert_number
         self.face_reduction_rate = face_reduction_rate
         self.use_pymesh = use_pymesh
         surface_dirname = f'surfaces_{face_reduction_rate}{f"_{use_pymesh}" if use_pymesh is not None else ""}'
-        self.out_surf_dir = os.path.join(datadir, surface_dirname)
+        self.out_surf_dir = os.path.join(data_dir, surface_dirname)
 
         # Graph dirs
-        self.out_rgraph_dir = os.path.join(datadir, 'rgraph')
-        self.out_agraph_dir = os.path.join(datadir, 'agraph')
+        self.out_rgraph_dir = os.path.join(data_dir, 'rgraph')
+        self.out_agraph_dir = os.path.join(data_dir, 'agraph')
 
         # Setup
         os.makedirs(self.out_surf_dir, exist_ok=True)

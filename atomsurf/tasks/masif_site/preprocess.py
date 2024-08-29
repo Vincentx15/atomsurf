@@ -21,24 +21,24 @@ class PreProcessMSDataset(PreprocessDataset):
     def __init__(self,
                  recompute_s=False,
                  recompute_g=False,
-                 datadir=None,
+                 data_dir=None,
                  face_reduction_rate=0.5,
                  max_vert_number=100000,
                  use_pymesh=True):
-        if datadir is None:
+        if data_dir is None:
             script_dir = os.path.dirname(os.path.realpath(__file__))
-            datadir = os.path.join(script_dir, '..', '..', '..', 'data', 'masif_site')
+            data_dir = os.path.join(script_dir, '..', '..', '..', 'data', 'masif_site')
 
-        super().__init__(datadir=datadir, recompute_s=recompute_s, recompute_g=recompute_g, compute_s=False,
+        super().__init__(data_dir=data_dir, recompute_s=recompute_s, recompute_g=recompute_g, compute_s=False,
                          max_vert_number=max_vert_number, face_reduction_rate=face_reduction_rate,
                          use_pymesh=use_pymesh)
         # Set up input/output dirs
-        self.pdb_dir = os.path.join(datadir, '01-benchmark_pdbs')
-        self.ply_dir = os.path.join(datadir, '01-benchmark_surfaces')
+        self.pdb_dir = os.path.join(data_dir, '01-benchmark_pdbs')
+        self.ply_dir = os.path.join(data_dir, '01-benchmark_surfaces')
 
         # Set up systems list
-        train_list = os.path.join(datadir, 'train_list.txt')
-        test_list = os.path.join(datadir, 'test_list.txt')
+        train_list = os.path.join(data_dir, 'train_list.txt')
+        test_list = os.path.join(data_dir, 'test_list.txt')
         train_names = set([name.strip() for name in open(train_list, 'r').readlines()])
         test_names = set([name.strip() for name in open(test_list, 'r').readlines()])
         self.all_pdbs = sorted(list(train_names.union(test_names)))

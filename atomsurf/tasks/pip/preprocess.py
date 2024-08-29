@@ -44,15 +44,15 @@ def get_subunits(ensemble):
 
 
 class ExtractPIPpdbDataset(Dataset):
-    def __init__(self, datadir=None, mode='train'):
-        if datadir is None:
+    def __init__(self, data_dir=None, mode='train'):
+        if data_dir is None:
             script_dir = os.path.dirname(os.path.realpath(__file__))
-            datadir = os.path.join(script_dir, '..', '..', '..', 'data', 'pip', 'DIPS-split', 'data', mode)
+            data_dir = os.path.join(script_dir, '..', '..', '..', 'data', 'pip', 'DIPS-split', 'data', mode)
         else:
-            datadir = os.path.join(datadir, mode)
-        self.pdb_dir = os.path.join(datadir, 'pdb')
+            data_dir = os.path.join(data_dir, mode)
+        self.pdb_dir = os.path.join(data_dir, 'pdb')
         os.makedirs(self.pdb_dir, exist_ok=True)
-        self.dataset = LMDBDataset(datadir)
+        self.dataset = LMDBDataset(data_dir)
         self.pdb_list = []
 
     def __len__(self):
@@ -69,15 +69,15 @@ class ExtractPIPpdbDataset(Dataset):
 
 
 class PreprocessPIPDataset(PreprocessDataset):
-    def __init__(self, datadir=None, recompute_s=False, recompute_g=False, mode='train',
+    def __init__(self, data_dir=None, recompute_s=False, recompute_g=False, mode='train',
                  max_vert_number=100000, face_reduction_rate=0.1):
         script_dir = os.path.dirname(os.path.realpath(__file__))
-        if datadir is None:
-            datadir = os.path.join(script_dir, '..', '..', '..', 'data', 'pip', 'DIPS-split', 'data', mode)
+        if data_dir is None:
+            data_dir = os.path.join(script_dir, '..', '..', '..', 'data', 'pip', 'DIPS-split', 'data', mode)
         else:
-            datadir = os.path.join(datadir, mode)
+            data_dir = os.path.join(data_dir, mode)
 
-        super().__init__(datadir=datadir, recompute_s=recompute_s, recompute_g=recompute_g,
+        super().__init__(data_dir=data_dir, recompute_s=recompute_s, recompute_g=recompute_g,
                          max_vert_number=max_vert_number, face_reduction_rate=face_reduction_rate)
         self.all_pdbs = self.get_all_pdbs()
 

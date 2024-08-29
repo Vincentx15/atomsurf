@@ -20,18 +20,18 @@ torch.set_num_threads(1)
 
 
 class ExtractPSRpdbDataset(Dataset):
-    def __init__(self, shared_score_dict, datadir=None, mode='train', recompute=True):
+    def __init__(self, shared_score_dict, data_dir=None, mode='train', recompute=True):
         self.recompute = recompute
         self.shared_score_dict = shared_score_dict
-        if datadir is None:
+        if data_dir is None:
             script_dir = os.path.dirname(os.path.realpath(__file__))
-            datadir = os.path.join(script_dir, '..', '..', '..', 'psrdata', 'split-by-year', 'data', mode)
+            data_dir = os.path.join(script_dir, '..', '..', '..', 'psrdata', 'split-by-year', 'data', mode)
         else:
-            datadir = os.path.join(datadir, mode)
-        self.pdb_dir = os.path.join(datadir, 'pdb')
+            data_dir = os.path.join(data_dir, mode)
+        self.pdb_dir = os.path.join(data_dir, 'pdb')
         os.makedirs(self.pdb_dir, exist_ok=True)
         self.pdb_list = []
-        self.dataset = LMDBDataset(datadir)
+        self.dataset = LMDBDataset(data_dir)
 
     def __len__(self):
         return len(self.dataset)
@@ -50,15 +50,15 @@ class ExtractPSRpdbDataset(Dataset):
 
 
 class PreprocessPSRDataset(PreprocessDataset):
-    def __init__(self, datadir=None, recompute_s=False, recompute_g=False, mode='train', max_vert_number=100000,
+    def __init__(self, data_dir=None, recompute_s=False, recompute_g=False, mode='train', max_vert_number=100000,
                  face_reduction_rate=0.1):
         script_dir = os.path.dirname(os.path.realpath(__file__))
-        if datadir is None:
-            datadir = os.path.join(script_dir, '..', '..', '..', 'psrdata', 'split-by-year', 'data', mode)
+        if data_dir is None:
+            data_dir = os.path.join(script_dir, '..', '..', '..', 'psrdata', 'split-by-year', 'data', mode)
         else:
-            datadir = os.path.join(datadir, mode)
+            data_dir = os.path.join(data_dir, mode)
 
-        super().__init__(datadir=datadir, recompute_s=recompute_s, recompute_g=recompute_g,
+        super().__init__(data_dir=data_dir, recompute_s=recompute_s, recompute_g=recompute_g,
                          max_vert_number=max_vert_number, face_reduction_rate=face_reduction_rate)
 
         self.all_pdbs = self.get_all_pdbs()
@@ -73,8 +73,8 @@ class PreprocessPSRDataset(PreprocessDataset):
 if __name__ == '__main__':
     pass
     recompute = False
-    # datadir = '/work/lpdi/users/ymiao/code/psrdata/split-by-year/data'
-    datadir = '../../../data/psr/PSR-split-by-year/split-by-year/data'
+    # data_dir = '/work/lpdi/users/ymiao/code/psrdata/split-by-year/data'
+    data_dir = '../../../data/psr/PSR-split-by-year/split-by-year/data'
     recompute_pdb = False
     recompute_s = False
     recompute_g = False
@@ -83,13 +83,13 @@ if __name__ == '__main__':
     for mode in ['train', 'val', 'test']:
         manager = mp.Manager()
         shared_dict = manager.dict()
-        dataset = ExtractPSRpdbDataset(shared_score_dict=shared_dict, datadir=datadir, mode=mode,
+        dataset = ExtractPSRpdbDataset(shared_score_dict=shared_dict, data_dir=data_dir, mode=mode,
                                        recompute=recompute_pdb)
         do_all(dataset, num_workers=20, max_sys=20)
         shared_score_dict = dict(sorted(dataset.shared_score_dict.items()))
-        with open(os.path.join(datadir, mode, mode + '_score.json'), "w") as outfile:
+        with open(os.path.join(data_dir, mode, mode + '_score.json'), "w") as outfile:
             json.dump(shared_score_dict, outfile)
 
-        dataset = PreprocessPSRDataset(datadir=datadir, recompute_s=recompute_s, recompute_g=recompute_g, mode=mode,
+        dataset = PreprocessPSRDataset(data_dir=data_dir, recompute_s=recompute_s, recompute_g=recompute_g, mode=mode,
                                        max_vert_number=100000, face_reduction_rate=0.1)
         do_all(dataset, num_workers=20)

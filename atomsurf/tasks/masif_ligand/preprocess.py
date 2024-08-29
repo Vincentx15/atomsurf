@@ -101,19 +101,19 @@ class PreprocessPatchDataset(Dataset):
 
 class PreProcessPDBDataset(PreprocessDataset):
 
-    def __init__(self, datadir=None, recompute_s=False, recompute_g=False,
+    def __init__(self, data_dir=None, recompute_s=False, recompute_g=False,
                  max_vert_number=100000, face_reduction_rate=1.0, use_pymesh=True):
-        if datadir is None:
+        if data_dir is None:
             script_dir = os.path.dirname(os.path.realpath(__file__))
-            datadir = os.path.join(script_dir, '..', '..', '..', 'data', 'masif_ligand')
+            data_dir = os.path.join(script_dir, '..', '..', '..', 'data', 'masif_ligand')
 
-        super().__init__(datadir=datadir, recompute_s=recompute_s, recompute_g=recompute_g,
+        super().__init__(data_dir=data_dir, recompute_s=recompute_s, recompute_g=recompute_g,
                          max_vert_number=max_vert_number, face_reduction_rate=face_reduction_rate)
         # Compared to super(), we redefine the original PDB location and the
         # out_surf dir (since those are "_full", as opposed to patches)
-        self.pdb_dir = os.path.join(datadir, 'raw_data_MasifLigand', 'pdb')
+        self.pdb_dir = os.path.join(data_dir, 'raw_data_MasifLigand', 'pdb')
         surface_dirname = f'surfaces_full_{face_reduction_rate}{f"_{use_pymesh}" if use_pymesh is not None else ""}'
-        self.out_surf_dir = os.path.join(datadir, surface_dirname)
+        self.out_surf_dir = os.path.join(data_dir, surface_dirname)
         os.makedirs(self.out_surf_dir, exist_ok=True)
 
         self.all_pdbs = self.get_all_pdbs()

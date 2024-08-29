@@ -18,17 +18,17 @@ torch.set_num_threads(1)
 
 
 class PreprocessMSPDataset(PreprocessDataset):
-    def __init__(self, datadir, recompute_pdb=False, recompute_s=False, recompute_g=False, mode='train',
+    def __init__(self, data_dir, recompute_pdb=False, recompute_s=False, recompute_g=False, mode='train',
                  max_vert_number=100000,
                  face_reduction_rate=0.1):
         # Stuff to get PDBs right
-        datadir = os.path.join(datadir, mode)
-        self.dataset = LMDBDataset(datadir)
+        data_dir = os.path.join(data_dir, mode)
+        self.dataset = LMDBDataset(data_dir)
         self.recompute_pdb = recompute_pdb
-        self.pdb_dir = os.path.join(datadir, 'pdb')
+        self.pdb_dir = os.path.join(data_dir, 'pdb')
         os.makedirs(self.pdb_dir, exist_ok=True)
 
-        super().__init__(datadir=datadir, recompute_s=recompute_s, recompute_g=recompute_g,
+        super().__init__(data_dir=data_dir, recompute_s=recompute_s, recompute_g=recompute_g,
                          max_vert_number=max_vert_number, face_reduction_rate=face_reduction_rate)
 
     def __len__(self):
@@ -116,13 +116,13 @@ class PreprocessMSPDataset(PreprocessDataset):
 
 if __name__ == '__main__':
     recompute = False
-    datadir = '../../../data/msp/MSP-split-by-sequence-identity-30/split-by-sequence-identity-30/data'
+    data_dir = '../../../data/msp/MSP-split-by-sequence-identity-30/split-by-sequence-identity-30/data'
     recompute_pdb = False
     recompute_s = False
     recompute_g = False
 
     # for mode in ['test']:
     for mode in ['train', 'val', 'test']:
-        dataset = PreprocessMSPDataset(datadir=datadir, recompute_s=recompute_s, recompute_g=recompute_g, mode=mode,
+        dataset = PreprocessMSPDataset(data_dir=data_dir, recompute_s=recompute_s, recompute_g=recompute_g, mode=mode,
                                        max_vert_number=100000, face_reduction_rate=0.1)
         do_all(dataset, num_workers=20)
