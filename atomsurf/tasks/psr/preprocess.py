@@ -1,6 +1,7 @@
 import os
 import sys
-import time
+
+import multiprocessing as mp
 import torch
 from atom3d.datasets import LMDBDataset
 from torch.utils.data import Dataset
@@ -19,7 +20,9 @@ torch.set_num_threads(1)
 
 
 class ExtractPSRpdbDataset(Dataset):
-    def __init__(self, datadir=None, mode='train'):
+    def __init__(self, shared_score_dict, datadir=None, mode='train', recompute=True):
+        self.recompute = recompute
+        self.shared_score_dict = shared_score_dict
         if datadir is None:
             script_dir = os.path.dirname(os.path.realpath(__file__))
             datadir = os.path.join(script_dir, '..', '..', '..', 'psrdata', 'split-by-year', 'data', mode)
@@ -27,23 +30,22 @@ class ExtractPSRpdbDataset(Dataset):
             datadir = os.path.join(datadir, mode)
         self.pdb_dir = os.path.join(datadir, 'pdb')
         os.makedirs(self.pdb_dir, exist_ok=True)
-        self.dataset = LMDBDataset(datadir)
         self.pdb_list = []
-        self.score_dict = {}
+        self.dataset = LMDBDataset(datadir)
 
     def __len__(self):
         return len(self.dataset)
 
     def __getitem__(self, idx):
-        ensemble = self.dataset[idx]['atoms']
+        lmdb_item = self.dataset[idx]
+        ensemble = lmdb_item['atoms']
+        # This line looks weird, but all systems (in the test set have only one)
         subunits = ensemble['subunit'].unique()
         df = ensemble[ensemble['subunit'] == subunits[0]]
-        # name = ensemble['structure'].unique()[0]
-        name = self.dataset[idx]['id'].split('\'')[1] + '_' + self.dataset[idx]['id'].split('\'')[3] + '.pdb'
-        # print(name)
-        df_to_pdb(df, os.path.join(self.pdb_dir, name), recompute=True)
+        name = lmdb_item['id'].split('\'')[1] + '_' + self.dataset[idx]['id'].split('\'')[3] + '.pdb'
+        df_to_pdb(df, os.path.join(self.pdb_dir, name), recompute=self.recompute)
         score = self.dataset[idx]['scores']['gdt_ts']
-        self.score_dict[name[:-4]] = {'name': self.dataset[idx]['id'], 'score': score}
+        self.shared_score_dict[name[:-4]] = {'name': lmdb_item['id'], 'score': score}
         return 1
 
 
@@ -71,13 +73,23 @@ class PreprocessPSRDataset(PreprocessDataset):
 if __name__ == '__main__':
     pass
     recompute = False
-    datadir = '/work/lpdi/users/ymiao/code/psrdata/split-by-year/data'
-    for mode in ['train', 'val', 'test']:
-        dataset = ExtractPSRpdbDataset(datadir=datadir, mode=mode)
-        do_all(dataset, num_workers=30)
-        with open(os.path.join(datadir, mode, mode + '_score.json'), "w") as outfile:
-            json.dump(dataset.score_dict, outfile)
+    # datadir = '/work/lpdi/users/ymiao/code/psrdata/split-by-year/data'
+    datadir = '../../../data/psr/PSR-split-by-year/split-by-year/data'
+    recompute_pdb = False
+    recompute_s = False
+    recompute_g = False
 
-        testset = PreprocessPSRDataset(datadir=datadir, recompute_s=True, recompute_g=True, mode=mode,
+    for mode in ['train', 'val', 'test']:
+    # for mode in ['test']:
+        manager = mp.Manager()
+        shared_dict = manager.dict()
+        dataset = ExtractPSRpdbDataset(shared_score_dict=shared_dict, datadir=datadir, mode=mode,
+                                       recompute=recompute_pdb)
+        do_all(dataset, num_workers=20, max_sys=None)
+        shared_score_dict = dict(sorted(dataset.shared_score_dict.items()))
+        with open(os.path.join(datadir, mode, mode + '_score.json'), "w") as outfile:
+            json.dump(shared_score_dict, outfile)
+
+        dataset = PreprocessPSRDataset(datadir=datadir, recompute_s=recompute_s, recompute_g=recompute_g, mode=mode,
                                        max_vert_number=100000, face_reduction_rate=0.1)
-        do_all(testset, num_workers=40)
+        do_all(dataset, num_workers=20)
