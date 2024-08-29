@@ -1,12 +1,12 @@
 import os
 import re
 
+from omegaconf import open_dict
 import torch
 from torch.utils.data import Dataset
 from torch_geometric.data import Data
 from torch_geometric.data import Batch
 from torch_sparse import SparseTensor
-import pytorch_lightning as pl
 
 from atomsurf.protein.surfaces import SurfaceObject, SurfaceBatch
 from atomsurf.protein.graphs import parse_pdb_path
@@ -262,17 +262,18 @@ class AtomBatch(Data):
 def update_model_input_dim(cfg, dataset_temp, gkey='graph', skey='surface'):
     # Useful to create a Model of the right input dims
     try:
-        from omegaconf import open_dict
+        found = False
         for i, example in enumerate(dataset_temp):
             if example is not None:
                 with open_dict(cfg):
                     feat_encoder_kwargs = cfg.encoder.blocks[0].kwargs
                     feat_encoder_kwargs['graph_feat_dim'] = example[gkey].x.shape[1]
                     feat_encoder_kwargs['surface_feat_dim'] = example[skey].x.shape[1]
+                found = True
                 break
             if i > 50:
-                raise Exception('All data returned by Dataloader is None')
+                break
+        if not found:
+            raise RuntimeError('Train dataloader, returned no data, model input dims could not be infered')
     except Exception as e:
         raise Exception('Could not update model input dims because of error: ', e)
-
-
