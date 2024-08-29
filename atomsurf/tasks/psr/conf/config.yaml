@@ -1,7 +1,8 @@
 defaults:
+  - model_global_variables
+  - blocks_zoo_input
   - blocks_zoo
-  - encoder: vanilla
-  - dataset: vanilla
+  - encoder: debug
   - optimizer: adam
   - scheduler: reduce_lr_on_plateau
   - override hydra/job_logging: colorlog
@@ -17,8 +18,8 @@ hydra:
 # general params
 seed: 2024
 run_name: default
-data_dir: /work/lpdi/users/ymiao/code/psrdata/split-by-year/data/
-out_dir: /work/lpdi/users/ymiao/code/psr_out_dir
+data_dir: ../../../data/psr/PSR-split-by-year/split-by-year/data
+out_dir: ../../../data/psr/out_dir
 test_freq: 5
 epochs: 100
 device: 0
@@ -29,7 +30,7 @@ min_batch_size: 2
 # loader params
 loader:
   num_workers: 0
-  batch_size: 256
+  batch_size: 32
   pin_memory: False
   prefetch_factor: 2
   shuffle: false
@@ -54,22 +55,23 @@ train:
   detect_anomaly: False
   # # debugging
   overfit_batches: 0
+  to_monitor: local_r/val
 
 cfg_surface:
   use_surfaces: true
-  use_whole_surfaces: true
-  data_dir: '/work/lpdi/users/ymiao/code/psrdata/split-by-year/data/'
+  data_dir: ../../../data/psr/PSR-split-by-year/split-by-year/data
   feat_keys: 'all'
   oh_keys: 'all'
 
 # python train.py 'cfg_graph.feat_keys=[hphobs]' 'cfg_graph.oh_keys=[amino_types]' cfg_graph.use_esm=True
 cfg_graph:
   use_graphs: true
-  data_dir: '/work/lpdi/users/ymiao/code/psrdata/split-by-year/data/'
+  data_dir: ../../../data/psr/PSR-split-by-year/split-by-year/data
   feat_keys: 'all'
   oh_keys: 'all'
-  esm_dir: '/work/lpdi/users/ymiao/code/psrdata/split-by-year/data/'
+  esm_dir: ../../../data/psr/PSR-split-by-year/split-by-year/data
   use_esm: false
 
 cfg_head:
-  toto: false
+  encoded_dims: ${model_hdim}
+  dropout: 0.25

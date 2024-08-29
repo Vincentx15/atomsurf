@@ -79,13 +79,13 @@ if __name__ == '__main__':
     recompute_s = False
     recompute_g = False
 
-    for mode in ['train', 'val', 'test']:
     # for mode in ['test']:
+    for mode in ['train', 'val', 'test']:
         manager = mp.Manager()
         shared_dict = manager.dict()
         dataset = ExtractPSRpdbDataset(shared_score_dict=shared_dict, datadir=datadir, mode=mode,
                                        recompute=recompute_pdb)
-        do_all(dataset, num_workers=20, max_sys=None)
+        do_all(dataset, num_workers=20, max_sys=20)
         shared_score_dict = dict(sorted(dataset.shared_score_dict.items()))
         with open(os.path.join(datadir, mode, mode + '_score.json'), "w") as outfile:
             json.dump(shared_score_dict, outfile)

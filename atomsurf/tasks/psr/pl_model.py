@@ -3,11 +3,11 @@ import sys
 
 from collections import defaultdict
 import numpy as np
-import pytorch_lightning as pl
 import scipy
 import torch
 
 # project
+from atomsurf.utils.learning_utils import AtomPLModule
 from atomsurf.tasks.psr.model import PSRNet
 
 
@@ -32,31 +32,27 @@ def rs_metric(reslist, resdict):
     return global_r, local_r
 
 
-class PSRModule(pl.LightningModule):
-    def __init__(self, hparams) -> None:
+class PSRModule(AtomPLModule):
+    def __init__(self, cfg) -> None:
         super().__init__()
-        self.save_hyperparameters()
         self.criterion = torch.nn.MSELoss()
-        self.model = PSRNet(hparams_encoder=hparams.encoder, hparams_head=hparams.cfg_head, use_graph_only=True)
+        self.model = PSRNet(hparams_encoder=cfg.encoder, hparams_head=cfg.cfg_head)
+
         self.val_reslist = list()
         self.val_resdict = defaultdict(list)
-
         self.test_reslist = list()
         self.test_resdict = defaultdict(list)
 
-    def forward(self, x):
-        return self.model(x)
-
     def step(self, batch):
         if batch is None or batch.num_graphs < self.hparams.cfg.min_batch_size:
-            return None, None, None
+            return None, None, None, None
         scores = batch.score.reshape(-1, 1)
         outputs = self(batch)
         loss = self.criterion(outputs, scores)
         names = batch.name
         if torch.isnan(loss).any():
             print('Nan loss')
-            return None, None, None
+            return None, None, None, None
         return loss, outputs, scores, names
 
     def training_step(self, batch, batch_idx):
@@ -70,7 +66,7 @@ class PSRModule(pl.LightningModule):
     def validation_step(self, batch, batch_idx: int):
         self.model.eval()
         loss, logits, scores, names = self.step(batch)
-        if loss is None or logits.isnan().any() or scores.isnan().any():
+        if loss is None:
             return None
         for name, logit, score in zip(names, logits, scores):
             reslist = [logit.cpu().numpy(), score.cpu().numpy()]
@@ -82,7 +78,7 @@ class PSRModule(pl.LightningModule):
     def test_step(self, batch, batch_idx: int):
         self.model.eval()
         loss, logits, scores, names = self.step(batch)
-        if loss is None or logits.isnan().any() or scores.isnan().any():
+        if loss is None:
             return None
         for name, logit, score in zip(names, logits, scores):
             reslist = [logit.cpu().numpy(), score.cpu().numpy()]
@@ -90,28 +86,6 @@ class PSRModule(pl.LightningModule):
             self.test_resdict[name[0:5]].append(reslist)
         self.log_dict({"loss/test": loss.item()},
                       on_step=False, on_epoch=True, prog_bar=True, batch_size=len(logits))
-
-    def configure_optimizers(self):
-        opt_params = self.hparams.hparams.optimizer
-        optimizer = torch.optim.Adam(self.parameters(), lr=opt_params.lr)
-        scheduler_obj = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,
-                                                                   patience=opt_params.patience,
-                                                                   factor=opt_params.factor,
-                                                                   mode='max')
-        scheduler = {'scheduler': scheduler_obj,
-                     'monitor': "loss/val",
-                     'interval': "epoch",
-                     'frequency': 1,
-                     "strict": True,
-                     'name': "epoch/lr"}
-        # return optimizer
-        return [optimizer], [scheduler]
-
-    def transfer_batch_to_device(self, batch, device, dataloader_idx):
-        if batch is None:
-            return None
-        batch = batch.to(device)
-        return batch
 
     def on_validation_epoch_end(self):
         global_r, local_r = rs_metric(self.val_reslist, self.val_resdict)
@@ -131,23 +105,3 @@ class PSRModule(pl.LightningModule):
         print(f" Local R test : {local_r}")
         self.log_dict({"global_r/test": global_r})
         self.log_dict({"local_r/test": local_r})
-
-    # def get_metrics(self, logits, scores, prefix):
-    #     if prefix=='val':
-    #         global_r, local_r = rs_metric(self.val_reslist, self.val_resdict)
-    #         self.val_reslist = list()
-    #         self.val_resdict = defaultdict(list)
-    #         print(f" Global R validation: {global_r}")
-    #         print(f" Local R validation : {local_r}")
-    #         self.log_dict({"global_r/val": global_r})
-    #         self.log_dict({"local_r/val": local_r})
-    #         self.log("global_r_val", global_r, prog_bar=True, on_step=False, on_epoch=True, logger=False)
-
-    #     elif prefix=='test':
-    #         global_r, local_r = rs_metric(self.test_reslist, self.test_resdict)
-    #         self.test_reslist = list()
-    #         self.test_resdict = defaultdict(list)
-    #         print(f" Global R test: {global_r}")
-    #         print(f" Local R test : {local_r}")
-    #         self.log_dict({"global_r/test": global_r})
-    #         self.log_dict({"local_r/test": local_r})

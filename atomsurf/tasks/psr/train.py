@@ -34,14 +34,6 @@ def main(cfg=None):
 
     # init datamodule
     datamodule = PSRDataModule(cfg)
-    # To debug while Trainer is buggy # TODO remove when trainer is fixed.
-    # train_loader = datamodule.train_dataloader()
-    # for i, batch in enumerate(train_loader):
-    #     if i > 2:
-    #         break
-    #     print(batch.graph[0].x.shape)
-    #     print(batch.surface[0].x.shape)
-    #     sys.exit()
 
     # init model
     model = PSRModule(cfg)
@@ -68,7 +60,6 @@ def main(cfg=None):
     early_stop_callback = pl.callbacks.EarlyStopping(monitor='loss/val',
                                                      patience=cfg.train.early_stoping_patience,
                                                      mode='max')
-
     callbacks = [lr_logger, checkpoint_callback, early_stop_callback, CommandLoggerCallback(command)]
 
     if torch.cuda.is_available():
