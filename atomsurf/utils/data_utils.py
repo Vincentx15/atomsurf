@@ -274,6 +274,6 @@ def update_model_input_dim(cfg, dataset_temp, gkey='graph', skey='surface'):
             if i > 50:
                 break
         if not found:
-            raise RuntimeError('Train dataloader, returned no data, model input dims could not be infered')
+            raise RuntimeError('Train dataloader, returned no data, model input dims could not be inferred')
     except Exception as e:
         raise Exception('Could not update model input dims because of error: ', e)

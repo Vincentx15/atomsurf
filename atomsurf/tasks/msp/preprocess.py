@@ -18,9 +18,8 @@ torch.set_num_threads(1)
 
 
 class PreprocessMSPDataset(PreprocessDataset):
-    def __init__(self, data_dir, recompute_pdb=False, recompute_s=False, recompute_g=False, mode='train',
-                 max_vert_number=100000,
-                 face_reduction_rate=0.1):
+    def __init__(self, data_dir, recompute_pdb=False, recompute_s=False, recompute_g=False, recompute_interfaces=False,
+                 mode='train', max_vert_number=100000, face_reduction_rate=0.1):
         # Stuff to get PDBs right
         data_dir = os.path.join(data_dir, mode)
         self.dataset = LMDBDataset(data_dir)
@@ -30,6 +29,8 @@ class PreprocessMSPDataset(PreprocessDataset):
 
         super().__init__(data_dir=data_dir, recompute_s=recompute_s, recompute_g=recompute_g,
                          max_vert_number=max_vert_number, face_reduction_rate=face_reduction_rate)
+
+        self.recompute_interfaces = recompute_interfaces
 
     def __len__(self):
         return len(self.dataset)
@@ -84,9 +85,20 @@ class PreprocessMSPDataset(PreprocessDataset):
                 df_to_pdb(df, pdb_path, recompute=self.recompute_pdb)
                 success = self.path_to_surf_graphs(pdb_path, surface_dump, agraph_dump, rgraph_dump)
                 if not success:
+                    print(f"Preprocess failed for {system_name} at the surface/graph creation step")
                     return 0
                 graphs_results.append((agraph_dump, torch.load(agraph_dump), rgraph_dump, torch.load(rgraph_dump)))
 
+            if not self.recompute_interfaces:
+                need_compute_any = False
+                for _, agraph, _, rgraph in graphs_results:
+                    if not ("misc_features" in agraph.features
+                            and "misc_features" in rgraph.features
+                            and "interface_node" in agraph.features.misc_features
+                            and "interface_node" in rgraph.features.misc_features):
+                        need_compute_any = True
+                if not need_compute_any:
+                    return 1
             # Get interfacial coords
             orig_idx = self._extract_mut_idx(orig_df, mutation)
             mut_idx = self._extract_mut_idx(mut_df, mutation)
@@ -102,18 +114,20 @@ class PreprocessMSPDataset(PreprocessDataset):
 
                 # Get the nearest neighbor on each side for the atomgraph
                 dists = torch.cdist(interface_coords, agraph.node_pos)
-                min_idx_agraph = torch.topk(-dists, k=32, dim=1).indices.unique()
+                k = min(32, len(agraph.node_pos))
+                min_idx_agraph = torch.topk(-dists, k=k, dim=1).indices.unique()
                 agraph.features.add_misc_features("interface_node", min_idx_agraph)
                 torch.save(agraph, open(agraph_dump, 'wb'))
 
                 # Do the same for rgraphs
                 dists = torch.cdist(interface_coords, rgraph.node_pos)
-                min_idx_rgraph = torch.topk(-dists, k=8, dim=1).indices.unique()
+                k = min(8, len(rgraph.node_pos))
+                min_idx_rgraph = torch.topk(-dists, k=k, dim=1).indices.unique()
                 rgraph.features.add_misc_features("interface_node", min_idx_rgraph)
                 torch.save(rgraph, open(rgraph_dump, 'wb'))
             return 1
         except Exception as e:
-            print(f"Preprocess failed for {system_name}", e)
+            print(f"Preprocess failed for {system_name} at the interface computation step", e)
             return 0
 
 
@@ -123,9 +137,11 @@ if __name__ == '__main__':
     recompute_pdb = False
     recompute_s = False
     recompute_g = False
+    recompute_interface = False
 
     # for mode in ['test']:
     for mode in ['train', 'val', 'test']:
-        dataset = PreprocessMSPDataset(data_dir=data_dir, recompute_s=recompute_s, recompute_g=recompute_g, mode=mode,
-                                       max_vert_number=100000, face_reduction_rate=0.1)
+        dataset = PreprocessMSPDataset(data_dir=data_dir, recompute_s=recompute_s, recompute_g=recompute_g,
+                                       recompute_pdb=recompute_pdb, recompute_interfaces=recompute_interface,
+                                       mode=mode, max_vert_number=100000, face_reduction_rate=0.1)
         do_all(dataset, num_workers=20)

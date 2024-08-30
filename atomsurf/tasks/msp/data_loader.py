@@ -30,10 +30,11 @@ class GraphLoaderMSP(GraphLoader):
 
 
 class MSPDataset(Dataset):
-    def __init__(self, data_dir, surface_loader, graph_loader):
+    def __init__(self, data_dir, surface_loader, graph_loader, verbose=False):
         self.systems = LMDBDataset(data_dir)
         self.surface_loader = surface_loader
         self.graph_loader = graph_loader
+        self.verbose = verbose
 
     def __len__(self):
         return len(self.systems)
@@ -50,13 +51,19 @@ class MSPDataset(Dataset):
             surface = self.surface_loader.load(surface_name)
             graph_name = os.path.join(system_name, name)
             graph = self.graph_loader.load(graph_name)
-            if surface is None or graph is None or surface.n_verts < 20 or graph.node_len < 20:
-                print('Problem with graph/surface', name)
+            if surface is None or surface.n_verts < 128:
+                if self.verbose:
+                    print('Surface problem', surface_name)
+                return None
+            if graph is None or graph.node_len < 2:
+                if self.verbose:
+                    print('Graph problem', graph_name)
                 return None
             try:
                 all_ids.append(graph.misc_features['interface_node'])
             except KeyError:
-                print('missing interface nodes for', graph_name)
+                if self.verbose:
+                    print('missing interface nodes for', graph_name)
                 return None
             all_surfs.append(surface)
             all_graphs.append(graph)
@@ -80,7 +87,6 @@ class MSPDataModule(pl.LightningDataModule):
         self.graph_loaders = []
         self.lmdb_paths = []
         for mode in ['train', 'val', 'test']:
-            # for mode in ['test'] * 3:
             self.lmdb_paths.append(os.path.join(cfg.data_dir, mode))
             self.surface_loaders.append(SurfaceLoaderMSP(cfg.cfg_surface, mode=mode))
             self.graph_loaders.append(GraphLoaderMSP(cfg.cfg_graph, mode=mode))
