@@ -4,7 +4,6 @@ import torch_geometric
 
 from atomsurf.networks.protein_encoder import ProteinEncoder
 
-
 class PSRNet(torch.nn.Module):
     def __init__(self, hparams_encoder, hparams_head):
         super().__init__()

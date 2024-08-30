@@ -50,15 +50,16 @@ class MSPDataset(Dataset):
             surface = self.surface_loader.load(surface_name)
             graph_name = os.path.join(system_name, name)
             graph = self.graph_loader.load(graph_name)
+            if surface is None or graph is None or surface.n_verts < 20 or graph.node_len < 20:
+                print('Problem with graph/surface', name)
+                return None
+            try:
+                all_ids.append(graph.misc_features['interface_node'])
+            except KeyError:
+                print('missing interface nodes for', graph_name)
+                return None
             all_surfs.append(surface)
             all_graphs.append(graph)
-            all_ids.append(graph.misc_features['interface_node'])
-
-        if any([surface is None for surface in all_surfs]) or any([graph is None for graph in all_graphs]):
-            return None
-        if (any([graph.node_pos.shape[0] < 20 for graph in all_graphs]) or
-                any([surface.verts.shape[0] < 20 for surface in all_surfs])):
-            return None
         item = Data(name=system_name, label=torch.tensor([float(lmdb_item['label'])]))
         item.surface_lo = all_surfs[0]
         item.surface_ro = all_surfs[1]

@@ -28,11 +28,11 @@ class GraphLoaderPSR(GraphLoader):
 
 
 class PSRDataset(Dataset):
-    def __init__(self, data_dir, surface_builder, graph_builder):
+    def __init__(self, data_dir, surface_loader, graph_loader):
         sysdict = json.load(open(data_dir, 'r'))
         self.systems = [(k, v) for k, v in sysdict.items()]
-        self.surface_loader = surface_builder
-        self.graph_loader = graph_builder
+        self.surface_loader = surface_loader
+        self.graph_loader = graph_loader
 
     def __len__(self):
         return len(self.systems)

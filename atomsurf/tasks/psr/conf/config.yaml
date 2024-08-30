@@ -33,7 +33,7 @@ loader:
   batch_size: 32
   pin_memory: False
   prefetch_factor: 2
-  shuffle: false
+  shuffle: true
 
 train:
   save_top_k: 2

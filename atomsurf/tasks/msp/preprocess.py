@@ -49,69 +49,72 @@ class PreprocessMSPDataset(PreprocessDataset):
         pdb, chains_left, chains_right, mutation = system_name.split('_')
         names = [f"{pdb}_{chains_left}", f"{pdb}_{chains_right}",
                  f"{pdb}_{chains_left}_{mutation}", f"{pdb}_{chains_right}_{mutation}"]
+        try:
+            # Extract relevant dataframes
+            orig_df = lmdb_item['original_atoms']
+            mut_df = lmdb_item['mutated_atoms']
 
-        # Extract relevant dataframes
-        orig_df = lmdb_item['original_atoms']
-        mut_df = lmdb_item['mutated_atoms']
+            # Remove hydrogens as they have weird names like 2HB (instead of HB2)
+            orig_df = orig_df[orig_df['element'] != 'H'].reset_index(drop=True)
+            mut_df = mut_df[mut_df['element'] != 'H'].reset_index(drop=True)
 
-        # Remove hydrogens as they have weird names like 2HB (instead of HB2)
-        orig_df = orig_df[orig_df['element'] != 'H'].reset_index(drop=True)
-        mut_df = mut_df[mut_df['element'] != 'H'].reset_index(drop=True)
+            left_orig = orig_df[orig_df['chain'].isin(list(chains_left))]
+            right_orig = orig_df[orig_df['chain'].isin(list(chains_right))]
+            left_mut = mut_df[mut_df['chain'].isin(list(chains_left))]
+            right_mut = mut_df[mut_df['chain'].isin(list(chains_right))]
+            dfs = [left_orig, right_orig, left_mut, right_mut]
 
-        left_orig = orig_df[orig_df['chain'].isin(list(chains_left))]
-        right_orig = orig_df[orig_df['chain'].isin(list(chains_right))]
-        left_mut = mut_df[mut_df['chain'].isin(list(chains_left))]
-        right_mut = mut_df[mut_df['chain'].isin(list(chains_right))]
-        dfs = [left_orig, right_orig, left_mut, right_mut]
+            # Get all pdbs, graphs and surfaces.
+            # Let's split those files in separate folders, otherwise it creates a race condition for duplicates
+            # First create all dirs
+            dump_dirs = [os.path.join(dump, system_name) for dump in [self.pdb_dir,
+                                                                      self.out_surf_dir,
+                                                                      self.out_agraph_dir,
+                                                                      self.out_rgraph_dir]]
+            for dir in dump_dirs:
+                os.makedirs(dir, exist_ok=True)
+            # Then create pdbs and save graphs in a list
+            graphs_results = []
+            for name, df in zip(names, dfs):
+                pdb_path = os.path.join(self.pdb_dir, system_name, f"{name}.pdb")
+                surface_dump = os.path.join(self.out_surf_dir, system_name, f'{name}.pt')
+                agraph_dump = os.path.join(self.out_agraph_dir, system_name, f'{name}.pt')
+                rgraph_dump = os.path.join(self.out_rgraph_dir, system_name, f'{name}.pt')
 
-        # Get all pdbs, graphs and surfaces.
-        # Let's split those files in separate folders, otherwise it creates a race condition for duplicates
-        # First create all dirs
-        dump_dirs = [os.path.join(dump, system_name) for dump in [self.pdb_dir,
-                                                                  self.out_surf_dir,
-                                                                  self.out_agraph_dir,
-                                                                  self.out_rgraph_dir]]
-        for dir in dump_dirs:
-            os.makedirs(dir, exist_ok=True)
-        # Then create pdbs and save graphs in a list
-        graphs_results = []
-        for name, df in zip(names, dfs):
-            pdb_path = os.path.join(self.pdb_dir, system_name, f"{name}.pdb")
-            surface_dump = os.path.join(self.out_surf_dir, system_name, f'{name}.pt')
-            agraph_dump = os.path.join(self.out_agraph_dir, system_name, f'{name}.pt')
-            rgraph_dump = os.path.join(self.out_rgraph_dir, system_name, f'{name}.pt')
+                df_to_pdb(df, pdb_path, recompute=self.recompute_pdb)
+                success = self.path_to_surf_graphs(pdb_path, surface_dump, agraph_dump, rgraph_dump)
+                if not success:
+                    return 0
+                graphs_results.append((agraph_dump, torch.load(agraph_dump), rgraph_dump, torch.load(rgraph_dump)))
 
-            df_to_pdb(df, pdb_path, recompute=self.recompute_pdb)
-            success = self.path_to_surf_graphs(pdb_path, surface_dump, agraph_dump, rgraph_dump)
-            if not success:
-                return 0
-            graphs_results.append((agraph_dump, torch.load(agraph_dump), rgraph_dump, torch.load(rgraph_dump)))
+            # Get interfacial coords
+            orig_idx = self._extract_mut_idx(orig_df, mutation)
+            mut_idx = self._extract_mut_idx(mut_df, mutation)
+            orig_coords = get_coordinates_from_df(orig_df.iloc[orig_idx])
+            mut_coords = get_coordinates_from_df(mut_df.iloc[mut_idx])
+            orig_coords = torch.from_numpy(orig_coords).float()
+            mut_coords = torch.from_numpy(mut_coords).float()
 
-        # Get interfacial coords
-        orig_idx = self._extract_mut_idx(orig_df, mutation)
-        mut_idx = self._extract_mut_idx(mut_df, mutation)
-        orig_coords = get_coordinates_from_df(orig_df.iloc[orig_idx])
-        mut_coords = get_coordinates_from_df(mut_df.iloc[mut_idx])
-        orig_coords = torch.from_numpy(orig_coords).float()
-        mut_coords = torch.from_numpy(mut_coords).float()
+            # Finally, add this information in the graphs
+            for i, (agraph_dump, agraph, rgraph_dump, rgraph) in enumerate(graphs_results):
+                # Get the right target coords
+                interface_coords = orig_coords if i < 2 else mut_coords
 
-        # Finally, add this information in the graphs
-        for i, (agraph_dump, agraph, rgraph_dump, rgraph) in enumerate(graphs_results):
-            # Get the right target coords
-            interface_coords = orig_coords if i < 2 else mut_coords
+                # Get the nearest neighbor on each side for the atomgraph
+                dists = torch.cdist(interface_coords, agraph.node_pos)
+                min_idx_agraph = torch.topk(-dists, k=32, dim=1).indices.unique()
+                agraph.features.add_misc_features("interface_node", min_idx_agraph)
+                torch.save(agraph, open(agraph_dump, 'wb'))
 
-            # Get the nearest neighbor on each side for the atomgraph
-            dists = torch.cdist(interface_coords, agraph.node_pos)
-            min_idx_agraph = torch.topk(-dists, k=32, dim=1).indices.unique()
-            agraph.features.add_misc_features("interface_node", min_idx_agraph)
-            torch.save(agraph, open(agraph_dump, 'wb'))
-
-            # Do the same for rgraphs
-            dists = torch.cdist(interface_coords, rgraph.node_pos)
-            min_idx_rgraph = torch.topk(-dists, k=32, dim=1).indices.unique()
-            rgraph.features.add_misc_features("interface_node", min_idx_rgraph)
-            torch.save(rgraph, open(rgraph_dump, 'wb'))
-        return 1
+                # Do the same for rgraphs
+                dists = torch.cdist(interface_coords, rgraph.node_pos)
+                min_idx_rgraph = torch.topk(-dists, k=8, dim=1).indices.unique()
+                rgraph.features.add_misc_features("interface_node", min_idx_rgraph)
+                torch.save(rgraph, open(rgraph_dump, 'wb'))
+            return 1
+        except Exception as e:
+            print(f"Preprocess failed for {system_name}", e)
+            return 0
 
 
 if __name__ == '__main__':
