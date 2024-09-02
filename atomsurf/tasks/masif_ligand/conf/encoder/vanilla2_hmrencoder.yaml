@@ -1,0 +1,9 @@
+name: vanilla2_HMRencoder
+
+
+blocks:
+  - ${GVPChemGeomFeatEncoder128_normals}
+  - ${diffusionpip128|gcn128|concurent}
+  - ${diffusionpip128|gcn128|concurent}
+  - ${diffusionpip128|gcn128|concurent}
+  - ${diffusionpip128|gcn128|concurent}

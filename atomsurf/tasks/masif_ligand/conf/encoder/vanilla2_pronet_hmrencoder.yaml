@@ -1,0 +1,8 @@
+name: vanilla2_pronet_HMRencoder
+
+
+blocks:
+  - ${GVPChemGeomFeatEncoder128_normals}
+  - ${diffusionpip128|pronet|gvp}
+  - ${diffusionpip128|pronet|gvp}
+  - ${diffusionpip128|pronet|gvp}
