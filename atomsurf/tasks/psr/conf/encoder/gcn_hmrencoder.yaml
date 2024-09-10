@@ -1,0 +1,9 @@
+name: gcn_gvpencoder
+
+
+blocks:
+  - ${hmr_input_encoder_neigh}
+  - ${gvp_normals}
+  - ${gvp_normals}
+  - ${gvp_normals}
+  - ${gvp_normals}

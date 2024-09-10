@@ -1,0 +1,8 @@
+name: gcn_gvpencoder
+
+
+blocks:
+  - ${input_encoder_normals}
+  - ${gvp_normals}
+  - ${gvp_normals}
+  - ${gvp_normals}

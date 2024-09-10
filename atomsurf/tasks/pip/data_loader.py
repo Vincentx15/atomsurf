@@ -77,6 +77,9 @@ class PIPDataset(Dataset):
         pos_as_array_1 = np.array([mapping_1[resi] for resi in pos_pairs_res['residue0']])
         pos_as_array_2 = np.array([mapping_2[resi] for resi in pos_pairs_res['residue1']])
         dense = np.zeros((len(pdbca1), len(pdbca2)))
+        if len(pos_as_array_1)< 3 or len(pos_as_array_2)< 3:
+            # print('no interact! skip')
+            return None
         dense[pos_as_array_1, pos_as_array_2] = 1
         negs_1, negs_2 = np.where(dense == 0)
         pos_array = np.stack((pos_as_array_1, pos_as_array_2))

@@ -45,7 +45,7 @@ def main(cfg=None):
     loggers = [tb_logger]
 
     if cfg.use_wandb:
-        add_wandb_logger(loggers, projectname='pip')
+        add_wandb_logger(loggers, projectname='pip',runname=version_name)
 
     # callbacks
     lr_logger = pl.callbacks.LearningRateMonitor()

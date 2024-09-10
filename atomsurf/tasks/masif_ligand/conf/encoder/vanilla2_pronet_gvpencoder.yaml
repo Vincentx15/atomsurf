@@ -1,0 +1,8 @@
+name: vanilla2_pronet_HMRencoder
+
+
+blocks:
+  - ${input_encoder_normals}
+  - ${pronet|gvp_normals}
+  - ${pronet|gvp_normals}
+  - ${pronet|gvp_normals}

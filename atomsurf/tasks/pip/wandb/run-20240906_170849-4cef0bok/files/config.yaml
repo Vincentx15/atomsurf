@@ -1,0 +1,978 @@
+wandb_version: 1
+
+_wandb:
+  desc: null
+  value:
+    python_version: 3.9.19
+    cli_version: 0.17.6
+    framework: lightning
+    is_jupyter_run: false
+    is_kaggle_kernel: false
+    start_time: 1725635332
+    t:
+      1:
+      - 1
+      - 5
+      - 9
+      - 50
+      - 53
+      - 55
+      - 77
+      - 103
+      2:
+      - 1
+      - 5
+      - 9
+      - 50
+      - 53
+      - 55
+      - 77
+      - 103
+      3:
+      - 23
+      4: 3.9.19
+      5: 0.17.6
+      8:
+      - 5
+      13: linux-x86_64
+cfg/model_hdim:
+  desc: null
+  value: 128
+cfg/model_dropout:
+  desc: null
+  value: 0.1
+cfg/hmr_input_encoder_noneigh/name:
+  desc: null
+  value: HMRInputEncoder
+cfg/hmr_input_encoder_noneigh/instanciate/_target_:
+  desc: null
+  value: atomsurf.networks.HMRInputEncoder
+cfg/hmr_input_encoder_noneigh/kwargs/h_dim:
+  desc: null
+  value: 128
+cfg/hmr_input_encoder_noneigh/kwargs/use_neigh:
+  desc: null
+  value: false
+cfg/hmr_input_encoder_noneigh/kwargs/dropout:
+  desc: null
+  value: 0.1
+cfg/hmr_input_encoder_noneigh/kwargs/num_gdf:
+  desc: null
+  value: 16
+cfg/hmr_input_encoder_noneigh/kwargs/num_signatures:
+  desc: null
+  value: 16
+cfg/hmr_input_encoder_neigh/name:
+  desc: null
+  value: HMRInputEncoder
+cfg/hmr_input_encoder_neigh/instanciate/_target_:
+  desc: null
+  value: atomsurf.networks.HMRInputEncoder
+cfg/hmr_input_encoder_neigh/kwargs/h_dim:
+  desc: null
+  value: 128
+cfg/hmr_input_encoder_neigh/kwargs/use_neigh:
+  desc: null
+  value: true
+cfg/hmr_input_encoder_neigh/kwargs/dropout:
+  desc: null
+  value: 0.1
+cfg/hmr_input_encoder_neigh/kwargs/num_gdf:
+  desc: null
+  value: 16
+cfg/hmr_input_encoder_neigh/kwargs/num_signatures:
+  desc: null
+  value: 16
+cfg/input_encoder/name:
+  desc: null
+  value: InputEncoder
+cfg/input_encoder/instanciate/_target_:
+  desc: null
+  value: atomsurf.networks.InputEncoder
+cfg/input_encoder/kwargs/h_dim:
+  desc: null
+  value: 128
+cfg/input_encoder/kwargs/dropout:
+  desc: null
+  value: 0.1
+cfg/input_encoder/kwargs/num_gdf:
+  desc: null
+  value: 16
+cfg/input_encoder/kwargs/num_signatures:
+  desc: null
+  value: 16
+cfg/input_encoder/kwargs/use_bp:
+  desc: null
+  value: true
+cfg/input_encoder/kwargs/use_gvp:
+  desc: null
+  value: true
+cfg/input_encoder/kwargs/use_knn:
+  desc: null
+  value: false
+cfg/input_encoder/kwargs/neigh_thresh:
+  desc: null
+  value: 8
+cfg/input_encoder/kwargs/sigma:
+  desc: null
+  value: 2.5
+cfg/input_encoder_normals/name:
+  desc: null
+  value: InputEncoder
+cfg/input_encoder_normals/instanciate/_target_:
+  desc: null
+  value: atomsurf.networks.InputEncoder
+cfg/input_encoder_normals/kwargs/h_dim:
+  desc: null
+  value: 128
+cfg/input_encoder_normals/kwargs/dropout:
+  desc: null
+  value: 0.1
+cfg/input_encoder_normals/kwargs/num_gdf:
+  desc: null
+  value: 16
+cfg/input_encoder_normals/kwargs/num_signatures:
+  desc: null
+  value: 16
+cfg/input_encoder_normals/kwargs/use_bp:
+  desc: null
+  value: true
+cfg/input_encoder_normals/kwargs/use_gvp:
+  desc: null
+  value: true
+cfg/input_encoder_normals/kwargs/use_knn:
+  desc: null
+  value: false
+cfg/input_encoder_normals/kwargs/use_normals:
+  desc: null
+  value: true
+cfg/input_encoder_normals/kwargs/neigh_thresh:
+  desc: null
+  value: 8
+cfg/input_encoder_normals/kwargs/sigma:
+  desc: null
+  value: 2.5
+cfg/input_encoder_knn/name:
+  desc: null
+  value: InputEncoder
+cfg/input_encoder_knn/instanciate/_target_:
+  desc: null
+  value: atomsurf.networks.InputEncoder
+cfg/input_encoder_knn/kwargs/h_dim:
+  desc: null
+  value: 128
+cfg/input_encoder_knn/kwargs/dropout:
+  desc: null
+  value: 0.1
+cfg/input_encoder_knn/kwargs/num_gdf:
+  desc: null
+  value: 16
+cfg/input_encoder_knn/kwargs/num_signatures:
+  desc: null
+  value: 16
+cfg/input_encoder_knn/kwargs/use_bp:
+  desc: null
+  value: true
+cfg/input_encoder_knn/kwargs/use_gvp:
+  desc: null
+  value: true
+cfg/input_encoder_knn/kwargs/use_knn:
+  desc: null
+  value: true
+cfg/input_encoder_knn/kwargs/use_normals:
+  desc: null
+  value: true
+cfg/input_encoder_knn/kwargs/neigh_thresh:
+  desc: null
+  value: 8
+cfg/input_encoder_knn/kwargs/sigma:
+  desc: null
+  value: 2.5
+cfg/diffusion_net/name:
+  desc: null
+  value: DiffusionNetBlockBatch
+cfg/diffusion_net/instanciate/_target_:
+  desc: null
+  value: diffusion_net.DiffusionNetBlock
+cfg/diffusion_net/kwargs/C_width:
+  desc: null
+  value: 128
+cfg/diffusion_net/kwargs/dropout:
+  desc: null
+  value: 0.1
+cfg/diffusion_net/kwargs/use_bn:
+  desc: null
+  value: true
+cfg/diffusion_net/kwargs/init_time:
+  desc: null
+  value: 2.0
+cfg/diffusion_net/kwargs/init_std:
+  desc: null
+  value: 2.0
+cfg/gcn_block/name:
+  desc: null
+  value: GCNx2Block
+cfg/gcn_block/instanciate/_target_:
+  desc: null
+  value: atomsurf.network_utils.GCNx2Block
+cfg/gcn_block/kwargs/dim_in:
+  desc: null
+  value: 128
+cfg/gcn_block/kwargs/hidden_dims:
+  desc: null
+  value: 128
+cfg/gcn_block/kwargs/dim_out:
+  desc: null
+  value: 128
+cfg/gcn_block/kwargs/dropout:
+  desc: null
+  value: 0.1
+cfg/gcn_block/kwargs/use_bn:
+  desc: null
+  value: true
+cfg/gcn_block/kwargs/use_weighted_edge_distance:
+  desc: null
+  value: false
+cfg/diff|gcn|gat/name:
+  desc: null
+  value: ProteinEncoder
+cfg/diff|gcn|gat/instanciate/_target_:
+  desc: null
+  value: atomsurf.networks.ProteinEncoderBlock
+cfg/diff|gcn|gat/kwargs/surface_encoder/name:
+  desc: null
+  value: DiffusionNetBlockBatch
+cfg/diff|gcn|gat/kwargs/surface_encoder/instanciate/_target_:
+  desc: null
+  value: diffusion_net.DiffusionNetBlock
+cfg/diff|gcn|gat/kwargs/surface_encoder/kwargs/C_width:
+  desc: null
+  value: 128
+cfg/diff|gcn|gat/kwargs/surface_encoder/kwargs/dropout:
+  desc: null
+  value: 0.1
+cfg/diff|gcn|gat/kwargs/surface_encoder/kwargs/use_bn:
+  desc: null
+  value: true
+cfg/diff|gcn|gat/kwargs/surface_encoder/kwargs/init_time:
+  desc: null
+  value: 2.0
+cfg/diff|gcn|gat/kwargs/surface_encoder/kwargs/init_std:
+  desc: null
+  value: 2.0
+cfg/diff|gcn|gat/kwargs/graph_encoder/name:
+  desc: null
+  value: GCNx2Block
+cfg/diff|gcn|gat/kwargs/graph_encoder/instanciate/_target_:
+  desc: null
+  value: atomsurf.network_utils.GCNx2Block
+cfg/diff|gcn|gat/kwargs/graph_encoder/kwargs/dim_in:
+  desc: null
+  value: 128
+cfg/diff|gcn|gat/kwargs/graph_encoder/kwargs/hidden_dims:
+  desc: null
+  value: 128
+cfg/diff|gcn|gat/kwargs/graph_encoder/kwargs/dim_out:
+  desc: null
+  value: 128
+cfg/diff|gcn|gat/kwargs/graph_encoder/kwargs/dropout:
+  desc: null
+  value: 0.1
+cfg/diff|gcn|gat/kwargs/graph_encoder/kwargs/use_bn:
+  desc: null
+  value: true
+cfg/diff|gcn|gat/kwargs/graph_encoder/kwargs/use_weighted_edge_distance:
+  desc: null
+  value: false
+cfg/diff|gcn|gat/kwargs/communication_block/name:
+  desc: null
+  value: ConcurrentCommunication
+cfg/diff|gcn|gat/kwargs/communication_block/instanciate/_target_:
+  desc: null
+  value: atomsurf.network_utils.ConcurrentCommunication
+cfg/diff|gcn|gat/kwargs/communication_block/kwargs/use_bp:
+  desc: null
+  value: true
+cfg/diff|gcn|gat/kwargs/communication_block/kwargs/pre_s_block:
+  desc: null
+  value: linear
+cfg/diff|gcn|gat/kwargs/communication_block/kwargs/pre_g_block:
+  desc: null
+  value: linear
+cfg/diff|gcn|gat/kwargs/communication_block/kwargs/pre_s_dim_in:
+  desc: null
+  value: 128
+cfg/diff|gcn|gat/kwargs/communication_block/kwargs/pre_s_dim_out:
+  desc: null
+  value: 64
+cfg/diff|gcn|gat/kwargs/communication_block/kwargs/pre_g_dim_in:
+  desc: null
+  value: 128
+cfg/diff|gcn|gat/kwargs/communication_block/kwargs/pre_g_dim_out:
+  desc: null
+  value: 64
+cfg/diff|gcn|gat/kwargs/communication_block/kwargs/use_gat:
+  desc: null
+  value: true
+cfg/diff|gcn|gat/kwargs/communication_block/kwargs/use_v2:
+  desc: null
+  value: false
+cfg/diff|gcn|gat/kwargs/communication_block/kwargs/bp_self_loops:
+  desc: null
+  value: false
+cfg/diff|gcn|gat/kwargs/communication_block/kwargs/bp_fill_value:
+  desc: null
+  value: mean
+cfg/diff|gcn|gat/kwargs/communication_block/kwargs/bp_s_dim_in:
+  desc: null
+  value: 64
+cfg/diff|gcn|gat/kwargs/communication_block/kwargs/bp_s_dim_out:
+  desc: null
+  value: 64
+cfg/diff|gcn|gat/kwargs/communication_block/kwargs/bp_g_dim_in:
+  desc: null
+  value: 64
+cfg/diff|gcn|gat/kwargs/communication_block/kwargs/bp_g_dim_out:
+  desc: null
+  value: 64
+cfg/diff|gcn|gat/kwargs/communication_block/kwargs/post_s_block:
+  desc: null
+  value: cat_post_process
+cfg/diff|gcn|gat/kwargs/communication_block/kwargs/post_g_block:
+  desc: null
+  value: cat_post_process
+cfg/diff|gcn|gat/kwargs/communication_block/kwargs/post_s_dim_in:
+  desc: null
+  value: 128
+cfg/diff|gcn|gat/kwargs/communication_block/kwargs/post_s_dim_out:
+  desc: null
+  value: 128
+cfg/diff|gcn|gat/kwargs/communication_block/kwargs/post_g_dim_in:
+  desc: null
+  value: 128
+cfg/diff|gcn|gat/kwargs/communication_block/kwargs/post_g_dim_out:
+  desc: null
+  value: 128
+cfg/diff|gcn|gat/kwargs/communication_block/kwargs/neigh_thresh:
+  desc: null
+  value: 8
+cfg/diff|gcn|gat/kwargs/communication_block/kwargs/sigma:
+  desc: null
+  value: 2.5
+cfg/gvp/name:
+  desc: null
+  value: ProteinEncoder
+cfg/gvp/instanciate/_target_:
+  desc: null
+  value: atomsurf.networks.ProteinEncoderBlock
+cfg/gvp/kwargs/surface_encoder/name:
+  desc: null
+  value: DiffusionNetBlockBatch
+cfg/gvp/kwargs/surface_encoder/instanciate/_target_:
+  desc: null
+  value: diffusion_net.DiffusionNetBlock
+cfg/gvp/kwargs/surface_encoder/kwargs/C_width:
+  desc: null
+  value: 128
+cfg/gvp/kwargs/surface_encoder/kwargs/dropout:
+  desc: null
+  value: 0.1
+cfg/gvp/kwargs/surface_encoder/kwargs/use_bn:
+  desc: null
+  value: true
+cfg/gvp/kwargs/surface_encoder/kwargs/init_time:
+  desc: null
+  value: 2.0
+cfg/gvp/kwargs/surface_encoder/kwargs/init_std:
+  desc: null
+  value: 2.0
+cfg/gvp/kwargs/graph_encoder/name:
+  desc: null
+  value: GCNx2Block
+cfg/gvp/kwargs/graph_encoder/instanciate/_target_:
+  desc: null
+  value: atomsurf.network_utils.GCNx2Block
+cfg/gvp/kwargs/graph_encoder/kwargs/dim_in:
+  desc: null
+  value: 128
+cfg/gvp/kwargs/graph_encoder/kwargs/hidden_dims:
+  desc: null
+  value: 128
+cfg/gvp/kwargs/graph_encoder/kwargs/dim_out:
+  desc: null
+  value: 128
+cfg/gvp/kwargs/graph_encoder/kwargs/dropout:
+  desc: null
+  value: 0.1
+cfg/gvp/kwargs/graph_encoder/kwargs/use_bn:
+  desc: null
+  value: true
+cfg/gvp/kwargs/graph_encoder/kwargs/use_weighted_edge_distance:
+  desc: null
+  value: false
+cfg/gvp/kwargs/communication_block/name:
+  desc: null
+  value: ConcurrentCommunication
+cfg/gvp/kwargs/communication_block/instanciate/_target_:
+  desc: null
+  value: atomsurf.network_utils.ConcurrentCommunication
+cfg/gvp/kwargs/communication_block/kwargs/use_bp:
+  desc: null
+  value: true
+cfg/gvp/kwargs/communication_block/kwargs/pre_s_block:
+  desc: null
+  value: linear
+cfg/gvp/kwargs/communication_block/kwargs/pre_g_block:
+  desc: null
+  value: linear
+cfg/gvp/kwargs/communication_block/kwargs/pre_s_dim_in:
+  desc: null
+  value: 128
+cfg/gvp/kwargs/communication_block/kwargs/pre_s_dim_out:
+  desc: null
+  value: 64
+cfg/gvp/kwargs/communication_block/kwargs/pre_g_dim_in:
+  desc: null
+  value: 128
+cfg/gvp/kwargs/communication_block/kwargs/pre_g_dim_out:
+  desc: null
+  value: 64
+cfg/gvp/kwargs/communication_block/kwargs/use_gvp:
+  desc: null
+  value: true
+cfg/gvp/kwargs/communication_block/kwargs/use_normals:
+  desc: null
+  value: false
+cfg/gvp/kwargs/communication_block/kwargs/bp_s_dim_in:
+  desc: null
+  value: 64
+cfg/gvp/kwargs/communication_block/kwargs/bp_s_dim_out:
+  desc: null
+  value: 64
+cfg/gvp/kwargs/communication_block/kwargs/bp_g_dim_in:
+  desc: null
+  value: 64
+cfg/gvp/kwargs/communication_block/kwargs/bp_g_dim_out:
+  desc: null
+  value: 64
+cfg/gvp/kwargs/communication_block/kwargs/post_s_block:
+  desc: null
+  value: cat_post_process
+cfg/gvp/kwargs/communication_block/kwargs/post_g_block:
+  desc: null
+  value: cat_post_process
+cfg/gvp/kwargs/communication_block/kwargs/post_s_dim_in:
+  desc: null
+  value: 128
+cfg/gvp/kwargs/communication_block/kwargs/post_s_dim_out:
+  desc: null
+  value: 128
+cfg/gvp/kwargs/communication_block/kwargs/post_g_dim_in:
+  desc: null
+  value: 128
+cfg/gvp/kwargs/communication_block/kwargs/post_g_dim_out:
+  desc: null
+  value: 128
+cfg/gvp/kwargs/communication_block/kwargs/neigh_thresh:
+  desc: null
+  value: 8
+cfg/gvp/kwargs/communication_block/kwargs/sigma:
+  desc: null
+  value: 2.5
+cfg/gvp_normals/name:
+  desc: null
+  value: ProteinEncoder
+cfg/gvp_normals/instanciate/_target_:
+  desc: null
+  value: atomsurf.networks.ProteinEncoderBlock
+cfg/gvp_normals/kwargs/surface_encoder/name:
+  desc: null
+  value: DiffusionNetBlockBatch
+cfg/gvp_normals/kwargs/surface_encoder/instanciate/_target_:
+  desc: null
+  value: diffusion_net.DiffusionNetBlock
+cfg/gvp_normals/kwargs/surface_encoder/kwargs/C_width:
+  desc: null
+  value: 128
+cfg/gvp_normals/kwargs/surface_encoder/kwargs/dropout:
+  desc: null
+  value: 0.1
+cfg/gvp_normals/kwargs/surface_encoder/kwargs/use_bn:
+  desc: null
+  value: true
+cfg/gvp_normals/kwargs/surface_encoder/kwargs/init_time:
+  desc: null
+  value: 2.0
+cfg/gvp_normals/kwargs/surface_encoder/kwargs/init_std:
+  desc: null
+  value: 2.0
+cfg/gvp_normals/kwargs/graph_encoder/name:
+  desc: null
+  value: GCNx2Block
+cfg/gvp_normals/kwargs/graph_encoder/instanciate/_target_:
+  desc: null
+  value: atomsurf.network_utils.GCNx2Block
+cfg/gvp_normals/kwargs/graph_encoder/kwargs/dim_in:
+  desc: null
+  value: 128
+cfg/gvp_normals/kwargs/graph_encoder/kwargs/hidden_dims:
+  desc: null
+  value: 128
+cfg/gvp_normals/kwargs/graph_encoder/kwargs/dim_out:
+  desc: null
+  value: 128
+cfg/gvp_normals/kwargs/graph_encoder/kwargs/dropout:
+  desc: null
+  value: 0.1
+cfg/gvp_normals/kwargs/graph_encoder/kwargs/use_bn:
+  desc: null
+  value: true
+cfg/gvp_normals/kwargs/graph_encoder/kwargs/use_weighted_edge_distance:
+  desc: null
+  value: false
+cfg/gvp_normals/kwargs/communication_block/name:
+  desc: null
+  value: ConcurrentCommunication
+cfg/gvp_normals/kwargs/communication_block/instanciate/_target_:
+  desc: null
+  value: atomsurf.network_utils.ConcurrentCommunication
+cfg/gvp_normals/kwargs/communication_block/kwargs/use_bp:
+  desc: null
+  value: true
+cfg/gvp_normals/kwargs/communication_block/kwargs/pre_s_block:
+  desc: null
+  value: linear
+cfg/gvp_normals/kwargs/communication_block/kwargs/pre_g_block:
+  desc: null
+  value: linear
+cfg/gvp_normals/kwargs/communication_block/kwargs/pre_s_dim_in:
+  desc: null
+  value: 128
+cfg/gvp_normals/kwargs/communication_block/kwargs/pre_s_dim_out:
+  desc: null
+  value: 64
+cfg/gvp_normals/kwargs/communication_block/kwargs/pre_g_dim_in:
+  desc: null
+  value: 128
+cfg/gvp_normals/kwargs/communication_block/kwargs/pre_g_dim_out:
+  desc: null
+  value: 64
+cfg/gvp_normals/kwargs/communication_block/kwargs/use_gvp:
+  desc: null
+  value: true
+cfg/gvp_normals/kwargs/communication_block/kwargs/use_normals:
+  desc: null
+  value: true
+cfg/gvp_normals/kwargs/communication_block/kwargs/bp_s_dim_in:
+  desc: null
+  value: 64
+cfg/gvp_normals/kwargs/communication_block/kwargs/bp_s_dim_out:
+  desc: null
+  value: 64
+cfg/gvp_normals/kwargs/communication_block/kwargs/bp_g_dim_in:
+  desc: null
+  value: 64
+cfg/gvp_normals/kwargs/communication_block/kwargs/bp_g_dim_out:
+  desc: null
+  value: 64
+cfg/gvp_normals/kwargs/communication_block/kwargs/post_s_block:
+  desc: null
+  value: cat_post_process
+cfg/gvp_normals/kwargs/communication_block/kwargs/post_g_block:
+  desc: null
+  value: cat_post_process
+cfg/gvp_normals/kwargs/communication_block/kwargs/post_s_dim_in:
+  desc: null
+  value: 128
+cfg/gvp_normals/kwargs/communication_block/kwargs/post_s_dim_out:
+  desc: null
+  value: 128
+cfg/gvp_normals/kwargs/communication_block/kwargs/post_g_dim_in:
+  desc: null
+  value: 128
+cfg/gvp_normals/kwargs/communication_block/kwargs/post_g_dim_out:
+  desc: null
+  value: 128
+cfg/gvp_normals/kwargs/communication_block/kwargs/neigh_thresh:
+  desc: null
+  value: 8
+cfg/gvp_normals/kwargs/communication_block/kwargs/sigma:
+  desc: null
+  value: 2.5
+cfg/pronet|gvp_normals/name:
+  desc: null
+  value: ProteinEncoder
+cfg/pronet|gvp_normals/instanciate/_target_:
+  desc: null
+  value: atomsurf.networks.ProteinEncoderBlock
+cfg/pronet|gvp_normals/kwargs/surface_encoder/name:
+  desc: null
+  value: DiffusionNetBlockBatch
+cfg/pronet|gvp_normals/kwargs/surface_encoder/instanciate/_target_:
+  desc: null
+  value: diffusion_net.DiffusionNetBlock
+cfg/pronet|gvp_normals/kwargs/surface_encoder/kwargs/C_width:
+  desc: null
+  value: 128
+cfg/pronet|gvp_normals/kwargs/surface_encoder/kwargs/dropout:
+  desc: null
+  value: 0.1
+cfg/pronet|gvp_normals/kwargs/surface_encoder/kwargs/use_bn:
+  desc: null
+  value: true
+cfg/pronet|gvp_normals/kwargs/surface_encoder/kwargs/init_time:
+  desc: null
+  value: 2.0
+cfg/pronet|gvp_normals/kwargs/surface_encoder/kwargs/init_std:
+  desc: null
+  value: 2.0
+cfg/pronet|gvp_normals/kwargs/graph_encoder/name:
+  desc: null
+  value: ProNet
+cfg/pronet|gvp_normals/kwargs/graph_encoder/instanciate/_target_:
+  desc: null
+  value: atomsurf.network_utils.ProNet
+cfg/pronet|gvp_normals/kwargs/graph_encoder/kwargs/level:
+  desc: null
+  value: allatom
+cfg/pronet|gvp_normals/kwargs/graph_encoder/kwargs/num_blocks:
+  desc: null
+  value: 4
+cfg/pronet|gvp_normals/kwargs/graph_encoder/kwargs/hidden_channels:
+  desc: null
+  value: 128
+cfg/pronet|gvp_normals/kwargs/graph_encoder/kwargs/mid_emb:
+  desc: null
+  value: 64
+cfg/pronet|gvp_normals/kwargs/graph_encoder/kwargs/num_radial:
+  desc: null
+  value: 6
+cfg/pronet|gvp_normals/kwargs/graph_encoder/kwargs/num_spherical:
+  desc: null
+  value: 2
+cfg/pronet|gvp_normals/kwargs/graph_encoder/kwargs/cutoff:
+  desc: null
+  value: 10.0
+cfg/pronet|gvp_normals/kwargs/graph_encoder/kwargs/max_num_neighbors:
+  desc: null
+  value: 32
+cfg/pronet|gvp_normals/kwargs/graph_encoder/kwargs/int_emb_layers:
+  desc: null
+  value: 3
+cfg/pronet|gvp_normals/kwargs/graph_encoder/kwargs/num_pos_emb:
+  desc: null
+  value: 16
+cfg/pronet|gvp_normals/kwargs/graph_encoder/kwargs/dropout:
+  desc: null
+  value: 0.1
+cfg/pronet|gvp_normals/kwargs/graph_encoder/kwargs/data_augment_eachlayer:
+  desc: null
+  value: false
+cfg/pronet|gvp_normals/kwargs/graph_encoder/kwargs/euler_noise:
+  desc: null
+  value: false
+cfg/pronet|gvp_normals/kwargs/graph_encoder/kwargs/add_seq_emb:
+  desc: null
+  value: false
+cfg/pronet|gvp_normals/kwargs/communication_block/name:
+  desc: null
+  value: ConcurrentCommunication
+cfg/pronet|gvp_normals/kwargs/communication_block/instanciate/_target_:
+  desc: null
+  value: atomsurf.network_utils.ConcurrentCommunication
+cfg/pronet|gvp_normals/kwargs/communication_block/kwargs/use_bp:
+  desc: null
+  value: true
+cfg/pronet|gvp_normals/kwargs/communication_block/kwargs/pre_s_block:
+  desc: null
+  value: linear
+cfg/pronet|gvp_normals/kwargs/communication_block/kwargs/pre_g_block:
+  desc: null
+  value: linear
+cfg/pronet|gvp_normals/kwargs/communication_block/kwargs/pre_s_dim_in:
+  desc: null
+  value: 128
+cfg/pronet|gvp_normals/kwargs/communication_block/kwargs/pre_s_dim_out:
+  desc: null
+  value: 64
+cfg/pronet|gvp_normals/kwargs/communication_block/kwargs/pre_g_dim_in:
+  desc: null
+  value: 128
+cfg/pronet|gvp_normals/kwargs/communication_block/kwargs/pre_g_dim_out:
+  desc: null
+  value: 64
+cfg/pronet|gvp_normals/kwargs/communication_block/kwargs/use_gvp:
+  desc: null
+  value: true
+cfg/pronet|gvp_normals/kwargs/communication_block/kwargs/use_normals:
+  desc: null
+  value: true
+cfg/pronet|gvp_normals/kwargs/communication_block/kwargs/bp_s_dim_in:
+  desc: null
+  value: 64
+cfg/pronet|gvp_normals/kwargs/communication_block/kwargs/bp_s_dim_out:
+  desc: null
+  value: 64
+cfg/pronet|gvp_normals/kwargs/communication_block/kwargs/bp_g_dim_in:
+  desc: null
+  value: 64
+cfg/pronet|gvp_normals/kwargs/communication_block/kwargs/bp_g_dim_out:
+  desc: null
+  value: 64
+cfg/pronet|gvp_normals/kwargs/communication_block/kwargs/post_s_block:
+  desc: null
+  value: cat_post_process
+cfg/pronet|gvp_normals/kwargs/communication_block/kwargs/post_g_block:
+  desc: null
+  value: cat_post_process
+cfg/pronet|gvp_normals/kwargs/communication_block/kwargs/post_s_dim_in:
+  desc: null
+  value: 128
+cfg/pronet|gvp_normals/kwargs/communication_block/kwargs/post_s_dim_out:
+  desc: null
+  value: 128
+cfg/pronet|gvp_normals/kwargs/communication_block/kwargs/post_g_dim_in:
+  desc: null
+  value: 128
+cfg/pronet|gvp_normals/kwargs/communication_block/kwargs/post_g_dim_out:
+  desc: null
+  value: 128
+cfg/pronet|gvp_normals/kwargs/communication_block/kwargs/neigh_thresh:
+  desc: null
+  value: 8
+cfg/pronet|gvp_normals/kwargs/communication_block/kwargs/sigma:
+  desc: null
+  value: 2.5
+cfg/encoder/name:
+  desc: null
+  value: gcn_gvpencoder
+cfg/encoder/blocks:
+  desc: null
+  value:
+  - '{''name'': ''InputEncoder'', ''instanciate'': {''_target_'': ''atomsurf.networks.InputEncoder''},
+    ''kwargs'': {''h_dim'': 128, ''dropout'': 0.1, ''num_gdf'': 16, ''num_signatures'':
+    16, ''use_bp'': True, ''use_gvp'': True, ''use_knn'': False, ''use_normals'':
+    True, ''neigh_thresh'': 8, ''sigma'': 2.5, ''graph_feat_dim'': 1310, ''surface_feat_dim'':
+    22}}'
+  - '{''name'': ''ProteinEncoder'', ''instanciate'': {''_target_'': ''atomsurf.networks.ProteinEncoderBlock''},
+    ''kwargs'': {''surface_encoder'': {''name'': ''DiffusionNetBlockBatch'', ''instanciate'':
+    {''_target_'': ''diffusion_net.DiffusionNetBlock''}, ''kwargs'': {''C_width'':
+    128, ''dropout'': 0.1, ''use_bn'': True, ''init_time'': 2.0, ''init_std'': 2.0}},
+    ''graph_encoder'': {''name'': ''GCNx2Block'', ''instanciate'': {''_target_'':
+    ''atomsurf.network_utils.GCNx2Block''}, ''kwargs'': {''dim_in'': 128, ''hidden_dims'':
+    128, ''dim_out'': 128, ''dropout'': 0.1, ''use_bn'': True, ''use_weighted_edge_distance'':
+    False}}, ''communication_block'': {''name'': ''ConcurrentCommunication'', ''instanciate'':
+    {''_target_'': ''atomsurf.network_utils.ConcurrentCommunication''}, ''kwargs'':
+    {''use_bp'': True, ''pre_s_block'': ''linear'', ''pre_g_block'': ''linear'', ''pre_s_dim_in'':
+    128, ''pre_s_dim_out'': 64, ''pre_g_dim_in'': 128, ''pre_g_dim_out'': 64, ''use_gvp'':
+    True, ''use_normals'': True, ''bp_s_dim_in'': 64, ''bp_s_dim_out'': 64, ''bp_g_dim_in'':
+    64, ''bp_g_dim_out'': 64, ''post_s_block'': ''cat_post_process'', ''post_g_block'':
+    ''cat_post_process'', ''post_s_dim_in'': 128, ''post_s_dim_out'': 128, ''post_g_dim_in'':
+    128, ''post_g_dim_out'': 128, ''neigh_thresh'': 8, ''sigma'': 2.5}}}}'
+  - '{''name'': ''ProteinEncoder'', ''instanciate'': {''_target_'': ''atomsurf.networks.ProteinEncoderBlock''},
+    ''kwargs'': {''surface_encoder'': {''name'': ''DiffusionNetBlockBatch'', ''instanciate'':
+    {''_target_'': ''diffusion_net.DiffusionNetBlock''}, ''kwargs'': {''C_width'':
+    128, ''dropout'': 0.1, ''use_bn'': True, ''init_time'': 2.0, ''init_std'': 2.0}},
+    ''graph_encoder'': {''name'': ''GCNx2Block'', ''instanciate'': {''_target_'':
+    ''atomsurf.network_utils.GCNx2Block''}, ''kwargs'': {''dim_in'': 128, ''hidden_dims'':
+    128, ''dim_out'': 128, ''dropout'': 0.1, ''use_bn'': True, ''use_weighted_edge_distance'':
+    False}}, ''communication_block'': {''name'': ''ConcurrentCommunication'', ''instanciate'':
+    {''_target_'': ''atomsurf.network_utils.ConcurrentCommunication''}, ''kwargs'':
+    {''use_bp'': True, ''pre_s_block'': ''linear'', ''pre_g_block'': ''linear'', ''pre_s_dim_in'':
+    128, ''pre_s_dim_out'': 64, ''pre_g_dim_in'': 128, ''pre_g_dim_out'': 64, ''use_gvp'':
+    True, ''use_normals'': True, ''bp_s_dim_in'': 64, ''bp_s_dim_out'': 64, ''bp_g_dim_in'':
+    64, ''bp_g_dim_out'': 64, ''post_s_block'': ''cat_post_process'', ''post_g_block'':
+    ''cat_post_process'', ''post_s_dim_in'': 128, ''post_s_dim_out'': 128, ''post_g_dim_in'':
+    128, ''post_g_dim_out'': 128, ''neigh_thresh'': 8, ''sigma'': 2.5}}}}'
+  - '{''name'': ''ProteinEncoder'', ''instanciate'': {''_target_'': ''atomsurf.networks.ProteinEncoderBlock''},
+    ''kwargs'': {''surface_encoder'': {''name'': ''DiffusionNetBlockBatch'', ''instanciate'':
+    {''_target_'': ''diffusion_net.DiffusionNetBlock''}, ''kwargs'': {''C_width'':
+    128, ''dropout'': 0.1, ''use_bn'': True, ''init_time'': 2.0, ''init_std'': 2.0}},
+    ''graph_encoder'': {''name'': ''GCNx2Block'', ''instanciate'': {''_target_'':
+    ''atomsurf.network_utils.GCNx2Block''}, ''kwargs'': {''dim_in'': 128, ''hidden_dims'':
+    128, ''dim_out'': 128, ''dropout'': 0.1, ''use_bn'': True, ''use_weighted_edge_distance'':
+    False}}, ''communication_block'': {''name'': ''ConcurrentCommunication'', ''instanciate'':
+    {''_target_'': ''atomsurf.network_utils.ConcurrentCommunication''}, ''kwargs'':
+    {''use_bp'': True, ''pre_s_block'': ''linear'', ''pre_g_block'': ''linear'', ''pre_s_dim_in'':
+    128, ''pre_s_dim_out'': 64, ''pre_g_dim_in'': 128, ''pre_g_dim_out'': 64, ''use_gvp'':
+    True, ''use_normals'': True, ''bp_s_dim_in'': 64, ''bp_s_dim_out'': 64, ''bp_g_dim_in'':
+    64, ''bp_g_dim_out'': 64, ''post_s_block'': ''cat_post_process'', ''post_g_block'':
+    ''cat_post_process'', ''post_s_dim_in'': 128, ''post_s_dim_out'': 128, ''post_g_dim_in'':
+    128, ''post_g_dim_out'': 128, ''neigh_thresh'': 8, ''sigma'': 2.5}}}}'
+  - '{''name'': ''ProteinEncoder'', ''instanciate'': {''_target_'': ''atomsurf.networks.ProteinEncoderBlock''},
+    ''kwargs'': {''surface_encoder'': {''name'': ''DiffusionNetBlockBatch'', ''instanciate'':
+    {''_target_'': ''diffusion_net.DiffusionNetBlock''}, ''kwargs'': {''C_width'':
+    128, ''dropout'': 0.1, ''use_bn'': True, ''init_time'': 2.0, ''init_std'': 2.0}},
+    ''graph_encoder'': {''name'': ''GCNx2Block'', ''instanciate'': {''_target_'':
+    ''atomsurf.network_utils.GCNx2Block''}, ''kwargs'': {''dim_in'': 128, ''hidden_dims'':
+    128, ''dim_out'': 128, ''dropout'': 0.1, ''use_bn'': True, ''use_weighted_edge_distance'':
+    False}}, ''communication_block'': {''name'': ''ConcurrentCommunication'', ''instanciate'':
+    {''_target_'': ''atomsurf.network_utils.ConcurrentCommunication''}, ''kwargs'':
+    {''use_bp'': True, ''pre_s_block'': ''linear'', ''pre_g_block'': ''linear'', ''pre_s_dim_in'':
+    128, ''pre_s_dim_out'': 64, ''pre_g_dim_in'': 128, ''pre_g_dim_out'': 64, ''use_gvp'':
+    True, ''use_normals'': True, ''bp_s_dim_in'': 64, ''bp_s_dim_out'': 64, ''bp_g_dim_in'':
+    64, ''bp_g_dim_out'': 64, ''post_s_block'': ''cat_post_process'', ''post_g_block'':
+    ''cat_post_process'', ''post_s_dim_in'': 128, ''post_s_dim_out'': 128, ''post_g_dim_in'':
+    128, ''post_g_dim_out'': 128, ''neigh_thresh'': 8, ''sigma'': 2.5}}}}'
+cfg/optimizer/name:
+  desc: null
+  value: adam
+cfg/optimizer/lr:
+  desc: null
+  value: 0.0005
+cfg/optimizer/b1:
+  desc: null
+  value: 0.9
+cfg/optimizer/b2:
+  desc: null
+  value: 0.99
+cfg/optimizer/weight_decay:
+  desc: null
+  value: 0
+cfg/scheduler/name:
+  desc: null
+  value: ReduceLROnPlateau
+cfg/scheduler/patience:
+  desc: null
+  value: 5
+cfg/scheduler/factor:
+  desc: null
+  value: 0.5
+cfg/seed:
+  desc: null
+  value: 2024
+cfg/run_name:
+  desc: null
+  value: pip_gcn_gvpencoder
+cfg/data_dir:
+  desc: null
+  value: /work/lpdi/users/ymiao/atom2D/data/DIPS-split/data/
+cfg/out_dir:
+  desc: null
+  value: /work/lpdi/users/ymiao/code/sbatch/piplog
+cfg/test_freq:
+  desc: null
+  value: 5
+cfg/epochs:
+  desc: null
+  value: 25
+cfg/device:
+  desc: null
+  value: 0
+cfg/log_dir:
+  desc: null
+  value: /work/lpdi/users/ymiao/code/sbatch/piplog/
+cfg/path_model:
+  desc: null
+  value: version_x/checkpoints/last.ckpt
+cfg/min_batch_size:
+  desc: null
+  value: 2
+cfg/use_wandb:
+  desc: null
+  value: true
+cfg/loader/num_workers:
+  desc: null
+  value: 30
+cfg/loader/batch_size:
+  desc: null
+  value: 48
+cfg/loader/pin_memory:
+  desc: null
+  value: false
+cfg/loader/prefetch_factor:
+  desc: null
+  value: 2
+cfg/loader/shuffle:
+  desc: null
+  value: true
+cfg/train/save_top_k:
+  desc: null
+  value: 2
+cfg/train/early_stoping_patience:
+  desc: null
+  value: 100
+cfg/train/accumulate_grad_batches:
+  desc: null
+  value: 1
+cfg/train/val_check_interval:
+  desc: null
+  value: 1.0
+cfg/train/check_val_every_n_epoch:
+  desc: null
+  value: 1
+cfg/train/limit_train_batches:
+  desc: null
+  value: 1.0
+cfg/train/limit_val_batches:
+  desc: null
+  value: 1.0
+cfg/train/limit_test_batches:
+  desc: null
+  value: 1.0
+cfg/train/gradient_clip_val:
+  desc: null
+  value: 1.0
+cfg/train/deterministic:
+  desc: null
+  value: false
+cfg/train/max_steps:
+  desc: null
+  value: -1
+cfg/train/auto_lr_find:
+  desc: null
+  value: false
+cfg/train/log_every_n_steps:
+  desc: null
+  value: 50
+cfg/train/detect_anomaly:
+  desc: null
+  value: false
+cfg/train/overfit_batches:
+  desc: null
+  value: 0
+cfg/train/to_monitor:
+  desc: null
+  value: auroc/val
+cfg/cfg_surface/use_surfaces:
+  desc: null
+  value: true
+cfg/cfg_surface/data_dir:
+  desc: null
+  value: /work/lpdi/users/ymiao/atom2D/data/DIPS-split/data/
+cfg/cfg_surface/data_name:
+  desc: null
+  value: surfaces_0.1
+cfg/cfg_surface/feat_keys:
+  desc: null
+  value: all
+cfg/cfg_surface/oh_keys:
+  desc: null
+  value: all
+cfg/cfg_graph/use_graphs:
+  desc: null
+  value: true
+cfg/cfg_graph/data_dir:
+  desc: null
+  value: /work/lpdi/users/ymiao/atom2D/data/DIPS-split/data/
+cfg/cfg_graph/data_name:
+  desc: null
+  value: rgraph
+cfg/cfg_graph/feat_keys:
+  desc: null
+  value: all
+cfg/cfg_graph/oh_keys:
+  desc: null
+  value: all
+cfg/cfg_graph/esm_dir:
+  desc: null
+  value: /work/lpdi/users/ymiao/atom2D/data/DIPS-split/data/
+cfg/cfg_graph/use_esm:
+  desc: null
+  value: true
+cfg/cfg_head/encoded_dims:
+  desc: null
+  value: 128
+cfg/cfg_head/dropout:
+  desc: null
+  value: 0.25

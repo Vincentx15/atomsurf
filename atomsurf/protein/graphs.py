@@ -179,13 +179,85 @@ def parse_pdb_path(pdb_path):
     os.remove(pqrpdbpath)
     return amino_types, atom_chain_id, atom_amino_id, atom_names, atom_types, atom_pos, atom_charge, atom_radius, res_sse
 
+def parse_pdb_path_nopqr(pdb_path):
+    parser = PDBParser(QUIET=True)
+    structure = parser.get_structure("toto", pdb_path)
+
+    amino_types = []  # size: (n_amino,)
+    atom_chain_id = []  # size:(n_atom,)
+    atom_amino_id = []  # size: (n_atom,)
+    atom_names = []  # size: (n_atom,)
+    atom_types = []  # size: (n_atom,)
+    atom_pos = []  # size: (n_atom,3)
+    # atom_charge = []  # size: (n_atom,1)
+    # atom_radius = []  # size: (n_atom,1)
+    res_id = 0
+    for residue in structure.get_residues():
+        for atom in residue.get_atoms():
+            # Add occupancy to write as pdb
+            atom.set_occupancy(1.0)
+            atom.set_bfactor(1.0)
+
+        # HETATM
+        if residue.id[0] != " ":
+            continue
+        resname = residue.get_resname()
+        # resname = protein_letters_3to1[resname.title()]
+        if resname.upper() not in res_type_dict:
+            resname = 'UNK'
+        resname = res_type_dict[resname.upper()]
+        amino_types.append(resname)
+
+        for atom in residue.get_atoms():
+            # Skip H
+            element = atom.element
+            if atom.get_name().startswith("H"):
+                continue
+            if not element in atom_type_dict:
+                element = 'UNK'
+            atom_chain_id.append(residue.full_id[2])
+            atom_types.append(atom_type_dict[element])
+            atom_names.append(atom.get_name())
+            atom_pos.append(atom.get_coord())
+            atom_amino_id.append(res_id)
+            # atom_charge.append(atom.get_charge())
+            # atom_radius.append(atom.get_radius())
+
+        res_id += 1
+    amino_types = np.asarray(amino_types, dtype=np.int32)
+    atom_chain_id = np.asarray(atom_chain_id)
+    atom_amino_id = np.asarray(atom_amino_id, dtype=np.int32)
+    atom_names = np.asarray(atom_names)
+    atom_types = np.asarray(atom_types, dtype=np.int32)
+    atom_pos = np.asarray(atom_pos, dtype=np.float32)
+    # atom_charge = np.asarray(atom_charge, dtype=np.float32)
+    # atom_radius = np.asarray(atom_radius, dtype=np.float32)
+
+    # We need to dump this adapted pdb with new coordinates and missing atoms
+    # from Bio.PDB.PDBIO import PDBIO
+    # io = PDBIO()
+    # io.set_structure(structure)
+    # pqrpdbpath = str(pqr_path) + 'pdb'
+    # io.save(pqrpdbpath)
+
+    # process DSSP
+    dssp = DSSP(structure[0], pdb_path, file_type="PDB")
+    res_sse = np.array([SSE_type_dict[dssp[key][2]] for key in list(dssp.keys())])
+    assert len(res_sse) == sum(atom_names=='CA')
+    # os.remove(pqr_path)
+    # os.remove(pqr_log_path)
+    # os.remove(pqrpdbpath)
+    atom_charge=None
+    atom_radius=None
+    return amino_types, atom_chain_id, atom_amino_id, atom_names, atom_types, atom_pos, atom_charge, atom_radius, res_sse
+
 
 def atom_coords_to_edges(node_pos, edge_dist_cutoff=4.5):
     r"""
     Turn nodes position into neighbors graph.
     """
-    # import time
-    # t0 = time.time()
+    # from torch_geometric.nn import radius_graph
+    # edges = radius_graph(node_pos, r=edge_dist_cutoff, batch=torch.zeros(len(node_pos),dtype=int), max_num_neighbors=48)
     kd_tree = ss.KDTree(node_pos)
     edge_tuples = list(kd_tree.query_pairs(edge_dist_cutoff))
     edges = torch.LongTensor(edge_tuples).t().contiguous()

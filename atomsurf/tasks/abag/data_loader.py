@@ -129,5 +129,5 @@ class AADataModule(pl.LightningDataModule):
 
     def test_dataloader(self):
         dataset = AADataset(self.systems[2],self.data_dir, self.surface_loaders, self.graph_loaders,
-                             max_pos_regions_per_ensemble=5)
+                             max_pos_regions_per_ensemble=-1)
         return DataLoader(dataset, shuffle=False, **self.loader_args)

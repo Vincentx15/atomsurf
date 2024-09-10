@@ -9,7 +9,7 @@ from torch_geometric.data import Batch
 from torch_sparse import SparseTensor
 
 from atomsurf.protein.surfaces import SurfaceObject, SurfaceBatch
-from atomsurf.protein.graphs import parse_pdb_path
+from atomsurf.protein.graphs import parse_pdb_path,parse_pdb_path_nopqr
 from atomsurf.protein.atom_graph import AtomGraph, AGraphBatch, AtomGraphBuilder
 from atomsurf.protein.residue_graph import ResidueGraph, RGraphBatch, ResidueGraphBuilder
 
@@ -121,13 +121,18 @@ def pdb_to_surf_graphs(pdb_path, surface_dump, agraph_dump, rgraph_dump, face_re
             surface.save_torch(surface_dump)
 
         if compute_g and (recompute_g or not os.path.exists(agraph_dump) or not os.path.exists(rgraph_dump)):
-            arrays = parse_pdb_path(pdb_path)
+            # arrays = parse_pdb_path(pdb_path)
             # create atomgraph
-            if recompute_g or not os.path.exists(agraph_dump):
-                agraph = AtomGraphBuilder().arrays_to_agraph(arrays)
-                torch.save(agraph, open(agraph_dump, 'wb'))
+            # if recompute_g or not os.path.exists(agraph_dump):
+            #     agraph = AtomGraphBuilder().arrays_to_agraph(arrays)
+            #     torch.save(agraph, open(agraph_dump, 'wb'))
 
             # create residuegraph
+            try:
+                arrays = parse_pdb_path_nopqr(pdb_path)
+            except:
+                print(' try to use pqr to fix sse')
+                arrays = parse_pdb_path(pdb_path)
             if recompute_g or not os.path.exists(rgraph_dump):
                 rgraph = ResidueGraphBuilder(add_pronet=True, add_esm=False).arrays_to_resgraph(arrays)
                 torch.save(rgraph, open(rgraph_dump, 'wb'))

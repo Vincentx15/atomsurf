@@ -48,16 +48,16 @@ def main(cfg=None):
     lr_logger = pl.callbacks.LearningRateMonitor()
 
     checkpoint_callback = pl.callbacks.ModelCheckpoint(
-        filename="{epoch}-{mse_val:.2f}",
+        filename="{epoch}-{global_r_val:.2f}",
         dirpath=Path(tb_logger.log_dir) / "checkpoints",
-        monitor="loss/val",
+        monitor="global_r/val",
         mode="max",
         save_last=True,
         save_top_k=cfg.train.save_top_k,
         verbose=False,
     )
 
-    early_stop_callback = pl.callbacks.EarlyStopping(monitor='loss/val',
+    early_stop_callback = pl.callbacks.EarlyStopping(monitor='global_r/val',
                                                      patience=cfg.train.early_stoping_patience,
                                                      mode='max')
     callbacks = [lr_logger, checkpoint_callback, early_stop_callback, CommandLoggerCallback(command)]
