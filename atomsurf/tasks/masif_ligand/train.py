@@ -40,7 +40,7 @@ def main(cfg=None):
     loggers = [tb_logger]
 
     if cfg.use_wandb:
-        add_wandb_logger(loggers, projectname='masif_ligand')
+        add_wandb_logger(loggers, projectname='masif_ligand',runname=cfg.run_name)
 
     # callbacks
     lr_logger = pl.callbacks.LearningRateMonitor()

@@ -21,7 +21,16 @@ hmr_input_encoder_neigh:
     num_gdf: 16
     num_signatures: 16
 
-
+bihmr_input_encoder_neigh:
+  name: BiHMRInputEncoder
+  instanciate:
+    _target_: atomsurf.networks.BiHMRInputEncoder
+  kwargs:
+    h_dim: ${model_hdim}
+    dropout: ${model_dropout}
+    num_gdf: 16
+    num_signatures: 16
+    
 # Message passing based encoder, messages goes both ways
 
 input_encoder:

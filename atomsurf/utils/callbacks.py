@@ -11,10 +11,10 @@ def add_wandb_logger(loggers, projectname,runname):
     wandb.init(reinit=True, entity='vincent-mallet-cri-lpi')
     wand_id = wandb.util.generate_id()
     tb_logger = loggers[-1]
-    # run_name = f"{Path(tb_logger.log_dir).stem}"
+    run_name = f"{Path(tb_logger.log_dir).stem}"
     tags = []
     Path(tb_logger.log_dir).absolute().mkdir(parents=True, exist_ok=True)
-    wandb_logger = WandbLogger(project=projectname, name=runname, tags=tags,
+    wandb_logger = WandbLogger(project=projectname, name=run_name, tags=tags,
                                version=Path(tb_logger.log_dir).stem, id=wand_id,
                                save_dir=tb_logger.log_dir, log_model=False)
     loggers += [wandb_logger]
