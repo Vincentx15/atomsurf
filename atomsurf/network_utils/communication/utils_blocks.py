@@ -8,7 +8,7 @@ from atomsurf.network_utils.misc_arch.gvp_gnn import GVPConv
 
 
 def init_block(name, use_normals=True, use_gat=False, use_v2=False, add_self_loops=False,
-               fill_value="mean", aggr='add', dim_in=128, dim_out=64):
+               fill_value="mean", aggr='add', dim_in=128, dim_out=64,n_layers=3,vector_gate=False):
     if name == "identity":
         return IdentityLayer()
     if name == "linear":
@@ -22,7 +22,7 @@ def init_block(name, use_normals=True, use_gat=False, use_v2=False, add_self_loo
     elif name == "return_processed":
         return ReturnProcessedBlock()
     elif name == "gvp":
-        return GVPWrapper(dim_in, dim_out, use_normals=use_normals)
+        return GVPWrapper(dim_in, dim_out, use_normals=use_normals,n_layers=n_layers,vector_gate=vector_gate)
     elif name == "gcn":
         if not use_gat:
             conv_layer = GCNConv
@@ -33,7 +33,7 @@ def init_block(name, use_normals=True, use_gat=False, use_v2=False, add_self_loo
 
 
 class GVPWrapper(nn.Module):
-    def __init__(self, dim_in, dim_out, use_normals=True):
+    def __init__(self, dim_in, dim_out,n_layers,vector_gate, use_normals=True):
         super().__init__()
         self.use_normals = use_normals
 
@@ -46,7 +46,7 @@ class GVPWrapper(nn.Module):
         # We need some vectors to construct interesting representations. Output dims are also used in the network.
         # We later drop the final vectors (we could take the norms)
         out_dims = dim_out, 3
-        self.gvp = GVPConv(in_dims, out_dims, edge_dims)
+        self.gvp = GVPConv(in_dims, out_dims, edge_dims,n_layers=n_layers,vector_gate=vector_gate)
 
     def forward(self, x, graph):
         if graph.normals is not None and self.use_normals:

@@ -152,6 +152,8 @@ class InputEncoder(SurfaceGraphCommunication):
         use_bp = hparams.use_bp
         use_gvp = hparams.use_gvp if "use_gvp" in hparams else False
         use_normals = hparams.use_normals if "use_gvp" in hparams else False
+        n_layers = hparams.n_layers if "use_gvp" in hparams else 3
+        vector_gate = hparams.vector_gate if "use_gvp" in hparams else False
         h_dim = hparams.h_dim
         dropout = hparams.dropout
         chem_feat_dim = hparams.graph_feat_dim
@@ -174,11 +176,11 @@ class InputEncoder(SurfaceGraphCommunication):
                 bp_sg_block = init_block("gvp",
                                          dim_in=h_dim,
                                          dim_out=h_dim,
-                                         use_normals=use_normals)
+                                         use_normals=use_normals,n_layers=n_layers,vector_gate=vector_gate)
                 bp_gs_block = init_block("gvp",
                                          dim_in=h_dim,
                                          dim_out=h_dim,
-                                         use_normals=use_normals)
+                                         use_normals=use_normals,n_layers=n_layers,vector_gate=vector_gate)
             else:
                 bp_sg_block = init_block("gcn",
                                          use_gat=hparams.use_gat, use_v2=hparams.use_v2,

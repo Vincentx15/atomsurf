@@ -10,7 +10,7 @@ class ConcurrentCommunication(SurfaceGraphCommunication):
                  pre_g_dim_out=64,
                  # message passing blocks
                  use_gat=False, use_v2=False, bp_self_loops=False, bp_fill_value="mean",  # GCN args
-                 use_gvp=False, use_normals=True,  # GVP args
+                 use_gvp=False, use_normals=True,n_layers=3,vector_gate=False,  # GVP args
                  bp_s_dim_in=64, bp_s_dim_out=64, bp_g_dim_in=64, bp_g_dim_out=64,
                  # postprocess blocks
                  post_s_block="identity", post_g_block="identity", post_s_dim_in=128, post_s_dim_out=64,
@@ -28,9 +28,9 @@ class ConcurrentCommunication(SurfaceGraphCommunication):
         if use_bp:
             if use_gvp:
                 bp_sg_block = init_block("gvp",
-                                         dim_in=bp_s_dim_in, dim_out=bp_s_dim_out, use_normals=use_normals)
+                                         dim_in=bp_s_dim_in, dim_out=bp_s_dim_out, use_normals=use_normals,n_layers=n_layers,vector_gate=vector_gate)
                 bp_gs_block = init_block("gvp",
-                                         dim_in=bp_g_dim_in, dim_out=bp_g_dim_out, use_normals=use_normals)
+                                         dim_in=bp_g_dim_in, dim_out=bp_g_dim_out, use_normals=use_normals,n_layers=n_layers,vector_gate=vector_gate)
             else:
                 bp_sg_block = init_block("gcn",
                                          use_gat=use_gat, use_v2=use_v2,

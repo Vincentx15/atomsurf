@@ -52,6 +52,8 @@ input_encoder_normals:
     use_gvp: true
     use_knn: false
     use_normals: true
+    vector_gate: false
+    n_layers: 3
     neigh_thresh: 8
     sigma: 2.5
 

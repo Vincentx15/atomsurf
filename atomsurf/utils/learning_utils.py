@@ -98,7 +98,7 @@ class AtomPLModule(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx: int):
-        self.model.train()
+        self.model.eval()
         loss, logits, labels = self.step(batch)
         if loss is None or logits.isnan().any() or labels.isnan().any():
             print("validation step skipped!")
@@ -108,7 +108,7 @@ class AtomPLModule(pl.LightningModule):
         self.val_res.append((logits.detach().cpu(), labels.detach().cpu()))
 
     def test_step(self, batch, batch_idx: int):
-        self.model.train()
+        self.model.eval()
         loss, logits, labels = self.step(batch)
         if loss is None or logits.isnan().any() or labels.isnan().any():
             return None

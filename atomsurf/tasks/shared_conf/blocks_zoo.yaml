@@ -83,6 +83,8 @@ gvp:
 
         use_gvp: true
         use_normals: false
+        vector_gate: ${gvp_vector_gate}
+        n_layers: ${gvp_n_layers}
         bp_s_dim_in: ${eval:'${model_hdim} // 2'}
         bp_s_dim_out: ${eval:'${model_hdim} // 2'}
         bp_g_dim_in: ${eval:'${model_hdim} // 2'}
@@ -120,6 +122,8 @@ gvp_normals:
 
         use_gvp: true
         use_normals: true
+        vector_gate: ${gvp_vector_gate}
+        n_layers: ${gvp_n_layers}
         bp_s_dim_in: ${eval:'${model_hdim} // 2'}
         bp_s_dim_out: ${eval:'${model_hdim} // 2'}
         bp_g_dim_in: ${eval:'${model_hdim} // 2'}
@@ -175,6 +179,8 @@ pronet|gvp_normals:
 
         use_gvp: true
         use_normals: true
+        vector_gate: ${gvp_vector_gate}
+        n_layers: ${gvp_n_layers}
         bp_s_dim_in: ${eval:'${model_hdim} // 2'}
         bp_s_dim_out: ${eval:'${model_hdim} // 2'}
         bp_g_dim_in: ${eval:'${model_hdim} // 2'}
