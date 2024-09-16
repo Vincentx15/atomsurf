@@ -1,5 +1,5 @@
 from .communication.blocks import ConcurrentCommunication, SequentialCommunication, ParallelCommunicationV1, \
-    SequentialCommunicationV1, GATCommunicationV1
+    SequentialCommunicationV1, GATCommunicationV1,ConcurrentCommunication_HMR
 from .misc_arch.graph_blocks import GCNx2Block
 from .misc_arch.deltaconv import DeltaConv
 from .misc_arch.dgcnn import DGCNN, DGCNNLayer
@@ -18,4 +18,5 @@ __all__ = [
     "SequentialCommunicationV1",
     "GATCommunicationV1",
     "ProNet",
+    "ConcurrentCommunication_HMR",
 ]

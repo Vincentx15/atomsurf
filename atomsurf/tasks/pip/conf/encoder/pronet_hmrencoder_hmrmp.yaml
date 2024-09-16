@@ -1,0 +1,8 @@
+name: pronet_hmrencoder
+
+
+blocks:
+  - ${hmr_input_encoder_neigh}
+  - ${pronet|gvp_normals|HMRMP}
+  - ${pronet|gvp_normals|HMRMP}
+  - ${pronet|gvp_normals|HMRMP}

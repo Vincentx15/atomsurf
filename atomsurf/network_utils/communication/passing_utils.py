@@ -76,7 +76,31 @@ def get_gvp_graph(pos, edge_index, normals=None, neigh_th=8):
                      edge_index=edge_index, edge_s=rbf, edge_v=u_vec, edge_weight=weights)
     return gvp_graph
 
-
+def get_hmr_graph(surface,graph,verts_normals,neighbors,num_gdf=16,mode='sg'):
+    if mode == 'sg':
+        neigh_verts, neigh_graphs = neighbors[0, :], neighbors[1, :]
+        all_normals = verts_normals[neigh_verts]
+        edge_vecs = graph.node_pos[neigh_graphs] - surface.verts[neigh_verts]
+        edge_dists = torch.linalg.norm(edge_vecs, axis=-1)
+        normed_edge_vecs = edge_vecs / edge_dists[:, None]
+        nbr_angular = torch.einsum('vj,vj->v', normed_edge_vecs, all_normals)
+        # Compute expanded message feature, and concatenate
+        encoded_dists = _rbf(edge_dists, D_min=0, D_max=8, D_count= num_gdf)
+        encoded_angles = _rbf(nbr_angular, D_min=-1, D_max=1, D_count= num_gdf)
+        return Data(encoded_dists=encoded_dists,encoded_angles=encoded_angles,neigh=neighbors)
+    elif mode == 'gs':
+        neigh_graphs, neigh_verts = neighbors[0, :], neighbors[1, :]
+        all_normals = verts_normals[neigh_verts]
+        edge_vecs = surface.verts[neigh_verts] - graph.node_pos[neigh_graphs]
+        edge_dists = torch.linalg.norm(edge_vecs, axis=-1)
+        normed_edge_vecs = edge_vecs / edge_dists[:, None]
+        nbr_angular = torch.einsum('vj,vj->v', normed_edge_vecs, all_normals)
+        encoded_dists = _rbf(edge_dists, D_min=0, D_max=8, D_count= num_gdf)
+        encoded_angles = _rbf(nbr_angular, D_min=-1, D_max=1, D_count= num_gdf)        
+        return Data(encoded_dists=encoded_dists,encoded_angles=encoded_angles,neigh=neighbors)
+    else:
+        raise ValueError('mode is not gs or sg')
+    
 class BPGraphBatch:
     def __init__(self, graph_list, surface_sizes, graph_sizes):
         batch = Batch.from_data_list(graph_list)
@@ -103,7 +127,7 @@ class BPGraphBatch:
         return torch.cat(alternated)
 
 
-def compute_bipartite_graphs(surfaces, graphs, neigh_th=8, k=16, use_knn=False, gvp_feats=False):
+def compute_bipartite_graphs(surfaces, graphs, neigh_th=8, k=16, use_knn=False, gvp_feats=False,use_hmr=False,num_gdf=16):
     """
     Code to compute the graph tying surface vertices to graph nodes
     :param surfaces: A batched Surface object
@@ -124,61 +148,91 @@ def compute_bipartite_graphs(surfaces, graphs, neigh_th=8, k=16, use_knn=False, 
     nodenormals_list = [torch.zeros_like(graph_node_pos) for graph_node_pos in nodepos_list]
     sigma = neigh_th / 2
     with torch.no_grad():
-        all_dists = [torch.cdist(vert, nodepos) for vert, nodepos in zip(verts_list, nodepos_list)]
-        if use_knn:
-            neighbors = []
+        if not use_hmr:
+            all_dists = [torch.cdist(vert, nodepos) for vert, nodepos in zip(verts_list, nodepos_list)]
+            if use_knn:
+                
+                neighbors = []
+                # for vert, nodepos in zip(verts_list, nodepos_list):
+                #     print(vert.shape,nodepos.shape)
+                for x in all_dists:
+                    min_indices = torch.topk(-x, k=k, dim=1).indices
+                    vertex_ids = torch.arange(0, len(x), device=x.device)
+                    repeated_tensor = vertex_ids.repeat_interleave(k)
+                    neighbors.append((repeated_tensor, min_indices.flatten()))  # TODO use a better rneighbor
+            else:
+                neighbors = [torch.where(x < neigh_th) for x in all_dists]
+
+            # Slicing requires tuple
+            neighbors = [torch.stack(x).long() for x in neighbors]
+
+            # Plot the number of neighbors per vertex
+            # neigh_counts = neighbors[0][1].unique(return_counts=True)[1]
+            # import matplotlib.pyplot as plt
+            # plt.hist(neigh_counts.cpu())
+            # plt.show()
+
+            # This is the torch_cluster radius version, which does not return distances
+            # Unbatched version is actually close/slower.
+            # Batched version is close on CPU and approx 3 times faster on GPU.
+
+            # from torch_cluster import radius
+            # neighbors_2 = []
             # for vert, nodepos in zip(verts_list, nodepos_list):
-            #     print(vert.shape,nodepos.shape)
-            for x in all_dists:
-                min_indices = torch.topk(-x, k=k, dim=1).indices
-                vertex_ids = torch.arange(0, len(x), device=x.device)
-                repeated_tensor = vertex_ids.repeat_interleave(k)
-                neighbors.append((repeated_tensor, min_indices.flatten()))  # TODO use a better rneighbor
+            #     # Counterintuitive, radius finds points in y close to x..
+            #     # result is 2,N with pair corresponding to, point in node, point in vert
+            #     edge_index = radius(nodepos, vert, neigh_th)
+            #     neighbors_2.append(edge_index)
+
+            # # results of batch version is hard to work with, a flat list of indices with batch increments..
+            # neighbors_3 = radius(x=graphs.node_pos,
+            #                      y=surfaces.verts,
+            #                      batch_x=graphs.batch,
+            #                      batch_y=surfaces.batch,
+            #                      r=neigh_th)
+
+            # Neighbor holds the 16 closest point in the graph for each vertex,
+            # it needs to be offset by the #vertex (bipartite)
+            for i, neighbor in enumerate(neighbors):
+                neighbor[1] += len(verts_list[i])
+            reverse_neighbors = [torch.flip(neigh, dims=(0,)) for neigh in neighbors]
+            all_pos = [torch.cat((vert, nodepos)) for vert, nodepos in zip(verts_list, nodepos_list)]
+            all_normals = [torch.cat((vernorms, nodenorms)) for vernorms, nodenorms in
+                        zip(vertsnormals_list, nodenormals_list)]
         else:
-            neighbors = [torch.where(x < neigh_th) for x in all_dists]
+            all_dists = [torch.cdist(vert, nodepos) for vert, nodepos in zip(verts_list, nodepos_list)]
+            neighbors_v = []
+            neighbors_g = []
+            offset_surf, offset_graph = 0, 0
+            for x in all_dists:
+                min_indices_v = torch.topk(-x, k=k, dim=1).indices
+                min_indices_g = torch.topk(-x.T, k=k, dim=1).indices
+                vertex_ids = torch.arange(0, len(x), device=x.device)
+                graph_ids = torch.arange(0, len(x.T), device=x.device)
+                repeated_tensor_vert = vertex_ids.repeat_interleave(k)
+                repeated_tensor_graph = graph_ids.repeat_interleave(k)
+                min_indices_v += offset_graph
+                repeated_tensor_vert += offset_surf
+                min_indices_g += offset_surf
+                repeated_tensor_graph += offset_graph
+                offset_surf += len(x)
+                offset_graph += len(x.T)
+                neighbors_v.append(torch.stack((repeated_tensor_vert, min_indices_v.flatten())))  
+                neighbors_g.append(torch.stack((repeated_tensor_graph, min_indices_g.flatten())))
 
-        # Slicing requires tuple
-        neighbors = [torch.stack(x).long() for x in neighbors]
-
-        # Plot the number of neighbors per vertex
-        # neigh_counts = neighbors[0][1].unique(return_counts=True)[1]
-        # import matplotlib.pyplot as plt
-        # plt.hist(neigh_counts.cpu())
-        # plt.show()
-
-        # This is the torch_cluster radius version, which does not return distances
-        # Unbatched version is actually close/slower.
-        # Batched version is close on CPU and approx 3 times faster on GPU.
-
-        # from torch_cluster import radius
-        # neighbors_2 = []
-        # for vert, nodepos in zip(verts_list, nodepos_list):
-        #     # Counterintuitive, radius finds points in y close to x..
-        #     # result is 2,N with pair corresponding to, point in node, point in vert
-        #     edge_index = radius(nodepos, vert, neigh_th)
-        #     neighbors_2.append(edge_index)
-
-        # # results of batch version is hard to work with, a flat list of indices with batch increments..
-        # neighbors_3 = radius(x=graphs.node_pos,
-        #                      y=surfaces.verts,
-        #                      batch_x=graphs.batch,
-        #                      batch_y=surfaces.batch,
-        #                      r=neigh_th)
-
-        # Neighbor holds the 16 closest point in the graph for each vertex,
-        # it needs to be offset by the #vertex (bipartite)
-        for i, neighbor in enumerate(neighbors):
-            neighbor[1] += len(verts_list[i])
-        reverse_neighbors = [torch.flip(neigh, dims=(0,)) for neigh in neighbors]
-        all_pos = [torch.cat((vert, nodepos)) for vert, nodepos in zip(verts_list, nodepos_list)]
-        all_normals = [torch.cat((vernorms, nodenorms)) for vernorms, nodenorms in
-                       zip(vertsnormals_list, nodenormals_list)]
+            verts_normals = torch.cat([vertnorm for vertnorm in vertsnormals_list])
+            neighbors_v = torch.cat([x for x in neighbors_v], dim=1).long()
+            neighbors_g = torch.cat([x for x in neighbors_g], dim=1).long()
 
         if gvp_feats:
             bipartite_surfgraph = [get_gvp_graph(pos=pos, edge_index=neighbor, neigh_th=neigh_th, normals=normals)
                                    for pos, normals, neighbor in zip(all_pos, all_normals, neighbors)]
             bipartite_graphsurf = [get_gvp_graph(pos=pos, edge_index=rneighbor, neigh_th=neigh_th, normals=normals)
                                    for pos, normals, rneighbor in zip(all_pos, all_normals, reverse_neighbors)]
+        elif use_hmr:
+            bipartite_surfgraph = get_hmr_graph(surfaces,graphs,verts_normals,neighbors_v,mode='sg',num_gdf=num_gdf)
+            bipartite_graphsurf = get_hmr_graph(surfaces,graphs,verts_normals,neighbors_g,mode='gs',num_gdf=num_gdf)
+            return  bipartite_graphsurf,bipartite_surfgraph
         else:
             dists = [all_dist[neigh[0, :], (neigh[1, :] - all_dist.shape[0])] for all_dist, neigh in
                      zip(all_dists, neighbors)]

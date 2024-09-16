@@ -195,3 +195,62 @@ pronet|gvp_normals:
 
         neigh_thresh: 8
         sigma: 2.5
+
+pronet|gvp_normals|HMRMP:
+  name: ProteinEncoder
+  instanciate:
+    _target_: atomsurf.networks.ProteinEncoderBlock
+  kwargs:
+    surface_encoder: ${diffusion_net}
+    graph_encoder:
+      name: ProNet
+      instanciate:
+        _target_: atomsurf.network_utils.ProNet
+      kwargs:
+        level: allatom
+        num_blocks: 4
+        hidden_channels: ${model_hdim}
+        mid_emb: ${eval:'${model_hdim} // 2'}
+        num_radial: 6
+        num_spherical: 2
+        cutoff: 10.0
+        max_num_neighbors: 32
+        int_emb_layers: 3
+        num_pos_emb: 16
+        dropout: 0.1
+        data_augment_eachlayer: False
+        euler_noise: False
+        add_seq_emb: False
+    communication_block:
+      name: ConcurrentCommunication_HMR
+      instanciate:
+        _target_: atomsurf.network_utils.ConcurrentCommunication_HMR
+      kwargs:
+        use_bp: true
+        pre_s_block: linear
+        pre_g_block: linear
+        pre_s_dim_in: ${model_hdim}
+        pre_s_dim_out: ${eval:'${model_hdim} // 2'}
+        pre_g_dim_in: ${model_hdim}
+        pre_g_dim_out: ${eval:'${model_hdim} // 2'}
+
+        use_gvp: false
+        use_normals: true
+        vector_gate: ${gvp_vector_gate}
+        n_layers: ${gvp_n_layers}
+        use_HMR: true
+        num_gdf: 16
+        bp_s_dim_in: ${eval:'${model_hdim} // 2'}
+        bp_s_dim_out: ${eval:'${model_hdim} // 2'}
+        bp_g_dim_in: ${eval:'${model_hdim} // 2'}
+        bp_g_dim_out: ${eval:'${model_hdim} // 2'}
+
+        post_s_block: cat_post_process
+        post_g_block: cat_post_process
+        post_s_dim_in: ${model_hdim}
+        post_s_dim_out: ${model_hdim}
+        post_g_dim_in: ${model_hdim}
+        post_g_dim_out: ${model_hdim}
+
+        neigh_thresh: 8
+        sigma: 2.5

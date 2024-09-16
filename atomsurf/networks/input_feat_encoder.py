@@ -265,9 +265,9 @@ class BiHMRInputEncoder(nn.Module):
             nn.Dropout(dropout),
             nn.BatchNorm1d(h_dim),
             nn.SiLU(),
-            nn.Linear(h_dim, h_dim),
+            nn.Linear(h_dim, 2 * h_dim),
             nn.Dropout(dropout),
-            nn.BatchNorm1d(h_dim),
+            nn.BatchNorm1d(2 * h_dim),
         )
 
         self.surf_chem_mlp = nn.Sequential(
@@ -319,15 +319,14 @@ class BiHMRInputEncoder(nn.Module):
         nbr_filter, nbr_core = h_geom.chunk(2, dim=-1)
         nbr_filter = self.sigmoid(nbr_filter)
         nbr_core = self.softplus(nbr_core)
-        h_chem = nbr_filter * nbr_core
+        h_geom = nbr_filter * nbr_core
 
         h_chem = self.chem_mlp(chem_feats)
         nbr_filter, nbr_core = h_chem.chunk(2, dim=-1)
         nbr_filter = self.sigmoid(nbr_filter)
         nbr_core = self.softplus(nbr_core)
         h_chem = nbr_filter * nbr_core
-        import pdb
-        pdb.set_trace()
+
         # If we additionally use neighboring info, we need to compute it and propagate a message that
         # uses dists and angles
         verts_list = [surf.verts for surf in surface.to_data_list()]
@@ -357,7 +356,7 @@ class BiHMRInputEncoder(nn.Module):
         
         ## calculate surf exchange first
         # Slicing requires tuple   
-        pdb.set_trace()
+
         neighbors_surf = torch.cat([x for x in neighbors_surf], dim=1).long()
         neigh_verts, neigh_graphs = neighbors_surf[0, :], neighbors_surf[1, :]
 
@@ -408,7 +407,6 @@ class BiHMRInputEncoder(nn.Module):
     
         del neighbors_graph, neigh_verts, neigh_graphs, all_geom_feats, all_normals, edge_vecs, edge_dists, normed_edge_vecs, nbr_angular, encoded_dists, encoded_angles, expanded_message_features, embedded_messages, nbr_filter, nbr_core, h_geom_chem, verts_normals
         torch.cuda.empty_cache()
-        pdb.set_trace()
         graph.x = h_chem_mix
         surface.x = h_geom_mix
         del h_chem_mix, h_geom_mix

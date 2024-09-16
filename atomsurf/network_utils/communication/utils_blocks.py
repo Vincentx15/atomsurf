@@ -5,10 +5,10 @@ from torch_geometric.nn import GCNConv, GATConv, GATv2Conv
 from torch_geometric.nn import MessagePassing
 from torch_geometric.utils import add_self_loops
 from atomsurf.network_utils.misc_arch.gvp_gnn import GVPConv
-
+from torch_scatter import scatter
 
 def init_block(name, use_normals=True, use_gat=False, use_v2=False, add_self_loops=False,
-               fill_value="mean", aggr='add', dim_in=128, dim_out=64,n_layers=3,vector_gate=False):
+               fill_value="mean", aggr='add', dim_in=128, dim_out=64,n_layers=3,vector_gate=False,num_gdf=16):
     if name == "identity":
         return IdentityLayer()
     if name == "linear":
@@ -23,6 +23,8 @@ def init_block(name, use_normals=True, use_gat=False, use_v2=False, add_self_loo
         return ReturnProcessedBlock()
     elif name == "gvp":
         return GVPWrapper(dim_in, dim_out, use_normals=use_normals,n_layers=n_layers,vector_gate=vector_gate)
+    elif name == "hmr":
+        return HMRWrapper(dim_in,dim_out,num_gdf=num_gdf)
     elif name == "gcn":
         if not use_gat:
             conv_layer = GCNConv
@@ -30,6 +32,54 @@ def init_block(name, use_normals=True, use_gat=False, use_v2=False, add_self_loo
             conv_layer = GATv2Conv if use_v2 else GATConv
         edge_dim = 1 if use_v2 else None
         return conv_layer(dim_in, dim_out, add_self_loops=add_self_loops, fill_value=fill_value, edge_dim=edge_dim)
+
+from atomsurf.network_utils.communication.passing_utils import _rbf
+class HMRWrapper(nn.Module):
+    def __init__(self, dim_in, dim_out,num_gdf=16,dropout=0.25):
+        super().__init__()
+        self.embed_mlp_sg = nn.Sequential(
+                nn.Linear(dim_in + 2 * num_gdf, dim_out),  # chem_feat_dim
+                nn.Dropout(dropout),
+                nn.BatchNorm1d(dim_out),
+                nn.SiLU(),
+                nn.Linear(dim_out, 2 * dim_out),
+                nn.Dropout(dropout),
+                nn.BatchNorm1d(2 * dim_out),
+            )
+        self.embed_mlp_gs = nn.Sequential(
+                nn.Linear(dim_in + 2 * num_gdf, dim_out),  # chem_feat_dim
+                nn.Dropout(dropout),
+                nn.BatchNorm1d(dim_out),
+                nn.SiLU(),
+                nn.Linear(dim_out, 2 * dim_out),
+                nn.Dropout(dropout),
+                nn.BatchNorm1d(2 * dim_out),
+            )
+        self.sigmoid = nn.Sigmoid()
+        self.softplus = nn.Softplus()
+    def forward(self, x,neigh,encoded_dists,encoded_angles,mode='sg'):
+        if mode == 'sg':
+            neigh_verts, neigh_graphs = neigh[0, :], neigh[1, :]
+            all_feats = x[neigh_graphs]
+            expanded_message_features = torch.cat([all_feats, encoded_dists, encoded_angles], axis=-1)
+            embedded_messages = self.embed_mlp_sg(expanded_message_features)
+            nbr_filter, nbr_core = embedded_messages.chunk(2, dim=-1)
+            nbr_filter = self.sigmoid(nbr_filter)
+            nbr_core = self.softplus(nbr_core)
+            h_chem_geom = nbr_filter * nbr_core
+            h_chem_geom = scatter(h_chem_geom, neigh_verts, dim=0, reduce="sum")
+            return h_chem_geom
+        elif mode == 'gs':
+            neigh_graphs, neigh_verts = neigh[0, :], neigh[1, :]
+            all_feats = x[neigh_verts]  
+            expanded_message_features = torch.cat([all_feats, encoded_dists, encoded_angles], axis=-1)
+            embedded_messages = self.embed_mlp_gs(expanded_message_features)
+            nbr_filter, nbr_core = embedded_messages.chunk(2, dim=-1)
+            nbr_filter = self.sigmoid(nbr_filter)
+            nbr_core = self.softplus(nbr_core)
+            h_geom_chem = nbr_filter * nbr_core
+            h_geom_chem = scatter(h_geom_chem, neigh_graphs, dim=0, reduce="sum")
+            return h_geom_chem
 
 
 class GVPWrapper(nn.Module):
