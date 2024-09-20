@@ -53,19 +53,13 @@ class SurfaceGraphCommunication(nn.Module):
         bp_sg_batch = bp_sg_batch_container.bp_graph
         bp_gs_batch = bp_gs_batch_container.bp_graph
         x_batch = bp_gs_batch_container.aggregate(surface.x, graph.x)
-
-        # apply the message passing
-        if self.use_gvp or self.use_hmr:
-            xg_out = self.bp_sg_block(x_batch, bp_sg_batch)
-            xs_out = self.bp_gs_block(x_batch, bp_gs_batch)
-        else:
-            xs_out = self.bp_gs_block(x_batch, bp_gs_batch.edge_index, bp_gs_batch.edge_weight)
-            xg_out = self.bp_sg_block(x_batch, bp_sg_batch.edge_index, bp_sg_batch.edge_weight)
-        # ====
+        xg_out = self.bp_sg_block(x_batch, bp_sg_batch)
+        xs_out = self.bp_gs_block(x_batch, bp_gs_batch)
 
         # Split back embeddings into surface and graph
         xs_out = bp_sg_batch_container.get_surfs(xs_out)
         xg_out = bp_sg_batch_container.get_graphs(xg_out)
+        # ====
 
         # apply post-processing
         xs = self.s_post_block(surface.x, xs_out)

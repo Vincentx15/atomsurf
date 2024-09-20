@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-from torch.nn import Linear
 from torch_geometric.nn import GCNConv, GATConv, GATv2Conv
 from torch_geometric.nn import MessagePassing
 from torch_geometric.utils import add_self_loops
@@ -27,12 +26,22 @@ def init_block(name, use_normals=True, use_gat=False, use_v2=False, add_self_loo
     elif name == "hmr":
         return HMRWrapper(dim_in, dim_out, num_gdf=num_gdf)
     elif name == "gcn":
+        return GraphconvWrapper(dim_in, dim_out, use_gat=use_gat, use_v2=use_v2, add_self_loops=add_self_loops,
+                                fill_value=fill_value)
+
+
+class GraphconvWrapper(nn.Module):
+    def __init__(self, dim_in, dim_out, use_gat=False, use_v2=False, add_self_loops=False, fill_value="mean"):
+        super().__init__()
         if not use_gat:
             conv_layer = GCNConv
         else:
             conv_layer = GATv2Conv if use_v2 else GATConv
         edge_dim = 1 if use_v2 else None
-        return conv_layer(dim_in, dim_out, add_self_loops=add_self_loops, fill_value=fill_value, edge_dim=edge_dim)
+        self.conv = conv_layer(dim_in, dim_out, add_self_loops=add_self_loops, fill_value=fill_value, edge_dim=edge_dim)
+
+    def forward(self, x, bpgraph):
+        return self.conv(x, bpgraph.edge_index, bpgraph.edge_weight)
 
 
 class HMRWrapper(nn.Module):
@@ -150,3 +159,4 @@ class NoParamAggregate(MessagePassing):
     def message(self, x_j, edge_weights):
         # x_j has shape [E, out_channels]
         return edge_weights[..., None] * x_j
+
