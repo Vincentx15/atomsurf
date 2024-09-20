@@ -84,6 +84,7 @@ class HMRInputEncoder(nn.Module):
         # First, let us get geom and chem features
         chem_feats, geom_feats = graph.x, surface.x
         h_geom = self.geom_mlp(geom_feats)
+
         # HMR introduced this weird self filtering
         h_chem = self.chem_mlp(chem_feats)
         nbr_filter, nbr_core = h_chem.chunk(2, dim=-1)
@@ -176,11 +177,11 @@ class InputEncoder(SurfaceGraphCommunication):
                 bp_sg_block = init_block("gvp",
                                          dim_in=h_dim,
                                          dim_out=h_dim,
-                                         use_normals=use_normals,n_layers=n_layers,vector_gate=vector_gate)
+                                         use_normals=use_normals, n_layers=n_layers, vector_gate=vector_gate)
                 bp_gs_block = init_block("gvp",
                                          dim_in=h_dim,
                                          dim_out=h_dim,
-                                         use_normals=use_normals,n_layers=n_layers,vector_gate=vector_gate)
+                                         use_normals=use_normals, n_layers=n_layers, vector_gate=vector_gate)
             else:
                 bp_sg_block = init_block("gcn",
                                          use_gat=hparams.use_gat, use_v2=hparams.use_v2,
@@ -235,6 +236,7 @@ class CatMergeBlock(nn.Module):
 
     def forward(self, x_in, x_out):
         return self.net(torch.cat((x_in, x_out), dim=-1))
+
 
 class BiHMRInputEncoder(nn.Module):
     def __init__(self, hparams):
@@ -313,7 +315,7 @@ class BiHMRInputEncoder(nn.Module):
     def forward(self, surface, graph):
         # First, let us get geom and chem features
         chem_feats, geom_feats = graph.x, surface.x
-        
+
         # HMR introduced this weird self filtering
         h_geom = self.geom_mlp(geom_feats)
         nbr_filter, nbr_core = h_geom.chunk(2, dim=-1)
@@ -353,7 +355,7 @@ class BiHMRInputEncoder(nn.Module):
                 offset_graph += len(x.T)
                 neighbors_surf.append(torch.stack((repeated_tensor_vert, min_indices_vert.flatten())))
                 neighbors_graph.append(torch.stack((repeated_tensor_graph, min_indices_graph.flatten())))
-        
+
         ## calculate surf exchange first
         # Slicing requires tuple   
 
@@ -381,13 +383,13 @@ class BiHMRInputEncoder(nn.Module):
         h_chem_geom = nbr_filter * nbr_core
         h_chem_geom = scatter(h_chem_geom, neigh_verts, dim=0, reduce="sum")
         h_geom_mix = self.feat_mlp_chem_geom(torch.cat((h_chem_geom, h_geom), dim=-1))
-        del neighbors_surf, neigh_verts, neigh_graphs, all_chem_feats, all_normals, edge_vecs, edge_dists, normed_edge_vecs, nbr_angular, encoded_dists, encoded_angles, expanded_message_features, embedded_messages, nbr_filter, nbr_core, h_chem_geom #verts_normals,
+        del neighbors_surf, neigh_verts, neigh_graphs, all_chem_feats, all_normals, edge_vecs, edge_dists, normed_edge_vecs, nbr_angular, encoded_dists, encoded_angles, expanded_message_features, embedded_messages, nbr_filter, nbr_core, h_chem_geom  # verts_normals,
         torch.cuda.empty_cache()
 
         ## calculate graph exchang here
         neighbors_graph = torch.cat([x for x in neighbors_graph], dim=1).long()
-        neigh_graphs, neigh_verts = neighbors_graph[0, :], neighbors_graph[1, :]            
-        all_geom_feats = h_geom[neigh_verts]  
+        neigh_graphs, neigh_verts = neighbors_graph[0, :], neighbors_graph[1, :]
+        all_geom_feats = h_geom[neigh_verts]
         # verts_normals = torch.cat([surf.x[:, -3:] for surf in surface.to_data_list()], dim=0)
         all_normals = verts_normals[neigh_verts]
         edge_vecs = surface.verts[neigh_verts] - graph.node_pos[neigh_graphs]
@@ -404,7 +406,7 @@ class BiHMRInputEncoder(nn.Module):
         h_geom_chem = nbr_filter * nbr_core
         h_geom_chem = scatter(h_geom_chem, neigh_graphs, dim=0, reduce="sum")
         h_chem_mix = self.feat_mlp_geom_chem(torch.cat((h_geom_chem, h_chem), dim=-1))
-    
+
         del neighbors_graph, neigh_verts, neigh_graphs, all_geom_feats, all_normals, edge_vecs, edge_dists, normed_edge_vecs, nbr_angular, encoded_dists, encoded_angles, expanded_message_features, embedded_messages, nbr_filter, nbr_core, h_geom_chem, verts_normals
         torch.cuda.empty_cache()
         graph.x = h_chem_mix

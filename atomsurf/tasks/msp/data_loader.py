@@ -55,7 +55,7 @@ class MSPDataset(Dataset):
                 if self.verbose:
                     print('Surface problem', surface_name)
                 return None
-            if graph is None or graph.node_len < 2:
+            if graph is None or graph.node_len < 16:
                 if self.verbose:
                     print('Graph problem', graph_name)
                 return None

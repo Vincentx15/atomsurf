@@ -254,8 +254,7 @@ class GVPConv(MessagePassing):
         self.so, self.vo = out_dims
         self.se, self.ve = edge_dims
 
-        GVP_ = functools.partial(GVP,
-                                 activations=activations, vector_gate=vector_gate)
+        GVP_ = functools.partial(GVP, activations=activations, vector_gate=vector_gate)
 
         module_list = module_list or []
         if not module_list:

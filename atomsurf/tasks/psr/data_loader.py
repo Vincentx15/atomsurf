@@ -38,8 +38,8 @@ class PSRDataset(Dataset):
         return len(self.systems)
 
     def __getitem__(self, idx):
-        name, score = self.systems[idx]
-        # _, score = name_score.values()
+        name, name_score = self.systems[idx]
+        _, score = name_score.values() # This was commented, but that's how it works on my end
         surface = self.surface_loader.load(name)
         graph = self.graph_loader.load(name)
         if surface is None or graph is None:

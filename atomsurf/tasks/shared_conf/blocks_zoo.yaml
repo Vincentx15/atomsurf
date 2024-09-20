@@ -196,7 +196,7 @@ pronet|gvp_normals:
         neigh_thresh: 8
         sigma: 2.5
 
-pronet|gvp_normals|HMRMP:
+pronet|HMRMP:
   name: ProteinEncoder
   instanciate:
     _target_: atomsurf.networks.ProteinEncoderBlock
@@ -222,9 +222,9 @@ pronet|gvp_normals|HMRMP:
         euler_noise: False
         add_seq_emb: False
     communication_block:
-      name: ConcurrentCommunication_HMR
+      name: ConcurrentCommunication
       instanciate:
-        _target_: atomsurf.network_utils.ConcurrentCommunication_HMR
+        _target_: atomsurf.network_utils.ConcurrentCommunication
       kwargs:
         use_bp: true
         pre_s_block: linear
@@ -238,7 +238,7 @@ pronet|gvp_normals|HMRMP:
         use_normals: true
         vector_gate: ${gvp_vector_gate}
         n_layers: ${gvp_n_layers}
-        use_HMR: true
+        use_hmr: true
         num_gdf: 16
         bp_s_dim_in: ${eval:'${model_hdim} // 2'}
         bp_s_dim_out: ${eval:'${model_hdim} // 2'}

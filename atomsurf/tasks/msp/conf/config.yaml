@@ -27,10 +27,13 @@ log_dir: "./"
 path_model: "version_x/checkpoints/last.ckpt"
 min_batch_size: 2
 
+optimizer:
+  lr: 1e-4
+
 # loader params
 loader:
   num_workers: 0
-  batch_size: 8
+  batch_size: 32
   pin_memory: False
   prefetch_factor: 2
   shuffle: true

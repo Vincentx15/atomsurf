@@ -1,5 +1,5 @@
 # project
-from .surface_graph_comm import SurfaceGraphCommunication, SequentialSurfaceGraphCommunication,SurfaceGraphCommunication_useHMR
+from .surface_graph_comm import SurfaceGraphCommunication, SequentialSurfaceGraphCommunication
 from .utils_blocks import init_block
 
 
@@ -10,13 +10,13 @@ class ConcurrentCommunication(SurfaceGraphCommunication):
                  pre_g_dim_out=64,
                  # message passing blocks
                  use_gat=False, use_v2=False, bp_self_loops=False, bp_fill_value="mean",  # GCN args
-                 use_gvp=False, use_normals=True,n_layers=3,vector_gate=False,  # GVP args
+                 use_gvp=False, use_normals=True, n_layers=3, vector_gate=False,  # GVP args
                  bp_s_dim_in=64, bp_s_dim_out=64, bp_g_dim_in=64, bp_g_dim_out=64,
                  # postprocess blocks
                  post_s_block="identity", post_g_block="identity", post_s_dim_in=128, post_s_dim_out=64,
                  post_g_dim_in=128, post_g_dim_out=64,
                  # misc
-                 neigh_thresh=8, sigma=2.5,
+                 neigh_thresh=8, sigma=2.5, use_hmr=False, num_gdf=16,
                  **kwargs):
 
         # preprocess blocks
@@ -28,65 +28,16 @@ class ConcurrentCommunication(SurfaceGraphCommunication):
         if use_bp:
             if use_gvp:
                 bp_sg_block = init_block("gvp",
-                                         dim_in=bp_s_dim_in, dim_out=bp_s_dim_out, use_normals=use_normals,n_layers=n_layers,vector_gate=vector_gate)
+                                         dim_in=bp_s_dim_in, dim_out=bp_s_dim_out, use_normals=use_normals,
+                                         n_layers=n_layers, vector_gate=vector_gate)
                 bp_gs_block = init_block("gvp",
-                                         dim_in=bp_g_dim_in, dim_out=bp_g_dim_out, use_normals=use_normals,n_layers=n_layers,vector_gate=vector_gate)
-            else:
-                bp_sg_block = init_block("gcn",
-                                         use_gat=use_gat, use_v2=use_v2,
-                                         dim_in=bp_s_dim_in, dim_out=bp_s_dim_out,
-                                         add_self_loops=bp_self_loops, fill_value=bp_fill_value)
-                bp_gs_block = init_block("gcn",
-                                         use_gat=use_gat, use_v2=use_v2,
-                                         dim_in=bp_g_dim_in, dim_out=bp_g_dim_out,
-                                         add_self_loops=bp_self_loops, fill_value=bp_fill_value)
-        else:
-            bp_gs_block, bp_sg_block = None, None
-
-        # post-process blocks
-        # * skip connection is a bad design, summing surface-level features with graph-level features, the skip is done in two different spaces
-        # * we will use concatenation instead
-        s_post_block = init_block(post_s_block, dim_in=post_s_dim_in, dim_out=post_s_dim_out)
-        g_post_block = init_block(post_g_block, dim_in=post_g_dim_in, dim_out=post_g_dim_out)
-
-        super().__init__(use_bp, use_gvp=use_gvp, bp_sg_block=bp_sg_block, bp_gs_block=bp_gs_block,
-                         s_pre_block=s_pre_block, g_pre_block=g_pre_block,
-                         s_post_block=s_post_block, g_post_block=g_post_block,
-                         neigh_thresh=neigh_thresh, sigma=sigma, **kwargs)
-
-class ConcurrentCommunication_HMR(SurfaceGraphCommunication_useHMR):
-    def __init__(self, use_bp=True,
-                 # preprocess blocks
-                 pre_s_block="identity", pre_g_block="identity", pre_s_dim_in=128, pre_s_dim_out=64, pre_g_dim_in=128,
-                 pre_g_dim_out=64,
-                 # message passing blocks
-                 use_gat=False, use_v2=False, bp_self_loops=False, bp_fill_value="mean",  # GCN args
-                 use_gvp=False, use_normals=True,n_layers=3,vector_gate=False,  # GVP args
-                 bp_s_dim_in=64, bp_s_dim_out=64, bp_g_dim_in=64, bp_g_dim_out=64,
-                 # postprocess blocks
-                 post_s_block="identity", post_g_block="identity", post_s_dim_in=128, post_s_dim_out=64,
-                 post_g_dim_in=128, post_g_dim_out=64,
-                 # misc
-                 neigh_thresh=8, sigma=2.5, use_HMR=False ,num_gdf=16 ,
-                 **kwargs):
-        
-        # preprocess blocks
-        s_pre_block = init_block(pre_s_block, dim_in=pre_s_dim_in, dim_out=pre_s_dim_out)
-        g_pre_block = init_block(pre_g_block, dim_in=pre_g_dim_in, dim_out=pre_g_dim_out)
-
-        # message passing blocks
-        # * this version does not use self-loops, because we will be summing surface-level features with graph-level features (not good apriori)
-        if use_bp:
-            if use_gvp:
-                bp_sg_block = init_block("gvp",
-                                         dim_in=bp_s_dim_in, dim_out=bp_s_dim_out, use_normals=use_normals,n_layers=n_layers,vector_gate=vector_gate)
-                bp_gs_block = init_block("gvp",
-                                         dim_in=bp_g_dim_in, dim_out=bp_g_dim_out, use_normals=use_normals,n_layers=n_layers,vector_gate=vector_gate)
-            elif use_HMR:
+                                         dim_in=bp_g_dim_in, dim_out=bp_g_dim_out, use_normals=use_normals,
+                                         n_layers=n_layers, vector_gate=vector_gate)
+            elif use_hmr:
                 bp_sg_block = init_block("hmr",
-                                         dim_in=bp_s_dim_in, dim_out=bp_s_dim_out,num_gdf=num_gdf)
+                                         dim_in=bp_s_dim_in, dim_out=bp_s_dim_out, num_gdf=num_gdf)
                 bp_gs_block = init_block("hmr",
-                                         dim_in=bp_g_dim_in, dim_out=bp_g_dim_out,num_gdf=num_gdf)
+                                         dim_in=bp_g_dim_in, dim_out=bp_g_dim_out, num_gdf=num_gdf)
             else:
                 bp_sg_block = init_block("gcn",
                                          use_gat=use_gat, use_v2=use_v2,
@@ -108,7 +59,8 @@ class ConcurrentCommunication_HMR(SurfaceGraphCommunication_useHMR):
         super().__init__(use_bp, use_gvp=use_gvp, bp_sg_block=bp_sg_block, bp_gs_block=bp_gs_block,
                          s_pre_block=s_pre_block, g_pre_block=g_pre_block,
                          s_post_block=s_post_block, g_post_block=g_post_block,
-                         neigh_thresh=neigh_thresh, sigma=sigma,use_HMR=use_HMR ,num_gdf=num_gdf,  **kwargs)
+                         use_hmr=use_hmr,
+                         neigh_thresh=neigh_thresh, sigma=sigma, **kwargs)
 
 
 class SequentialCommunication(SequentialSurfaceGraphCommunication):

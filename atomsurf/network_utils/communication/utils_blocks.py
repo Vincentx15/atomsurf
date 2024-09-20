@@ -7,8 +7,9 @@ from torch_geometric.utils import add_self_loops
 from atomsurf.network_utils.misc_arch.gvp_gnn import GVPConv
 from torch_scatter import scatter
 
+
 def init_block(name, use_normals=True, use_gat=False, use_v2=False, add_self_loops=False,
-               fill_value="mean", aggr='add', dim_in=128, dim_out=64,n_layers=3,vector_gate=False,num_gdf=16):
+               fill_value="mean", aggr='add', dim_in=128, dim_out=64, n_layers=3, vector_gate=False, num_gdf=16):
     if name == "identity":
         return IdentityLayer()
     if name == "linear":
@@ -22,9 +23,9 @@ def init_block(name, use_normals=True, use_gat=False, use_v2=False, add_self_loo
     elif name == "return_processed":
         return ReturnProcessedBlock()
     elif name == "gvp":
-        return GVPWrapper(dim_in, dim_out, use_normals=use_normals,n_layers=n_layers,vector_gate=vector_gate)
+        return GVPWrapper(dim_in, dim_out, use_normals=use_normals, n_layers=n_layers, vector_gate=vector_gate)
     elif name == "hmr":
-        return HMRWrapper(dim_in,dim_out,num_gdf=num_gdf)
+        return HMRWrapper(dim_in, dim_out, num_gdf=num_gdf)
     elif name == "gcn":
         if not use_gat:
             conv_layer = GCNConv
@@ -33,57 +34,37 @@ def init_block(name, use_normals=True, use_gat=False, use_v2=False, add_self_loo
         edge_dim = 1 if use_v2 else None
         return conv_layer(dim_in, dim_out, add_self_loops=add_self_loops, fill_value=fill_value, edge_dim=edge_dim)
 
-from atomsurf.network_utils.communication.passing_utils import _rbf
+
 class HMRWrapper(nn.Module):
-    def __init__(self, dim_in, dim_out,num_gdf=16,dropout=0.25):
+    def __init__(self, dim_in, dim_out, num_gdf=16, dropout=0.25):
         super().__init__()
-        self.embed_mlp_sg = nn.Sequential(
-                nn.Linear(dim_in + 2 * num_gdf, dim_out),  # chem_feat_dim
-                nn.Dropout(dropout),
-                nn.BatchNorm1d(dim_out),
-                nn.SiLU(),
-                nn.Linear(dim_out, 2 * dim_out),
-                nn.Dropout(dropout),
-                nn.BatchNorm1d(2 * dim_out),
-            )
-        self.embed_mlp_gs = nn.Sequential(
-                nn.Linear(dim_in + 2 * num_gdf, dim_out),  # chem_feat_dim
-                nn.Dropout(dropout),
-                nn.BatchNorm1d(dim_out),
-                nn.SiLU(),
-                nn.Linear(dim_out, 2 * dim_out),
-                nn.Dropout(dropout),
-                nn.BatchNorm1d(2 * dim_out),
-            )
+        self.embed_mlp = nn.Sequential(
+            nn.Linear(dim_in + 2 * num_gdf, dim_out),  # chem_feat_dim
+            nn.Dropout(dropout),
+            nn.BatchNorm1d(dim_out),
+            nn.SiLU(),
+            nn.Linear(dim_out, 2 * dim_out),
+            nn.Dropout(dropout),
+            nn.BatchNorm1d(2 * dim_out),
+        )
         self.sigmoid = nn.Sigmoid()
         self.softplus = nn.Softplus()
-    def forward(self, x,neigh,encoded_dists,encoded_angles,mode='sg'):
-        if mode == 'sg':
-            neigh_verts, neigh_graphs = neigh[0, :], neigh[1, :]
-            all_feats = x[neigh_graphs]
-            expanded_message_features = torch.cat([all_feats, encoded_dists, encoded_angles], axis=-1)
-            embedded_messages = self.embed_mlp_sg(expanded_message_features)
-            nbr_filter, nbr_core = embedded_messages.chunk(2, dim=-1)
-            nbr_filter = self.sigmoid(nbr_filter)
-            nbr_core = self.softplus(nbr_core)
-            h_chem_geom = nbr_filter * nbr_core
-            h_chem_geom = scatter(h_chem_geom, neigh_verts, dim=0, reduce="sum")
-            return h_chem_geom
-        elif mode == 'gs':
-            neigh_graphs, neigh_verts = neigh[0, :], neigh[1, :]
-            all_feats = x[neigh_verts]  
-            expanded_message_features = torch.cat([all_feats, encoded_dists, encoded_angles], axis=-1)
-            embedded_messages = self.embed_mlp_gs(expanded_message_features)
-            nbr_filter, nbr_core = embedded_messages.chunk(2, dim=-1)
-            nbr_filter = self.sigmoid(nbr_filter)
-            nbr_core = self.softplus(nbr_core)
-            h_geom_chem = nbr_filter * nbr_core
-            h_geom_chem = scatter(h_geom_chem, neigh_graphs, dim=0, reduce="sum")
-            return h_geom_chem
+
+    def forward(self, x, bpgraph):
+        neigh_in, neigh_out = bpgraph.edge_index
+        all_feats = x[neigh_in]
+        expanded_message_features = torch.cat([all_feats, bpgraph.encoded_dists, bpgraph.encoded_angles], axis=-1)
+        embedded_messages = self.embed_mlp(expanded_message_features)
+        nbr_filter, nbr_core = embedded_messages.chunk(2, dim=-1)
+        nbr_filter = self.sigmoid(nbr_filter)
+        nbr_core = self.softplus(nbr_core)
+        h_chem_geom = nbr_filter * nbr_core
+        h_chem_geom = scatter(h_chem_geom, neigh_out, dim=0, reduce="sum", dim_size=len(x))
+        return h_chem_geom
 
 
 class GVPWrapper(nn.Module):
-    def __init__(self, dim_in, dim_out,n_layers,vector_gate, use_normals=True):
+    def __init__(self, dim_in, dim_out, n_layers, vector_gate, use_normals=True):
         super().__init__()
         self.use_normals = use_normals
 
@@ -96,19 +77,19 @@ class GVPWrapper(nn.Module):
         # We need some vectors to construct interesting representations. Output dims are also used in the network.
         # We later drop the final vectors (we could take the norms)
         out_dims = dim_out, 3
-        self.gvp = GVPConv(in_dims, out_dims, edge_dims,n_layers=n_layers,vector_gate=vector_gate)
+        self.gvp = GVPConv(in_dims, out_dims, edge_dims, n_layers=n_layers, vector_gate=vector_gate)
 
-    def forward(self, x, graph):
-        if graph.normals is not None and self.use_normals:
-            x_v = graph.normals[:, None, :]
+    def forward(self, x, bpgraph):
+        if bpgraph.normals is not None and self.use_normals:
+            x_v = bpgraph.normals[:, None, :]
         else:
             x_v = torch.zeros((len(x), 1, 3), device=x.device)
         x = (x, x_v)
 
-        e_s = graph.edge_s
-        e_v = graph.edge_v
+        e_s = bpgraph.edge_s
+        e_v = bpgraph.edge_v
 
-        x_o_s, x_o_v = self.gvp(x=x, edge_index=graph.edge_index, edge_attr=(e_s, e_v))
+        x_o_s, x_o_v = self.gvp(x=x, edge_index=bpgraph.edge_index, edge_attr=(e_s, e_v))
         return x_o_s
 
 
@@ -149,7 +130,6 @@ class ReturnProcessedBlock(nn.Module):
         return x_out
 
 
-# todo check if this valid (copy pasted)
 class NoParamAggregate(MessagePassing):
     # this class perform aggregation without any parameters, using only edge weights
     def __init__(self, aggr='add', add_self_loops=True, fill_value="mean"):
