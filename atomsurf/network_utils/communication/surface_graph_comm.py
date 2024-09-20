@@ -6,18 +6,12 @@ from .utils_blocks import IdentityLayer
 
 
 class SurfaceGraphCommunication(nn.Module):
-    def __init__(self, use_bp,
-                 s_pre_block=None, g_pre_block=None,
+    def __init__(self, s_pre_block=None, g_pre_block=None,
                  bp_sg_block=None, bp_gs_block=None,
                  s_post_block=None, g_post_block=None,
-                 neigh_thresh=8, sigma=2.5, use_gvp=False,
-                 use_knn=False, use_hmr=False,
+                 neigh_thresh=8, sigma=2.5, use_knn=False,
                  **kwargs):
         super().__init__()
-
-        self.use_bp = use_bp
-        self.use_gvp = use_gvp
-        self.use_hmr = use_hmr
 
         self.s_pre_block = s_pre_block
         self.g_pre_block = g_pre_block
@@ -32,26 +26,20 @@ class SurfaceGraphCommunication(nn.Module):
         self.sigma = sigma
         self.use_knn = use_knn
 
-        # init variables
-        self.bp_gs, self.bp_sg = None, None
-
     def forward(self, surface=None, graph=None):
         if surface is None or graph is None:
             return surface, graph
-
-        # prepare the communication graph
-        self.compute_graph(surface, graph)
-
         # get input features and apply preprocessing
         surface.x = self.s_pre_block(surface.x)
         graph.x = self.g_pre_block(graph.x)
 
         # == apply the message passing ==
-        # concatenate the features for the graph structure
-        bp_gs_batch_container = self.bp_gs
-        bp_sg_batch_container = self.bp_sg
+        # prepare the communication graph (with caching)
+        bp_gs_batch_container, bp_sg_batch_container = self.compute_graph(surface, graph)
         bp_sg_batch = bp_sg_batch_container.bp_graph
         bp_gs_batch = bp_gs_batch_container.bp_graph
+
+        # concatenate the features for the graph structure
         x_batch = bp_gs_batch_container.aggregate(surface.x, graph.x)
         xg_out = self.bp_sg_block(x_batch, bp_sg_batch)
         xs_out = self.bp_gs_block(x_batch, bp_gs_batch)
@@ -72,13 +60,11 @@ class SurfaceGraphCommunication(nn.Module):
 
     def compute_graph(self, surface, graph):
         if "bp_gs" not in surface or "bp_sg" not in surface:
-            self.bp_gs, self.bp_sg = compute_bipartite_graphs(surface, graph,
-                                                              neigh_th=self.neigh_thresh,
-                                                              use_knn=self.use_knn)
-            surface["bp_gs"], surface[
-                "bp_sg"] = self.bp_gs, self.bp_sg  # Previously included a clone which I think was unnecessary
+            bp_gs, bp_sg = compute_bipartite_graphs(surface, graph, neigh_th=self.neigh_thresh, use_knn=self.use_knn)
+            surface["bp_gs"], surface["bp_sg"] = bp_gs, bp_sg
         else:
-            self.bp_gs, self.bp_sg = surface.bp_gs, surface.bp_sg
+            bp_gs, bp_sg = surface.bp_gs, surface.bp_sg
+        return bp_gs, bp_sg
 
 
 class SequentialSurfaceGraphCommunication(SurfaceGraphCommunication):

@@ -25,31 +25,27 @@ class ConcurrentCommunication(SurfaceGraphCommunication):
 
         # message passing blocks
         # * this version does not use self-loops, because we will be summing surface-level features with graph-level features (not good apriori)
-        if use_bp:
-            if use_gvp:
-                bp_sg_block = init_block("gvp",
-                                         dim_in=bp_s_dim_in, dim_out=bp_s_dim_out, use_normals=use_normals,
-                                         n_layers=n_layers, vector_gate=vector_gate)
-                bp_gs_block = init_block("gvp",
-                                         dim_in=bp_g_dim_in, dim_out=bp_g_dim_out, use_normals=use_normals,
-                                         n_layers=n_layers, vector_gate=vector_gate)
-            elif use_hmr:
-                bp_sg_block = init_block("hmr",
-                                         dim_in=bp_s_dim_in, dim_out=bp_s_dim_out, num_gdf=num_gdf)
-                bp_gs_block = init_block("hmr",
-                                         dim_in=bp_g_dim_in, dim_out=bp_g_dim_out, num_gdf=num_gdf)
-            else:
-                bp_sg_block = init_block("gcn",
-                                         use_gat=use_gat, use_v2=use_v2,
-                                         dim_in=bp_s_dim_in, dim_out=bp_s_dim_out,
-                                         add_self_loops=bp_self_loops, fill_value=bp_fill_value)
-                bp_gs_block = init_block("gcn",
-                                         use_gat=use_gat, use_v2=use_v2,
-                                         dim_in=bp_g_dim_in, dim_out=bp_g_dim_out,
-                                         add_self_loops=bp_self_loops, fill_value=bp_fill_value)
+        if use_gvp:
+            bp_sg_block = init_block("gvp",
+                                     dim_in=bp_s_dim_in, dim_out=bp_s_dim_out, use_normals=use_normals,
+                                     n_layers=n_layers, vector_gate=vector_gate)
+            bp_gs_block = init_block("gvp",
+                                     dim_in=bp_g_dim_in, dim_out=bp_g_dim_out, use_normals=use_normals,
+                                     n_layers=n_layers, vector_gate=vector_gate)
+        elif use_hmr:
+            bp_sg_block = init_block("hmr",
+                                     dim_in=bp_s_dim_in, dim_out=bp_s_dim_out, num_gdf=num_gdf)
+            bp_gs_block = init_block("hmr",
+                                     dim_in=bp_g_dim_in, dim_out=bp_g_dim_out, num_gdf=num_gdf)
         else:
-            bp_gs_block, bp_sg_block = None, None
-
+            bp_sg_block = init_block("gcn",
+                                     use_gat=use_gat, use_v2=use_v2,
+                                     dim_in=bp_s_dim_in, dim_out=bp_s_dim_out,
+                                     add_self_loops=bp_self_loops, fill_value=bp_fill_value)
+            bp_gs_block = init_block("gcn",
+                                     use_gat=use_gat, use_v2=use_v2,
+                                     dim_in=bp_g_dim_in, dim_out=bp_g_dim_out,
+                                     add_self_loops=bp_self_loops, fill_value=bp_fill_value)
         # post-process blocks
         # * skip connection is a bad design, summing surface-level features with graph-level features, the skip is done in two different spaces
         # * we will use concatenation instead
