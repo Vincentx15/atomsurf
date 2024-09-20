@@ -54,6 +54,8 @@ class SurfaceLoader:
             return Data()
         try:
             surface = torch.load(os.path.join(self.data_dir, f"{surface_name}.pt"))
+            # Early version of the data did not include the normals
+            surface.set_vnormals()
             with torch.no_grad():
                 surface.expand_features(remove_feats=True,
                                         feature_keys=self.config.feat_keys,

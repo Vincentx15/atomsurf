@@ -73,7 +73,6 @@ class PreprocessPSRDataset(PreprocessDataset):
 if __name__ == '__main__':
     pass
     recompute = False
-    # data_dir = '/work/lpdi/users/ymiao/code/psrdata/split-by-year/data'
     data_dir = '../../../data/psr/PSR-split-by-year/split-by-year/data'
     recompute_pdb = False
     recompute_s = False

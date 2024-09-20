@@ -25,8 +25,7 @@ class BPGraphBatch:
         # Now concatenate our graphs into one big one with surface vertices first and graph nodes then
         self.all_surf_size = len(surfaces.verts)
         all_pos = torch.cat((surfaces.verts, graphs.node_pos))
-        # TODO: UNSAFE, if normals are useful, find a better way (probably by including it as a surface attribute)
-        verts_normals = surfaces.x[:, -3:]
+        verts_normals = surfaces.vnormals
         normals = torch.cat((verts_normals, torch.zeros_like(graphs.node_pos)))
 
         # If mode = 'sg', neighbors holds edges from surface to graph, and vice-versae.

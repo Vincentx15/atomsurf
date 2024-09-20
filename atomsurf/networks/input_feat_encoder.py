@@ -95,7 +95,6 @@ class HMRInputEncoder(nn.Module):
         # If we additionally use neighboring info, we need to compute it and propagate a message that
         # uses dists and angles
         if self.use_neigh:
-            # TODO: UNSAFE, if normals are useful, find a better way (probably by including it as a surface attribute)
             verts_list = [surf.verts for surf in surface.to_data_list()]
             nodepos_list = [gr.node_pos for gr in graph.to_data_list()]
             with torch.no_grad():
@@ -119,7 +118,7 @@ class HMRInputEncoder(nn.Module):
 
             # extract relevant chem features
             all_chem_feats = h_chem[neigh_graphs]  # chem_feats
-            verts_normals = torch.cat([surf.x[:, -3:] for surf in surface.to_data_list()], dim=0)
+            verts_normals = surface.vnormals
             all_normals = verts_normals[neigh_verts]
             edge_vecs = graph.node_pos[neigh_graphs] - surface.verts[neigh_verts]
             edge_dists = torch.linalg.norm(edge_vecs, axis=-1)
@@ -364,7 +363,7 @@ class BiHMRInputEncoder(nn.Module):
 
         # extract relevant chem features
         all_chem_feats = h_chem[neigh_graphs]  # chem_feats
-        verts_normals = torch.cat([surf.x[:, -3:] for surf in surface.to_data_list()], dim=0)
+        verts_normals = surface.vnormals
         all_normals = verts_normals[neigh_verts]
         edge_vecs = graph.node_pos[neigh_graphs] - surface.verts[neigh_verts]
         edge_dists = torch.linalg.norm(edge_vecs, axis=-1)

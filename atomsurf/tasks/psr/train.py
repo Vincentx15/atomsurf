@@ -66,6 +66,7 @@ def main(cfg=None):
         params = {"accelerator": "gpu", "devices": [cfg.device]}
     else:
         params = {}
+    # params = {}
 
     # init trainer
     trainer = pl.Trainer(

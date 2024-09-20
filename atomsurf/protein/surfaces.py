@@ -32,7 +32,7 @@ def compute_HKS(evecs, evals, num_t, t_min=0.1, t_max=1000, scale=1000):
     return hks
 
 
-def get_geom_feats(verts, faces, evecs, evals, num_signatures=16):
+def get_geom_feats(verts, faces, evecs, evals, vnormals, num_signatures=16):
     # Following masif site
     _, _, k1, k2 = igl.principal_curvature(verts, faces)
 
@@ -46,14 +46,13 @@ def get_geom_feats(verts, faces, evecs, evals, num_signatures=16):
 
     # HKS:
     hks = compute_HKS(evecs, evals, num_signatures)
-    vnormals = igl.per_vertex_normals(verts, faces)
     geom_feats = np.concatenate([gauss_curvs, mean_curvs, si, hks, vnormals], axis=-1)
     return geom_feats
 
 
 class SurfaceObject(Data, FeaturesHolder):
     def __init__(self, features=None, verts=None, faces=None,
-                 mass=None, L=None, evals=None, evecs=None, gradX=None, gradY=None,
+                 mass=None, L=None, evals=None, evecs=None, gradX=None, gradY=None, vnormals=None,
                  **kwargs):
         super().__init__(**kwargs)
 
@@ -68,14 +67,28 @@ class SurfaceObject(Data, FeaturesHolder):
         self.gradX = gradX
         self.gradY = gradY
         self.k_eig = len(evals) if evals is not None else 0
+        self.set_vnormals(vnormals)
 
         if features is None:
             self.features = Features(num_nodes=self.n_verts)
         else:
             self.features = features
 
+    def set_vnormals(self, vnormals=None):
+        if vnormals is not None:
+            self.vnormals = vnormals
+        # Don't recompute if already there and None is provided
+        elif "vnormals" in self.keys and self.vnormals is not None:
+            pass
+        # Can only recompute if the verts/faces are not None (placeholder in batch)
+        elif "verts" in self.keys and self.verts is not None:
+            vnormals = igl.per_vertex_normals(diff_utils.toNP(self.verts), diff_utils.toNP(self.faces))
+            self.vnormals = vnormals if isinstance(self.verts, np.ndarray) else diff_utils.safe_to_torch(vnormals)
+        else:
+            self.vnormals = None
+
     def from_numpy(self, device='cpu'):
-        for attr_name in ['verts', 'faces', 'evals', 'evecs']:
+        for attr_name in ['verts', 'faces', 'evals', 'evecs', 'vnormals']:
             attr_value = getattr(self, attr_name)
             setattr(self, attr_name, diff_utils.safe_to_torch(attr_value).to(device=device))
 
@@ -85,7 +98,7 @@ class SurfaceObject(Data, FeaturesHolder):
         return self
 
     def numpy(self):
-        for attr_name in ['verts', 'faces', 'evals', 'evecs']:
+        for attr_name in ['verts', 'faces', 'evals', 'evecs', 'vnormals']:
             attr_value = getattr(self, attr_name)
             setattr(self, attr_name, diff_utils.toNP(attr_value))
 
@@ -109,6 +122,7 @@ class SurfaceObject(Data, FeaturesHolder):
                  L_shape=self.L.shape,
                  evals=self.evals,
                  evecs=self.evecs,
+                 vnormals=self.vnormals,
                  gradX_data=self.gradX.data,
                  gradX_indices=self.gradX.indices,
                  gradX_indptr=self.gradX.indptr,
@@ -129,14 +143,15 @@ class SurfaceObject(Data, FeaturesHolder):
         npz_file = np.load(npz_path, allow_pickle=True)
         verts = npz_file['verts']
         faces = npz_file['faces']
-        mass, L, evals, evecs, gradX, gradY = load_operators(npz_file)
+        mass, L, evals, evecs, vnormals, gradX, gradY = load_operators(npz_file)
 
         return cls(verts=verts, faces=faces,
-                   mass=mass, L=L, evals=evals, evecs=evecs, gradX=gradX, gradY=gradY)
+                   mass=mass, L=L, evals=evals, evecs=evecs, vnormals=vnormals, gradX=gradX, gradY=gradY)
 
     def add_geom_feats(self):
         self.numpy()
-        geom_feats = get_geom_feats(verts=self.verts, faces=self.faces, evecs=self.evecs, evals=self.evals)
+        geom_feats = get_geom_feats(verts=self.verts, faces=self.faces, evecs=self.evecs, evals=self.evals,
+                                    vnormals=self.vnormals)
         self.features.add_named_features('geom_feats', geom_feats)
 
     @classmethod
@@ -159,11 +174,13 @@ class SurfaceObject(Data, FeaturesHolder):
                                            min_vert_number=min_vert_number,
                                            max_vert_number=max_vert_number,
                                            use_pymesh=use_pymesh)
-
-        frames, massvec, L, evals, evecs, gradX, gradY = compute_operators(verts, faces, use_fem_decomp=use_fem_decomp)
+        vnormals = igl.per_vertex_normals(verts, faces)
+        frames, massvec, L, evals, evecs, gradX, gradY = compute_operators(verts, faces,
+                                                                           normals=vnormals,
+                                                                           use_fem_decomp=use_fem_decomp)
 
         surface = cls(verts=verts, faces=faces, mass=massvec, L=L, evals=evals,
-                      evecs=evecs, gradX=gradX, gradY=gradY)
+                      evecs=evecs, gradX=gradX, gradY=gradY, vnormals=vnormals)
         return surface
 
     @classmethod
@@ -224,11 +241,12 @@ class SurfaceBatch(Batch):
             L = [mini_surface.L for mini_surface in surfaces]
             evals = [mini_surface.evals for mini_surface in surfaces]
             evecs = [mini_surface.evecs for mini_surface in surfaces]
+            vnormals = [mini_surface.vnormals for mini_surface in surfaces]
             gradX = [mini_surface.gradX for mini_surface in surfaces]
             gradY = [mini_surface.gradY for mini_surface in surfaces]
-            self.cache = mass, L, evals, evecs, gradX, gradY
+            self.cache = mass, L, evals, evecs, vnormals, gradX, gradY
         else:
-            mass, L, evals, evecs, gradX, gradY = self.cache
+            mass, L, evals, evecs, vnormals, gradX, gradY = self.cache
             surface_sizes = list(self.n_verts.detach().cpu().numpy())
             x_in = torch.split(self.x, surface_sizes)
         return x_in, mass, L, evals, evecs, gradX, gradY

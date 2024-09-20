@@ -432,9 +432,10 @@ def load_operators(npzfile):
     L = diff_utils.read_sp_mat(npzfile, "L")
     evals = npzfile["evals"]
     evecs = npzfile["evecs"]
+    vnormals = npzfile['vnormals'] if 'vnormals' in npzfile else None
     gradX = diff_utils.read_sp_mat(npzfile, "gradX")
     gradY = diff_utils.read_sp_mat(npzfile, "gradY")
-    return mass, L, evals, evecs, gradX, gradY
+    return mass, L, evals, evecs, vnormals, gradX, gradY
 
 
 if __name__ == "__main__":

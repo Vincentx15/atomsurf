@@ -52,10 +52,9 @@ class ConcurrentCommunication(SurfaceGraphCommunication):
         s_post_block = init_block(post_s_block, dim_in=post_s_dim_in, dim_out=post_s_dim_out)
         g_post_block = init_block(post_g_block, dim_in=post_g_dim_in, dim_out=post_g_dim_out)
 
-        super().__init__(use_bp, use_gvp=use_gvp, bp_sg_block=bp_sg_block, bp_gs_block=bp_gs_block,
+        super().__init__(bp_sg_block=bp_sg_block, bp_gs_block=bp_gs_block,
                          s_pre_block=s_pre_block, g_pre_block=g_pre_block,
                          s_post_block=s_post_block, g_post_block=g_post_block,
-                         use_hmr=use_hmr,
                          neigh_thresh=neigh_thresh, sigma=sigma, **kwargs)
 
 
