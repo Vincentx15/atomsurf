@@ -16,7 +16,7 @@ if __name__ == '__main__':
     sys.path.append(str(Path(__file__).absolute().parents[3]))
 
 from atomsurf.utils.callbacks import CommandLoggerCallback, add_wandb_logger
-from atomsurf.tasks.pip.pl_model import PIPModule
+from atomsurf.tasks.abag.pl_model import AbAgModule
 from data_loader import AbAgDataModule
 
 warnings.filterwarnings("ignore")
@@ -32,8 +32,11 @@ def main(cfg=None):
     seed = cfg.seed
     pl.seed_everything(seed, workers=True)
 
+    # init data
+    datamodule = AbAgDataModule(cfg)
+
     # init model
-    model = PIPModule(cfg)
+    model = AbAgModule(cfg)
 
     # init logger
     version = TensorBoardLogger(save_dir=cfg.log_dir).version

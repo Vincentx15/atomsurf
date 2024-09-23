@@ -26,6 +26,7 @@ device: 0
 log_dir: "./"
 path_model: "version_x/checkpoints/last.ckpt"
 min_batch_size: 2
+use_wandb: false
 
 optimizer:
   lr: 1e-4
@@ -33,7 +34,7 @@ optimizer:
 # loader params
 loader:
   num_workers: 0
-  batch_size: 32
+  batch_size: 3
   pin_memory: False
   prefetch_factor: 2
   shuffle: true
