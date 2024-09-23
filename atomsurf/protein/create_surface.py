@@ -258,14 +258,14 @@ def mesh_simplification(verts, faces, out_ply,
 
     if not use_pymesh:
         # TODO time
-        triangle_clusters, cluster_n_triangles, cluster_area = (mesh.cluster_connected_triangles())
+        triangle_clusters, cluster_n_triangles, _ = mesh.cluster_connected_triangles()
         triangle_clusters = np.asarray(triangle_clusters)
         cluster_n_triangles = np.asarray(cluster_n_triangles)
-        cluster_area = np.asarray(cluster_area)
 
         # Some tiny clusters might exist, we want to remove those
-        assert (cluster_n_triangles >= 10).sum() == 1
-        triangles_to_remove = cluster_n_triangles[triangle_clusters] < 10
+        cutoff = int(0.01 * cluster_n_triangles[0])
+        assert (cluster_n_triangles >= cutoff).sum() == 1
+        triangles_to_remove = cluster_n_triangles[triangle_clusters] < cutoff
         mesh.remove_triangles_by_mask(triangles_to_remove)
         mesh.remove_unreferenced_vertices()
         mesh.remove_degenerate_triangles()
@@ -402,4 +402,3 @@ if __name__ == "__main__":
                                min_vert_number=140,
                                use_pymesh=False,
                                face_reduction_rate=0.1)
-
