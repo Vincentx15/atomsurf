@@ -17,7 +17,7 @@ if __name__ == '__main__':
 
 from atomsurf.utils.callbacks import CommandLoggerCallback, add_wandb_logger
 from atomsurf.tasks.pip.pl_model import PIPModule
-from data_loader import AADataModule
+from data_loader import AbAgDataModule
 
 warnings.filterwarnings("ignore")
 torch.multiprocessing.set_sharing_strategy('file_system')
@@ -31,9 +31,6 @@ def main(cfg=None):
 
     seed = cfg.seed
     pl.seed_everything(seed, workers=True)
-
-    # init datamodule
-    datamodule = AADataModule(cfg)
 
     # init model
     model = PIPModule(cfg)

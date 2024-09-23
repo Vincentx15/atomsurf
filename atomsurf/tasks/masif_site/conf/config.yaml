@@ -60,7 +60,8 @@ train:
 cfg_surface:
   use_surfaces: true
   #  data_dir: ../../../data/masif_site/surfaces
-  data_dir: ../../../data/masif_site/surfaces_0.1_False
+  data_dir: ${data_dir}
+  data_name: surfaces_0.1_False
   feat_keys: 'all'
   oh_keys: 'all'
   gdf_expand: true
@@ -68,8 +69,8 @@ cfg_surface:
 # python train.py 'cfg_graph.feat_keys=[hphobs]' 'cfg_graph.oh_keys=[amino_types]' cfg_graph.use_esm=True
 cfg_graph:
   use_graphs: true
-  data_dir: ../../../data/masif_site/agraph
-  #  data_dir: ../../../data/masif_site/rgraph
+  data_dir: ${data_dir}
+  data_name: rgraph
   feat_keys: 'all'
   oh_keys: 'all'
   esm_dir: ../../../data/masif_site/esm

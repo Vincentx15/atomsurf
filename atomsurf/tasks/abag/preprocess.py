@@ -68,7 +68,7 @@ def get_pdb(pdb_code="", out_dir="", recompute=False):
         os.system(f"wget -qnc -O {out_path} https://files.rcsb.org/view/{pdb_code}.pdb ")
 
 
-class ExtractAALabelDataset(Dataset):
+class ExtractAbAgLabelDataset(Dataset):
     def __init__(self, csv_file, datadir, recompute=False):
         self.pdblist = pd.read_csv(csv_file)
         self.datadir = datadir
@@ -183,7 +183,7 @@ if __name__ == '__main__':
     for mode, fp in file_paths.items():
         print("Preprocessing on", mode)
         csv = os.path.join(abag_data_dir, fp)
-        extract = ExtractAALabelDataset(csv_file=csv, datadir=pdb_dir)
+        extract = ExtractAbAgLabelDataset(csv_file=csv, datadir=pdb_dir)
         do_all(extract, num_workers=20)
-        process_pdb = PreProcessABAGDataset(csv_file=os.path.join(abag_data_dir, fp))
+        process_pdb = PreProcessABAGDataset(csv_file=os.path.join(abag_data_dir, fp), face_reduction_rate=0.1)
         do_all(process_pdb, num_workers=20)

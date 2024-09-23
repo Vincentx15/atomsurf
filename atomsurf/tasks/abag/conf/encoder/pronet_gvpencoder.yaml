@@ -1,8 +1,0 @@
-name: pronet_gvpencoder
-
-
-blocks:
-  - ${input_encoder_normals}
-  - ${pronet|gvp_normals}
-  - ${pronet|gvp_normals}
-  - ${pronet|gvp_normals}

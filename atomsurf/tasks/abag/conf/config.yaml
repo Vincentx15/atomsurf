@@ -18,15 +18,17 @@ hydra:
 # general params
 seed: 2024
 run_name: default
-data_dir: ../../../data/pip/DIPS-split/data/
-out_dir: ../../../out_dir/pip_out_dir
+data_dir: ../../../data/abag
+out_dir: ../../../data/abag
 test_freq: 5
 epochs: 100
 device: 0
 log_dir: "./"
 path_model: "version_x/checkpoints/last.ckpt"
 min_batch_size: 2
-use_wandb: False
+
+optimizer:
+  lr: 1e-4
 
 # loader params
 loader:
@@ -60,21 +62,20 @@ train:
 
 cfg_surface:
   use_surfaces: true
-  data_dir: ${datadir}
-  data_name: 'surfaces_0.1'
+  data_dir: ${data_dir}
+  data_name: 'surfaces_1.0'
   feat_keys: 'all'
   oh_keys: 'all'
 
 # python train.py 'cfg_graph.feat_keys=[hphobs]' 'cfg_graph.oh_keys=[amino_types]' cfg_graph.use_esm=True
 cfg_graph:
   use_graphs: true
-  data_dir: ${datadir}
+  data_dir: ${data_dir}
   data_name: 'rgraph'
   feat_keys: 'all'
   oh_keys: 'all'
-  esm_dir: ${datadir}
+  esm_dir: ${data_dir}
   use_esm: false
-
 
 cfg_head:
   encoded_dims: ${model_hdim}

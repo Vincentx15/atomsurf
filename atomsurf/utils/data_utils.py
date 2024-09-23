@@ -36,7 +36,7 @@ class SurfaceLoader:
 
     def __init__(self, config):
         self.config = config
-        self.data_dir = config.data_dir
+        self.data_dir = os.path.join(config.data_dir, config.data_name)
         self.feature_expander = None
         if "gdf_expand" in config and config.gdf_expand:
             self.gauss_curv_gdf = GaussianDistance(start=-0.1, stop=0.1, num_centers=16)
@@ -77,7 +77,7 @@ class GraphLoader:
 
     def __init__(self, config):
         self.config = config
-        self.data_dir = config.data_dir
+        self.data_dir = os.path.join(config.data_dir, config.data_name)
         self.esm_dir = config.esm_dir
         self.use_esm = config.use_esm
         self.feature_expander = None
@@ -133,7 +133,7 @@ def pdb_to_surf_graphs(pdb_path, surface_dump, agraph_dump, rgraph_dump, face_re
             try:
                 arrays = parse_pdb_path_nopqr(pdb_path)
             except:
-                print(' try to use pqr to fix sse')
+                print('Trying to use pqr to fix sse')
                 arrays = parse_pdb_path(pdb_path)
             if recompute_g or not os.path.exists(rgraph_dump):
                 rgraph = ResidueGraphBuilder(add_pronet=True, add_esm=False).arrays_to_resgraph(arrays)
