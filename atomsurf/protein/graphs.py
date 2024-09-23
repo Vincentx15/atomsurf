@@ -1,6 +1,7 @@
 import os
 import sys
 
+from Bio import PDB
 from Bio.PDB import PDBParser, MMCIFParser
 import numpy as np
 from pathlib import Path
@@ -8,8 +9,6 @@ import scipy.spatial as ss
 from subprocess import Popen, PIPE
 import shutil
 import torch
-from collections import defaultdict
-from torch_geometric.data import Data
 from torch_geometric.utils import to_undirected
 from Bio.PDB.DSSP import DSSP
 
@@ -88,6 +87,32 @@ def quick_pdb_to_seq(pdb_path):
         amino_types.append(resname)
     amino_types = np.asarray(amino_types, dtype=np.int32)
     return amino_types
+
+
+def extract_chains(input_pdb, output_pdb, chains_to_extract, recompute=False, verbose=False):
+    if os.path.exists(output_pdb) and not recompute:
+        return
+    # Initialize the PDB parser and structure
+    parser = PDB.PDBParser(QUIET=True)
+    structure = parser.get_structure('structure', input_pdb)
+
+    # Create a new structure object to store the extracted chains
+    new_structure = PDB.Structure.Structure('extracted_chains')
+
+    for model in structure:
+        new_model = PDB.Model.Model(model.id)
+        for chain in model:
+            if chain.id in chains_to_extract:
+                new_model.add(chain)
+        if len(new_model):
+            new_structure.add(new_model)
+
+    # Save the new structure with the selected chains
+    io = PDB.PDBIO()
+    io.set_structure(new_structure)
+    io.save(output_pdb)
+    if verbose:
+        print(f"Chains {', '.join(chains_to_extract)} extracted and saved to {output_pdb}")
 
 
 def parse_pdb_path(pdb_path):
@@ -179,6 +204,7 @@ def parse_pdb_path(pdb_path):
     os.remove(pqrpdbpath)
     return amino_types, atom_chain_id, atom_amino_id, atom_names, atom_types, atom_pos, atom_charge, atom_radius, res_sse
 
+
 def parse_pdb_path_nopqr(pdb_path):
     parser = PDBParser(QUIET=True)
     structure = parser.get_structure("toto", pdb_path)
@@ -243,12 +269,12 @@ def parse_pdb_path_nopqr(pdb_path):
     # process DSSP
     dssp = DSSP(structure[0], pdb_path, file_type="PDB")
     res_sse = np.array([SSE_type_dict[dssp[key][2]] for key in list(dssp.keys())])
-    assert len(res_sse) == sum(atom_names=='CA')
+    assert len(res_sse) == sum(atom_names == 'CA')
     # os.remove(pqr_path)
     # os.remove(pqr_log_path)
     # os.remove(pqrpdbpath)
-    atom_charge=None
-    atom_radius=None
+    atom_charge = None
+    atom_radius = None
     return amino_types, atom_chain_id, atom_amino_id, atom_names, atom_types, atom_pos, atom_charge, atom_radius, res_sse
 
 
