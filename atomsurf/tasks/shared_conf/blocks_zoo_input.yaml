@@ -44,6 +44,7 @@ input_encoder:
     num_signatures: 16
     use_bp: true
     use_gvp: true
+    gvp_use_angles: ${gvp_use_angles}
     use_knn: false
     neigh_thresh: 8
     sigma: 2.5
@@ -60,6 +61,7 @@ input_encoder_normals:
     use_bp: true
     use_gvp: true
     use_knn: false
+    gvp_use_angles: ${gvp_use_angles}
     use_normals: true
     vector_gate: false
     n_layers: 3
@@ -77,6 +79,7 @@ input_encoder_knn:
     num_signatures: 16
     use_bp: true
     use_gvp: true
+    gvp_use_angles: ${gvp_use_angles}
     use_knn: true
     use_normals: true
     neigh_thresh: 8

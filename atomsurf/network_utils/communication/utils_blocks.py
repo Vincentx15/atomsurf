@@ -7,7 +7,7 @@ from atomsurf.network_utils.misc_arch.gvp_gnn import GVPConv
 from torch_scatter import scatter
 
 
-def init_block(name, use_normals=True, use_gat=False, use_v2=False, add_self_loops=False,
+def init_block(name, use_normals=True, use_gat=False, use_v2=False, add_self_loops=False, gvp_use_angles=False,
                fill_value="mean", aggr='add', dim_in=128, dim_out=64, n_layers=3, vector_gate=False, num_gdf=16):
     if name == "identity":
         return IdentityLayer()
@@ -22,7 +22,8 @@ def init_block(name, use_normals=True, use_gat=False, use_v2=False, add_self_loo
     elif name == "return_processed":
         return ReturnProcessedBlock()
     elif name == "gvp":
-        return GVPWrapper(dim_in, dim_out, use_normals=use_normals, n_layers=n_layers, vector_gate=vector_gate)
+        return GVPWrapper(dim_in, dim_out, use_normals=use_normals, n_layers=n_layers, gvp_use_angles=gvp_use_angles,
+                          vector_gate=vector_gate)
     elif name == "hmr":
         return HMRWrapper(dim_in, dim_out, num_gdf=num_gdf)
     elif name == "gcn":
@@ -73,15 +74,19 @@ class HMRWrapper(nn.Module):
 
 
 class GVPWrapper(nn.Module):
-    def __init__(self, dim_in, dim_out, n_layers, vector_gate, use_normals=True):
+    def __init__(self, dim_in, dim_out, n_layers, vector_gate, gvp_use_angles=False, use_normals=True):
         super().__init__()
         self.use_normals = use_normals
+        self.gvp_use_angles = gvp_use_angles
 
         # Complete initial node features with zero vectors, we could include normals here as initial features
         in_dims = dim_in, 1
 
-        # Edge features: 16 RBF encoding of distance + unit norm direction
-        edge_dims = 16, 1
+        # Edge features:
+        # - scalars : 16 RBF encoding of distance + optional 16 angles
+        # - vectors: unit norm direction
+        scalar_dim = 32 if self.gvp_use_angles else 16
+        edge_dims = scalar_dim, 1
 
         # We need some vectors to construct interesting representations. Output dims are also used in the network.
         # We later drop the final vectors (we could take the norms)
@@ -95,8 +100,11 @@ class GVPWrapper(nn.Module):
             x_v = torch.zeros((len(x), 1, 3), device=x.device)
         x = (x, x_v)
 
-        e_s = bpgraph.edge_s
-        e_v = bpgraph.edge_v
+        if self.gvp_use_angles:
+            e_s = torch.cat([bpgraph.encoded_dists, bpgraph.encoded_angles], axis=-1)
+        else:
+            e_s = bpgraph.encoded_dists
+        e_v = bpgraph.edge_v[:, None, :]
 
         x_o_s, x_o_v = self.gvp(x=x, edge_index=bpgraph.edge_index, edge_attr=(e_s, e_v))
         return x_o_s
@@ -159,4 +167,3 @@ class NoParamAggregate(MessagePassing):
     def message(self, x_j, edge_weights):
         # x_j has shape [E, out_channels]
         return edge_weights[..., None] * x_j
-

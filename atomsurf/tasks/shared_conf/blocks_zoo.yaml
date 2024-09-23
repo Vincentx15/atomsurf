@@ -85,6 +85,7 @@ gvp:
         use_normals: false
         vector_gate: ${gvp_vector_gate}
         n_layers: ${gvp_n_layers}
+        gvp_use_angles: ${gvp_use_angles}
         bp_s_dim_in: ${eval:'${model_hdim} // 2'}
         bp_s_dim_out: ${eval:'${model_hdim} // 2'}
         bp_g_dim_in: ${eval:'${model_hdim} // 2'}
@@ -124,6 +125,7 @@ gvp_normals:
         use_normals: true
         vector_gate: ${gvp_vector_gate}
         n_layers: ${gvp_n_layers}
+        gvp_use_angles: ${gvp_use_angles}
         bp_s_dim_in: ${eval:'${model_hdim} // 2'}
         bp_s_dim_out: ${eval:'${model_hdim} // 2'}
         bp_g_dim_in: ${eval:'${model_hdim} // 2'}
@@ -181,6 +183,7 @@ pronet|gvp_normals:
         use_normals: true
         vector_gate: ${gvp_vector_gate}
         n_layers: ${gvp_n_layers}
+        gvp_use_angles: ${gvp_use_angles}
         bp_s_dim_in: ${eval:'${model_hdim} // 2'}
         bp_s_dim_out: ${eval:'${model_hdim} // 2'}
         bp_g_dim_in: ${eval:'${model_hdim} // 2'}
@@ -238,6 +241,7 @@ pronet|HMRMP:
         use_normals: true
         vector_gate: ${gvp_vector_gate}
         n_layers: ${gvp_n_layers}
+        gvp_use_angles: ${gvp_use_angles}
         use_hmr: true
         num_gdf: 16
         bp_s_dim_in: ${eval:'${model_hdim} // 2'}

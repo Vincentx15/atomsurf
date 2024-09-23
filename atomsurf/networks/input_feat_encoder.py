@@ -152,6 +152,7 @@ class InputEncoder(SurfaceGraphCommunication):
         use_bp = hparams.use_bp
         use_gvp = hparams.use_gvp if "use_gvp" in hparams else False
         use_normals = hparams.use_normals if "use_gvp" in hparams else False
+        gvp_use_angles = hparams.gvp_use_angles if "gvp_use_angles" in hparams else False
         n_layers = hparams.n_layers if "use_gvp" in hparams else 3
         vector_gate = hparams.vector_gate if "use_gvp" in hparams else False
         h_dim = hparams.h_dim
@@ -176,10 +177,12 @@ class InputEncoder(SurfaceGraphCommunication):
                 bp_sg_block = init_block("gvp",
                                          dim_in=h_dim,
                                          dim_out=h_dim,
+                                         gvp_use_angles=gvp_use_angles,
                                          use_normals=use_normals, n_layers=n_layers, vector_gate=vector_gate)
                 bp_gs_block = init_block("gvp",
                                          dim_in=h_dim,
                                          dim_out=h_dim,
+                                         gvp_use_angles=gvp_use_angles,
                                          use_normals=use_normals, n_layers=n_layers, vector_gate=vector_gate)
             else:
                 bp_sg_block = init_block("gcn",
@@ -204,7 +207,7 @@ class InputEncoder(SurfaceGraphCommunication):
         s_post_block = CatMergeBlock(merge_sg)
         g_post_block = CatMergeBlock(merge_gs)
 
-        super().__init__(use_bp, use_gvp=use_gvp, bp_sg_block=bp_sg_block, bp_gs_block=bp_gs_block,
+        super().__init__(bp_sg_block=bp_sg_block, bp_gs_block=bp_gs_block,
                          s_pre_block=s_pre_block, g_pre_block=g_pre_block,
                          s_post_block=s_post_block, g_post_block=g_post_block,
                          neigh_thresh=hparams.neigh_thresh, sigma=hparams.sigma,
