@@ -55,7 +55,7 @@ train:
   detect_anomaly: False
   # # debugging
   overfit_batches: 0
-  to_monitor: local_r/val
+  to_monitor: global_r/val
 
 cfg_surface:
   use_surfaces: true

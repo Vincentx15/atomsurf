@@ -96,7 +96,7 @@ class AbAgModule(AtomPLModule):
     def get_metrics(self, results, prefix):
         # Unwrap on at the individual level
         all_losses = torch.tensor([batch_res[0] for batch_res in results])
-        ab_loss, ag_loss = torch.mean(all_losses, dim=1).tolist()
+        ab_loss, ag_loss = torch.mean(all_losses, dim=0).tolist()
 
         # list of list becomes list of logits/labels
         all_abs_logits = [x for batch_res in results for x in batch_res[1][0]]

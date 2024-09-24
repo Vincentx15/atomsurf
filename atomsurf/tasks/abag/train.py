@@ -53,14 +53,14 @@ def main(cfg=None):
     checkpoint_callback = pl.callbacks.ModelCheckpoint(
         filename="{epoch}-{accuracy_val:.2f}",
         dirpath=Path(tb_logger.log_dir) / "checkpoints",
-        monitor="auroc/val",
+        monitor=cfg.train.to_monitor,
         mode="max",
         save_last=True,
         save_top_k=cfg.train.save_top_k,
         verbose=False,
     )
 
-    early_stop_callback = pl.callbacks.EarlyStopping(monitor='auroc/val',
+    early_stop_callback = pl.callbacks.EarlyStopping(monitor=cfg.train.to_monitor,
                                                      patience=cfg.train.early_stoping_patience,
                                                      mode='max')
 

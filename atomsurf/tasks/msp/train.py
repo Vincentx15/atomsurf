@@ -57,7 +57,7 @@ def main(cfg=None):
         verbose=False,
     )
 
-    early_stop_callback = pl.callbacks.EarlyStopping(monitor='loss/val',
+    early_stop_callback = pl.callbacks.EarlyStopping(monitor=cfg.train.to_monitor,
                                                      patience=cfg.train.early_stoping_patience,
                                                      mode='max')
     callbacks = [lr_logger, checkpoint_callback, early_stop_callback, CommandLoggerCallback(command)]

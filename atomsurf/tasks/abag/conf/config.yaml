@@ -34,7 +34,7 @@ optimizer:
 # loader params
 loader:
   num_workers: 0
-  batch_size: 32
+  batch_size: 6
   pin_memory: False
   prefetch_factor: 2
   shuffle: true
@@ -59,7 +59,7 @@ train:
   detect_anomaly: False
   # # debugging
   overfit_batches: 0
-  to_monitor: auroc/val
+  to_monitor: ag_auroc/val
 
 cfg_surface:
   use_surfaces: true
