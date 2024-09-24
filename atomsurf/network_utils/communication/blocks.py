@@ -4,7 +4,7 @@ from .utils_blocks import init_block
 
 
 class ConcurrentCommunication(SurfaceGraphCommunication):
-    def __init__(self, use_bp=True,
+    def __init__(self,
                  # preprocess blocks
                  pre_s_block="identity", pre_g_block="identity", pre_s_dim_in=128, pre_s_dim_out=64, pre_g_dim_in=128,
                  pre_g_dim_out=64,

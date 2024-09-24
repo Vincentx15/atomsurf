@@ -1,0 +1,69 @@
+# These should include small blocks, defined in init_block
+# TODO
+#    elif name == "skip_connection":
+#        return SkipConnectionBlock()
+#    elif name == "return_processed":
+#        return ReturnProcessedBlock()
+
+identity:
+  name: Identity
+  instanciate:
+    _target_: atomsurf.network_utils.utils_blocks.IdentityLayer
+
+linear_halver:
+  name: Linear
+  instanciate:
+    _target_: torch.nn.Linear
+  kwargs:
+    in_features: ${model_hdim}
+    out_features: ${eval:'${model_hdim} // 2'}
+
+no_param_agg:
+  name: NoParamAgg
+  instanciate:
+    _target_: atomsurf.network_utils.utils_blocks.NoParamAggregate
+  kwargs:
+    aggr: add
+    add_self_loops: false
+    fill_value: mean
+
+cat_post_proc:
+  name: catpostproc
+  instanciate:
+    _target_: atomsurf.network_utils.utils_blocks.CatPostProcessBlock
+  kwargs:
+    dim_in: ${model_hdim}
+    dim_out: ${model_hdim}
+
+gat_mp:
+  name: gat_mp
+  instanciate:
+    _target_: atomsurf.network_utils.utils_blocks.GraphconvWrapper
+  kwargs:
+    dim_in: ${eval:'${model_hdim} // 2'}
+    dim_out: ${eval:'${model_hdim} // 2'}
+    use_gat: true
+    use_v2: false
+    bp_self_loops: false
+    bp_fill_value: "mean"
+
+gvp_mp:
+  name: gvp_mp
+  instanciate:
+    _target_: atomsurf.network_utils.utils_blocks.GVPWrapper
+  kwargs:
+    dim_in: ${eval:'${model_hdim} // 2'}
+    dim_out: ${eval:'${model_hdim} // 2'}
+    n_layers: ${gvp_n_layers}
+    vector_gate: ${gvp_vector_gate}
+    gvp_use_angles: ${gvp_use_angles}
+    use_normals: ${gvp_use_normal}
+
+hmr_mp:
+  name: hmr_mp
+  instanciate:
+    _target_: atomsurf.network_utils.utils_blocks.HMRWrapper
+  kwargs:
+    dim_in: ${eval:'${model_hdim} // 2'}
+    dim_out: ${eval:'${model_hdim} // 2'}
+    num_gdf: 16

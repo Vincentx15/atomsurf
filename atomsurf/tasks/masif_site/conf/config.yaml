@@ -1,5 +1,6 @@
 defaults:
   - model_global_variables
+  - blocks_zoo_small
   - blocks_zoo_input
   - blocks_zoo
   - encoder: vanilla

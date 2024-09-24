@@ -1,5 +1,8 @@
 model_hdim: 128
 model_dropout: 0.1
+
+gvp_use_normal: true
 gvp_vector_gate: false
 gvp_n_layers: 3
 gvp_use_angles: True
+
