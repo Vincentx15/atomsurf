@@ -46,15 +46,20 @@ class AbAgDataset(Dataset):
         if graph_ab.node_len < 10 or graph_ag.node_len < 10 or surface_ab.n_verts < 20 or surface_ag.n_verts < 20:
             return None
 
-        # extract positive abs
-        positive_abs_global = torch.zeros(graph_ab.num_nodes)
-        positive_abs_global[interact_idx['cdr_contact']] = 1
-        positive_abs_cdr = positive_abs_global[interact_idx['cdr']]
+        # Go from list of positives to a vector abs
+        label_abs_global = torch.zeros(graph_ab.num_nodes)
+        label_abs_global[interact_idx['cdr_contact']] = 1
+        label_ags = torch.zeros(graph_ag.num_nodes)
+        label_ags[interact_idx['ag_contact']] = 1
+
+        # extract cdr abs
+        label_abs_cdr = label_abs_global[interact_idx['cdr']]
+
         item = Data(surface_ab=surface_ab, graph_ab=graph_ab,
                     surface_ag=surface_ag, graph_ag=graph_ag,
                     cdr=interact_idx['cdr'],
-                    positive_abs_cdr=positive_abs_cdr,
-                    positive_ag=interact_idx['ag_contact'],
+                    label_abs_cdr=label_abs_cdr,
+                    label_ags=label_ags,
                     g1_len=graph_ab.node_pos.shape[0],
                     g2_len=graph_ag.node_pos.shape[0])
         return item

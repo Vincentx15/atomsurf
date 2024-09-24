@@ -213,11 +213,9 @@ class AtomBatch(Data):
         elif key == 'labels_pip':
             batch[key] = torch.cat(batch[key])
         elif torch.is_tensor(item):
-            try:
-                # If they are all the same size
-                batch[key] = torch.stack(batch[key])
-            except Exception:
-                batch[key] = batch[key]
+            # Previously, we were trying torch.stack: batch[key] = torch.stack(batch[key])
+            # This was unsafe (lucky shot?)
+            batch[key] = batch[key]
         elif isinstance(item, SurfaceObject):
             batch[key] = SurfaceBatch.batch_from_data_list(batch[key])
         elif isinstance(item, ResidueGraph):

@@ -107,4 +107,4 @@ class AbAgNet(torch.nn.Module):
         x_ag = self.relu(x_ag)
         x_ag = self.dropout2(x_ag)
         x_ag = self.agfc(x_ag)
-        return x_ab, x_ag
+        return x_ab.flatten(), x_ag.flatten()

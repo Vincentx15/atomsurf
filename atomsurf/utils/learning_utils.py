@@ -123,13 +123,13 @@ class AtomPLModule(pl.LightningModule):
             self.train_res = list()
 
     def on_validation_epoch_end(self) -> None:
-        if len(self.train_res) > 0:
+        if len(self.val_res) > 0:
             logits, labels = [list(i) for i in zip(*self.val_res)]
             self.get_metrics(logits, labels, 'val')
             self.val_res = list()
 
     def on_test_epoch_end(self) -> None:
-        if len(self.train_res) > 0:
+        if len(self.test_res) > 0:
             logits, labels = [list(i) for i in zip(*self.test_res)]
             self.get_metrics(logits, labels, 'test')
             self.test_res = list()
