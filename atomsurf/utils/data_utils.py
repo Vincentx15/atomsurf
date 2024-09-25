@@ -271,7 +271,7 @@ def update_model_input_dim(cfg, dataset_temp, gkey='graph', skey='surface'):
         for i, example in enumerate(dataset_temp):
             if example is not None:
                 with open_dict(cfg):
-                    feat_encoder_kwargs = cfg.encoder.blocks[0].kwargs
+                    feat_encoder_kwargs = cfg.encoder.blocks[0]
                     feat_encoder_kwargs['graph_feat_dim'] = example[gkey].x.shape[1]
                     feat_encoder_kwargs['surface_feat_dim'] = example[skey].x.shape[1]
                 found = True

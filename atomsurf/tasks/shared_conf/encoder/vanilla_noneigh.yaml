@@ -1,8 +1,0 @@
-name: vanilla_noneigh
-
-
-blocks:
-  - ${hmr_input_encoder_noneigh}
-  - ${diff|gcn|gat}
-  - ${diff|gcn|gat}
-  - ${diff|gcn|gat}

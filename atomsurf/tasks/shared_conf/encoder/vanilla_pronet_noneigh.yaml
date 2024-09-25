@@ -1,8 +1,0 @@
-name: vanilla_pronet_noneigh
-
-
-blocks:
-  - ${hmr_input_encoder_no_neigh}
-  - ${pronet|gvp_normals}
-  - ${pronet|gvp_normals}
-  - ${pronet|gvp_normals}

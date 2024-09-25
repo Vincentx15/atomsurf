@@ -1,194 +1,91 @@
 diffusion_net:
-  name: DiffusionNetBlockBatch
-  instanciate:
-    _target_: diffusion_net.DiffusionNetBlock
-  kwargs:
-    C_width: ${model_hdim}
-    dropout: ${model_dropout}
-    use_bn: true
-    init_time: 2.0  # either null (for constant init) or a float
-    init_std: 2.0
+  _target_: diffusion_net.DiffusionNetBlock
+  C_width: ${model_hdim}
+  dropout: ${model_dropout}
+  use_bn: true
+  init_time: 2.0  # either null (for constant init) or a float
+  init_std: 2.0
 
 gcn_block:
-  name: GCNx2Block
-  instanciate:
-    _target_: atomsurf.network_utils.GCNx2Block
-  kwargs:
-    dim_in: ${model_hdim}
-    hidden_dims: ${model_hdim}
-    dim_out: ${model_hdim}
-    dropout: ${model_dropout}
-    use_bn: true
-    use_weighted_edge_distance: false
+  _target_: atomsurf.network_utils.GCNx2Block
+  dim_in: ${model_hdim}
+  dim_out: ${model_hdim}
+  hidden_dims: ${model_hdim}
+  dropout: ${model_dropout}
+  use_bn: true
+  use_weighted_edge_distance: false
 
 pronet_block:
-  name: ProNet
-  instanciate:
-    _target_: atomsurf.network_utils.ProNet
-  kwargs:
-    level: allatom
-    num_blocks: 4
-    hidden_channels: ${model_hdim}
-    mid_emb: ${eval:'${model_hdim} // 2'}
-    num_radial: 6
-    num_spherical: 2
-    cutoff: 10.0
-    max_num_neighbors: 32
-    int_emb_layers: 3
-    num_pos_emb: 16
-    dropout: 0.1
-    data_augment_eachlayer: False
-    euler_noise: False
-    add_seq_emb: False
+  _target_: atomsurf.network_utils.ProNet
+  level: allatom
+  num_blocks: 4
+  hidden_channels: ${model_hdim}
+  mid_emb: ${eval:'${model_hdim} // 2'}
+  num_radial: 6
+  num_spherical: 2
+  cutoff: 10.0
+  max_num_neighbors: 32
+  int_emb_layers: 3
+  num_pos_emb: 16
+  dropout: 0.1
+  data_augment_eachlayer: False
+  euler_noise: False
+  add_seq_emb: False
 
 gat_comm:
-  name: ConcurrentCommunication
-  instanciate:
-    _target_: atomsurf.network_utils.ConcurrentCommunication
-  kwargs:
-    use_bp: true
-    pre_s_block: linear
-    pre_g_block: linear
-    pre_s_dim_in: ${model_hdim}
-    pre_s_dim_out: ${eval:'${model_hdim} // 2'}
-    pre_g_dim_in: ${model_hdim}
-    pre_g_dim_out: ${eval:'${model_hdim} // 2'}
-
-    use_gat: true
-    use_v2: false
-    bp_self_loops: false
-    bp_fill_value: "mean"
-    bp_s_dim_in: ${eval:'${model_hdim} // 2'}
-    bp_s_dim_out: ${eval:'${model_hdim} // 2'}
-    bp_g_dim_in: ${eval:'${model_hdim} // 2'}
-    bp_g_dim_out: ${eval:'${model_hdim} // 2'}
-
-    post_s_block: cat_post_process
-    post_g_block: cat_post_process
-    post_s_dim_in: ${model_hdim}
-    post_s_dim_out: ${model_hdim}
-    post_g_dim_in: ${model_hdim}
-    post_g_dim_out: ${model_hdim}
-
-    neigh_thresh: 8
-    sigma: 2.5
+  _target_: atomsurf.network_utils.communication.surface_graph_comm.SurfaceGraphCommunication
+  s_pre_block: ${linear_halver}
+  g_pre_block: ${linear_halver}
+  bp_sg_block: ${gat_mp}
+  bp_gs_block: ${gat_mp}
+  s_post_block: ${cat_post_proc}
+  g_post_block: ${cat_post_proc}
+  neigh_thresh: 8
+  sigma: 2.5
 
 gvp_comm:
-  name: ConcurrentCommunication
-  instanciate:
-    _target_: atomsurf.network_utils.ConcurrentCommunication
-  kwargs:
-    use_bp: true
-    pre_s_block: linear
-    pre_g_block: linear
-    pre_s_dim_in: ${model_hdim}
-    pre_s_dim_out: ${eval:'${model_hdim} // 2'}
-    pre_g_dim_in: ${model_hdim}
-    pre_g_dim_out: ${eval:'${model_hdim} // 2'}
-
-    use_gvp: true
-    use_normals: ${gvp_use_normal}
-    vector_gate: ${gvp_vector_gate}
-    n_layers: ${gvp_n_layers}
-    gvp_use_angles: ${gvp_use_angles}
-    bp_s_dim_in: ${eval:'${model_hdim} // 2'}
-    bp_s_dim_out: ${eval:'${model_hdim} // 2'}
-    bp_g_dim_in: ${eval:'${model_hdim} // 2'}
-    bp_g_dim_out: ${eval:'${model_hdim} // 2'}
-
-    post_s_block: cat_post_process
-    post_g_block: cat_post_process
-    post_s_dim_in: ${model_hdim}
-    post_s_dim_out: ${model_hdim}
-    post_g_dim_in: ${model_hdim}
-    post_g_dim_out: ${model_hdim}
-
-    neigh_thresh: 8
-    sigma: 2.5
+  _target_: atomsurf.network_utils.communication.surface_graph_comm.SurfaceGraphCommunication
+  s_pre_block: ${linear_halver}
+  g_pre_block: ${linear_halver}
+  bp_sg_block: ${gvp_mp}
+  bp_gs_block: ${gvp_mp}
+  s_post_block: ${cat_post_proc}
+  g_post_block: ${cat_post_proc}
+  neigh_thresh: 8
+  sigma: 2.5
 
 hmr_comm:
-  name: ConcurrentCommunication
-  instanciate:
-    _target_: atomsurf.network_utils.ConcurrentCommunication
-  kwargs:
-    use_bp: true
-    pre_s_block: linear
-    pre_g_block: linear
-    pre_s_dim_in: ${model_hdim}
-    pre_s_dim_out: ${eval:'${model_hdim} // 2'}
-    pre_g_dim_in: ${model_hdim}
-    pre_g_dim_out: ${eval:'${model_hdim} // 2'}
-
-    use_gvp: false
-    use_normals: true
-    vector_gate: ${gvp_vector_gate}
-    n_layers: ${gvp_n_layers}
-    gvp_use_angles: ${gvp_use_angles}
-    use_hmr: true
-    num_gdf: 16
-    bp_s_dim_in: ${eval:'${model_hdim} // 2'}
-    bp_s_dim_out: ${eval:'${model_hdim} // 2'}
-    bp_g_dim_in: ${eval:'${model_hdim} // 2'}
-    bp_g_dim_out: ${eval:'${model_hdim} // 2'}
-
-    post_s_block: cat_post_process
-    post_g_block: cat_post_process
-    post_s_dim_in: ${model_hdim}
-    post_s_dim_out: ${model_hdim}
-    post_g_dim_in: ${model_hdim}
-    post_g_dim_out: ${model_hdim}
-
-    neigh_thresh: 8
-    sigma: 2.5
-
-
-bi_hmr_comm:
-  name: hmr_comm
-  instanciate:
-    _target_: atomsurf.network_utils.SurfaceGraphCommunication
-  kwargs:
-    s_pre_block: ${linear_halver}
-    g_pre_block: ${linear_halver}
-    bp_sg_block: ${hmr_mp}
-    bp_gs_block: ${hmr_mp}
-    s_post_block: ${cat_post_proc}
-    g_post_block: ${cat_post_proc}
-    neigh_thresh: 8
-    sigma: 2.5
+  _target_: atomsurf.network_utils.communication.surface_graph_comm.SurfaceGraphCommunication
+  s_pre_block: ${linear_halver}
+  g_pre_block: ${linear_halver}
+  bp_sg_block: ${hmr_mp}
+  bp_gs_block: ${hmr_mp}
+  s_post_block: ${cat_post_proc}
+  g_post_block: ${cat_post_proc}
+  neigh_thresh: 8
+  sigma: 2.5
 
 diff|gcn|gat:
-  name: ProteinEncoder
-  instanciate:
-    _target_: atomsurf.networks.ProteinEncoderBlock
-  kwargs:
-    surface_encoder: ${diffusion_net}
-    graph_encoder: ${gcn_block}
-    communication_block: ${gat_comm}
+  _target_: atomsurf.networks.ProteinEncoderBlock
+  surface_encoder: ${diffusion_net}
+  graph_encoder: ${gcn_block}
+  message_passing: ${gat_comm}
 
 gvp:
-  name: ProteinEncoder
-  instanciate:
-    _target_: atomsurf.networks.ProteinEncoderBlock
-  kwargs:
-    surface_encoder: ${diffusion_net}
-    graph_encoder: ${gcn_block}
-    communication_block: ${gvp_comm}
+  _target_: atomsurf.networks.ProteinEncoderBlock
+  surface_encoder: ${diffusion_net}
+  graph_encoder: ${gcn_block}
+  message_passing: ${gvp_comm}
 
-pronet|gvp_normals:
-  name: ProteinEncoder
-  instanciate:
-    _target_: atomsurf.networks.ProteinEncoderBlock
-  kwargs:
-    surface_encoder: ${diffusion_net}
-    graph_encoder: ${pronet_block}
-    communication_block: ${gvp_comm}
+pronet|gvp:
+  _target_: atomsurf.networks.ProteinEncoderBlock
+  surface_encoder: ${diffusion_net}
+  graph_encoder: ${pronet_block}
+  message_passing: ${gvp_comm}
 
 pronet|HMRMP:
-  name: ProteinEncoder
-  instanciate:
-    _target_: atomsurf.networks.ProteinEncoderBlock
-  kwargs:
-    surface_encoder: ${diffusion_net}
-    graph_encoder: ${pronet_block}
-    communication_block: ${hmr_comm}
+  _target_: atomsurf.networks.ProteinEncoderBlock
+  surface_encoder: ${diffusion_net}
+  graph_encoder: ${pronet_block}
+  message_passing: ${hmr_comm}
 

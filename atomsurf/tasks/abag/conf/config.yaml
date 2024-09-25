@@ -3,7 +3,7 @@ defaults:
   - blocks_zoo_small
   - blocks_zoo_input
   - blocks_zoo
-  - encoder: debug
+  - encoder: pronet_gvpencoder
   - optimizer: adam
   - scheduler: reduce_lr_on_plateau
   - override hydra/job_logging: colorlog
@@ -35,7 +35,7 @@ optimizer:
 # loader params
 loader:
   num_workers: 0
-  batch_size: 6
+  batch_size: 2
   pin_memory: False
   prefetch_factor: 2
   shuffle: true

@@ -10,7 +10,7 @@ class SurfaceGraphCommunication(nn.Module):
                  bp_sg_block=None, bp_gs_block=None,
                  s_post_block=None, g_post_block=None,
                  neigh_thresh=8, sigma=2.5, use_knn=False,
-                 **kwargs):
+                 num_gdf=16, **kwargs):
         super().__init__()
 
         self.s_pre_block = s_pre_block
@@ -25,6 +25,7 @@ class SurfaceGraphCommunication(nn.Module):
         self.neigh_thresh = neigh_thresh
         self.sigma = sigma
         self.use_knn = use_knn
+        self.num_gdf = num_gdf
 
     def forward(self, surface=None, graph=None):
         if surface is None or graph is None:
@@ -60,7 +61,8 @@ class SurfaceGraphCommunication(nn.Module):
 
     def compute_graph(self, surface, graph):
         if "bp_gs" not in surface or "bp_sg" not in surface:
-            bp_gs, bp_sg = compute_bipartite_graphs(surface, graph, neigh_th=self.neigh_thresh, use_knn=self.use_knn)
+            bp_gs, bp_sg = compute_bipartite_graphs(surface, graph, neigh_th=self.neigh_thresh, use_knn=self.use_knn,
+                                                    num_gdf=self.num_gdf)
             surface["bp_gs"], surface["bp_sg"] = bp_gs, bp_sg
         else:
             bp_gs, bp_sg = surface.bp_gs, surface.bp_sg

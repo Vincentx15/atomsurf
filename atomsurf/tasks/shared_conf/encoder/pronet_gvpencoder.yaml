@@ -2,7 +2,7 @@ name: pronet_gvpencoder
 
 
 blocks:
-  - ${input_encoder_normals}
+  - ${input_encoder}
   - ${pronet|gvp}
   - ${pronet|gvp}
   - ${pronet|gvp}

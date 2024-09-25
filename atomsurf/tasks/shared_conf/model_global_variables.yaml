@@ -1,6 +1,12 @@
+# general model setup
 model_hdim: 128
 model_dropout: 0.1
 
+# Input params
+input_use_neigh: true
+
+# MP params
+use_knn: true
 gvp_use_normal: true
 gvp_vector_gate: false
 gvp_n_layers: 3

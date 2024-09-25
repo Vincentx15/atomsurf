@@ -2,7 +2,7 @@ name: gcn_gvpencoder
 
 
 blocks:
-  - ${input_encoder_normals}
+  - ${input_encoder}
   - ${diff|gcn|gat}
   - ${diff|gcn|gat}
   - ${diff|gcn|gat}

@@ -1,6 +1,5 @@
 name: debug
 
 blocks:
-  - ${hmr_input_encoder_neigh}
-  - ${diff|gcn|gat}
+  - ${hmr_input_encoder}
   - ${diff|gcn|gat}

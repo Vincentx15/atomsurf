@@ -1,6 +1,4 @@
-import torch.nn as nn
 import hydra
-from fontTools.unicodedata import block
 from torch import nn as nn
 
 from atomsurf.network_utils.communication.surface_graph_comm import SequentialSurfaceGraphCommunication
@@ -16,7 +14,7 @@ class ProteinEncoder(nn.Module):
         self.cfg = cfg
         block_list = []
         for x in cfg.blocks:
-            block = hydra.utils.instantiate(x.instanciate, x.kwargs)
+            block = hydra.utils.instantiate(x)
             block_list.append(block)
         self.blocks = nn.ModuleList(block_list)
 
@@ -27,16 +25,11 @@ class ProteinEncoder(nn.Module):
 
 
 class ProteinEncoderBlock(nn.Module):
-    def __init__(self, hparams):
+    def __init__(self, surface_encoder=None, graph_encoder=None, message_passing=None):
         super().__init__()
-        self.hparams = hparams
-
-        self.surface_encoder = hydra.utils.instantiate(hparams.surface_encoder.instanciate,
-                                                       **hparams.surface_encoder.kwargs)
-        self.graph_encoder = hydra.utils.instantiate(hparams.graph_encoder.instanciate, **hparams.graph_encoder.kwargs)
-        self.message_passing = hydra.utils.instantiate(hparams.communication_block.instanciate,
-                                                       **hparams.communication_block.kwargs)
-        # a=1
+        self.surface_encoder = surface_encoder
+        self.graph_encoder = graph_encoder
+        self.message_passing = message_passing
 
     def forward(self, surface=None, graph=None):
         if surface is not None:

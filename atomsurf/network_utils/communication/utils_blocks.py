@@ -122,6 +122,11 @@ class IdentityLayer(nn.Module):
         return args, kwargs
 
 
+class LinearWrapper(nn.Linear):
+    def __init__(self, in_features, out_features):
+        super().__init__(in_features, out_features)
+
+
 class SkipConnectionBlock(nn.Module):
     def __init__(self):
         super().__init__()

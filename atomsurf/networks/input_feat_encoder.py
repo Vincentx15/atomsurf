@@ -8,16 +8,16 @@ from atomsurf.network_utils.communication.passing_utils import _rbf
 
 
 class HMRInputEncoder(nn.Module):
-    def __init__(self, hparams):
+    def __init__(self, dropout=0.1, graph_feat_dim=30, h_dim=128, num_gdf=16, surface_feat_dim=22,
+                 use_neigh=True, **kwargs):
         super().__init__()
+        self.num_gdf = num_gdf
+        self.use_neigh = use_neigh
 
-        self.num_gdf = hparams.num_gdf
-        self.use_neigh = hparams.use_neigh
-
-        h_dim = hparams.h_dim
-        dropout = hparams.dropout
-        chem_feat_dim = hparams.graph_feat_dim
-        geom_feat_dim = hparams.surface_feat_dim
+        h_dim = h_dim
+        dropout = dropout
+        chem_feat_dim = graph_feat_dim
+        geom_feat_dim = surface_feat_dim
 
         # chem feat
         # chem_feat_dim = 2 + num_gdf * 2
@@ -148,23 +148,19 @@ class HMRInputEncoder(nn.Module):
 
 
 class InputEncoder(SurfaceGraphCommunication):
-    def __init__(self, hparams, **kwargs):
-        use_bp = hparams.use_bp
-        use_gvp = hparams.use_gvp if "use_gvp" in hparams else False
-        use_normals = hparams.use_normals if "use_gvp" in hparams else False
-        gvp_use_angles = hparams.gvp_use_angles if "gvp_use_angles" in hparams else False
-        n_layers = hparams.n_layers if "use_gvp" in hparams else 3
-        vector_gate = hparams.vector_gate if "use_gvp" in hparams else False
-        h_dim = hparams.h_dim
-        dropout = hparams.dropout
-        chem_feat_dim = hparams.graph_feat_dim
-        geom_feat_dim = hparams.surface_feat_dim
+    def __init__(self, surface_feat_dim=22, graph_feat_dim=30, h_dim=128, dropout=0.1,
+                 use_gvp=False, use_normals=False, gvp_use_angles=False,
+                 n_layers=3, vector_gate=False,
+                 use_gat=True, use_v2=False,
+                 add_self_loops=False, fill_value="mean",
+                 neigh_thresh=8, sigma=2.5, use_knn=False, num_gdf=16,
+                 **kwargs):
 
         # chem feat
-        chem_mlp = HMR2LayerMLP([chem_feat_dim, h_dim, h_dim], dropout)
+        chem_mlp = HMR2LayerMLP([graph_feat_dim, h_dim, h_dim], dropout)
 
         # geom feats
-        geom_mlp = HMR2LayerMLP([geom_feat_dim, h_dim, h_dim], dropout)
+        geom_mlp = HMR2LayerMLP([surface_feat_dim, h_dim, h_dim], dropout)
 
         # preprocess blocks
         s_pre_block = geom_mlp
@@ -172,29 +168,26 @@ class InputEncoder(SurfaceGraphCommunication):
 
         # message passing blocks
         # * this version does not use self-loops, because we will be summing surface-level features with graph-level features (not good apriori)
-        if use_bp:
-            if use_gvp:
-                bp_sg_block = init_block("gvp",
-                                         dim_in=h_dim,
-                                         dim_out=h_dim,
-                                         gvp_use_angles=gvp_use_angles,
-                                         use_normals=use_normals, n_layers=n_layers, vector_gate=vector_gate)
-                bp_gs_block = init_block("gvp",
-                                         dim_in=h_dim,
-                                         dim_out=h_dim,
-                                         gvp_use_angles=gvp_use_angles,
-                                         use_normals=use_normals, n_layers=n_layers, vector_gate=vector_gate)
-            else:
-                bp_sg_block = init_block("gcn",
-                                         use_gat=hparams.use_gat, use_v2=hparams.use_v2,
-                                         dim_in=hparams.bp_s_dim_in, dim_out=hparams.bp_s_dim_out,
-                                         add_self_loops=hparams.bp_self_loops, fill_value=hparams.bp_fill_value)
-                bp_gs_block = init_block("gcn",
-                                         use_gat=hparams.use_gat, use_v2=hparams.use_v2,
-                                         dim_in=hparams.bp_g_dim_in, dim_out=hparams.bp_g_dim_out,
-                                         add_self_loops=hparams.bp_self_loops, fill_value=hparams.bp_fill_value)
+        if use_gvp:
+            bp_sg_block = init_block("gvp",
+                                     dim_in=h_dim,
+                                     dim_out=h_dim,
+                                     gvp_use_angles=gvp_use_angles,
+                                     use_normals=use_normals, n_layers=n_layers, vector_gate=vector_gate)
+            bp_gs_block = init_block("gvp",
+                                     dim_in=h_dim,
+                                     dim_out=h_dim,
+                                     gvp_use_angles=gvp_use_angles,
+                                     use_normals=use_normals, n_layers=n_layers, vector_gate=vector_gate)
         else:
-            bp_gs_block, bp_sg_block = None, None
+            bp_sg_block = init_block("gcn",
+                                     use_gat=use_gat, use_v2=use_v2,
+                                     dim_in=h_dim, dim_out=h_dim,
+                                     add_self_loops=add_self_loops, fill_value=fill_value)
+            bp_gs_block = init_block("gcn",
+                                     use_gat=use_gat, use_v2=use_v2,
+                                     dim_in=h_dim, dim_out=h_dim,
+                                     add_self_loops=add_self_loops, fill_value=fill_value)
 
         # post-process blocks
         # * skip connection is a bad design, summing surface-level features with graph-level features, the skip is done in two different spaces
@@ -210,8 +203,8 @@ class InputEncoder(SurfaceGraphCommunication):
         super().__init__(bp_sg_block=bp_sg_block, bp_gs_block=bp_gs_block,
                          s_pre_block=s_pre_block, g_pre_block=g_pre_block,
                          s_post_block=s_post_block, g_post_block=g_post_block,
-                         neigh_thresh=hparams.neigh_thresh, sigma=hparams.sigma,
-                         use_knn=hparams.use_knn, **kwargs)
+                         neigh_thresh=neigh_thresh, sigma=sigma, num_gdf=num_gdf,
+                         use_knn=use_knn, **kwargs)
 
 
 class HMR2LayerMLP(nn.Module):
@@ -241,15 +234,13 @@ class CatMergeBlock(nn.Module):
 
 
 class BiHMRInputEncoder(nn.Module):
-    def __init__(self, hparams):
+    def __init__(self, graph_feat_dim=30, surface_feat_dim=22, h_dim=128, dropout=0.1, num_gdf=16,
+                 use_neigh=True, **kwargs):
         super().__init__()
 
-        self.num_gdf = hparams.num_gdf
-
-        h_dim = hparams.h_dim
-        dropout = hparams.dropout
-        chem_feat_dim = hparams.graph_feat_dim
-        geom_feat_dim = hparams.surface_feat_dim
+        self.num_gdf = num_gdf
+        chem_feat_dim = graph_feat_dim
+        geom_feat_dim = surface_feat_dim
 
         # chem feat
         # chem_feat_dim = 2 + num_gdf * 2

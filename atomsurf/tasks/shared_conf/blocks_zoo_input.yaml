@@ -1,86 +1,30 @@
 # HMR like encoder : angles to normals are computed and 16 nearest are sent to vertices
-hmr_input_encoder_noneigh:
-  name: HMRInputEncoder
-  instanciate:
-    _target_: atomsurf.networks.HMRInputEncoder
-  kwargs:
-    h_dim: ${model_hdim}
-    use_neigh: False
-    dropout: ${model_dropout}
-    num_gdf: 16
-    num_signatures: 16
+hmr_input_encoder:
+  _target_: atomsurf.networks.HMRInputEncoder
+  h_dim: ${model_hdim}
+  use_neigh: ${input_use_neigh}
+  dropout: ${model_dropout}
+  num_gdf: 16
 
-hmr_input_encoder_neigh:
-  name: HMRInputEncoder
-  instanciate:
-    _target_: atomsurf.networks.HMRInputEncoder
-  kwargs:
-    h_dim: ${model_hdim}
-    use_neigh: True
-    dropout: ${model_dropout}
-    num_gdf: 16
-    num_signatures: 16
 
-bihmr_input_encoder_neigh:
-  name: BiHMRInputEncoder
-  instanciate:
-    _target_: atomsurf.networks.BiHMRInputEncoder
-  kwargs:
-    h_dim: ${model_hdim}
-    dropout: ${model_dropout}
-    num_gdf: 16
-    num_signatures: 16
-    
-# Message passing based encoder, messages goes both ways
+bihmr_input_encoder:
+  _target_: atomsurf.networks.BiHMRInputEncoder
+  h_dim: ${model_hdim}
+  dropout: ${model_dropout}
+  num_gdf: 16
 
 input_encoder:
   name: InputEncoder
-  instanciate:
-    _target_: atomsurf.networks.InputEncoder
-  kwargs:
-    h_dim: ${model_hdim}
-    dropout: ${model_dropout}
-    num_gdf: 16
-    num_signatures: 16
-    use_bp: true
-    use_gvp: true
-    gvp_use_angles: ${gvp_use_angles}
-    use_knn: false
-    neigh_thresh: 8
-    sigma: 2.5
-
-input_encoder_normals:
-  name: InputEncoder
-  instanciate:
-    _target_: atomsurf.networks.InputEncoder
-  kwargs:
-    h_dim: ${model_hdim}
-    dropout: ${model_dropout}
-    num_gdf: 16
-    num_signatures: 16
-    use_bp: true
-    use_gvp: true
-    use_knn: false
-    gvp_use_angles: ${gvp_use_angles}
-    use_normals: true
-    vector_gate: false
-    n_layers: 3
-    neigh_thresh: 8
-    sigma: 2.5
-
-input_encoder_knn:
-  name: InputEncoder
-  instanciate:
-    _target_: atomsurf.networks.InputEncoder
-  kwargs:
-    h_dim: ${model_hdim}
-    dropout: ${model_dropout}
-    num_gdf: 16
-    num_signatures: 16
-    use_bp: true
-    use_gvp: true
-    gvp_use_angles: ${gvp_use_angles}
-    use_knn: true
-    use_normals: true
-    neigh_thresh: 8
-    sigma: 2.5
+  _target_: atomsurf.networks.InputEncoder
+  h_dim: ${model_hdim}
+  dropout: ${model_dropout}
+  num_gdf: 16
+  use_bp: true
+  use_gvp: true
+  use_knn: ${use_knn}
+  gvp_use_angles: ${gvp_use_angles}
+  use_normals: ${gvp_use_normal}
+  vector_gate: ${gvp_vector_gate}
+  n_layers: ${gvp_n_layers}
+  neigh_thresh: 8
+  sigma: 2.5
