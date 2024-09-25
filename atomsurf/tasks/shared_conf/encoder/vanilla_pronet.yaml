@@ -2,7 +2,7 @@ name: vanilla_pronet
 
 
 blocks:
-  - ${hmr_input_encoder}
-  - ${pronet|gvp_normals}
-  - ${pronet|gvp_normals}
-  - ${pronet|gvp_normals}
+  - ${input_encoder_hmr}
+  - ${pronet|gvp}
+  - ${pronet|gvp}
+  - ${pronet|gvp}

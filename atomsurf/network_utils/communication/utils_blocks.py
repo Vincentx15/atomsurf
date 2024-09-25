@@ -110,46 +110,12 @@ class GVPWrapper(nn.Module):
         return x_o_s
 
 
-class IdentityLayer(nn.Module):
+class IdentityMP(nn.Module):
     def __init__(self):
         super().__init__()
 
-    def forward(self, *args, **kwargs):
-        # If only one input is given and no keyword arguments, return the input directly
-        if len(args) == 1 and not kwargs:
-            return args[0]
-        # Return both args and kwargs if either or both are provided
-        return args, kwargs
-
-
-class LinearWrapper(nn.Linear):
-    def __init__(self, in_features, out_features):
-        super().__init__(in_features, out_features)
-
-
-class SkipConnectionBlock(nn.Module):
-    def __init__(self):
-        super().__init__()
-
-    def forward(self, x_in, x_out):
-        return x_in + x_out
-
-
-class CatPostProcessBlock(nn.Module):
-    def __init__(self, in_dim, out_dim):
-        super().__init__()
-        self.lin = nn.Linear(in_dim, out_dim)
-
-    def forward(self, x_in, x_out):
-        return self.lin(torch.cat((x_in, x_out), dim=-1))
-
-
-class ReturnProcessedBlock(nn.Module):
-    def __init__(self):
-        super().__init__()
-
-    def forward(self, x_in, x_out):
-        return x_out
+    def forward(self, x, bpgraph):
+        return x
 
 
 class NoParamAggregate(MessagePassing):
@@ -172,3 +138,86 @@ class NoParamAggregate(MessagePassing):
     def message(self, x_j, edge_weights):
         # x_j has shape [E, out_channels]
         return edge_weights[..., None] * x_j
+
+
+class IdentityLayer(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, *args, **kwargs):
+        # If only one input is given and no keyword arguments, return the input directly
+        if len(args) == 1 and not kwargs:
+            return args[0]
+        # Return both args and kwargs if either or both are provided
+        return args, kwargs
+
+
+class LinearWrapper(nn.Linear):
+    def __init__(self, in_features, out_features):
+        super().__init__(in_features, out_features)
+
+
+class HMR2LayerMLP(nn.Module):
+    def __init__(self, dim_in, dim_mid, dim_out, dropout):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(dim_in, dim_mid),
+            nn.Dropout(dropout),
+            nn.BatchNorm1d(dim_mid),
+            nn.SiLU(),
+            nn.Linear(dim_mid, dim_out),
+            nn.Dropout(dropout),
+            nn.BatchNorm1d(dim_out),
+        )
+
+    def forward(self, x):
+        return self.net(x)
+
+
+class HMR2LayerMLPChunk(nn.Module):
+    def __init__(self, dim_in, hdim, dropout):
+        super().__init__()
+        self.net = HMR2LayerMLP(dim_in=dim_in, dim_mid=hdim, dim_out=2 * hdim, dropout=dropout)
+        self.sigmoid = nn.Sigmoid()
+        self.softplus = nn.Softplus()
+
+    def forward(self, x):
+        doubled = self.net(x)
+        nbr_filter, nbr_core = doubled.chunk(2, dim=-1)
+        nbr_filter = self.sigmoid(nbr_filter)
+        nbr_core = self.softplus(nbr_core)
+        return nbr_filter * nbr_core
+
+
+class SkipConnectionBlock(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, x_in, x_out):
+        return x_in + x_out
+
+
+class CatPostProcessBlock(nn.Module):
+    def __init__(self, in_dim, out_dim):
+        super().__init__()
+        self.lin = nn.Linear(in_dim, out_dim)
+
+    def forward(self, x_in, x_out):
+        return self.lin(torch.cat((x_in, x_out), dim=-1))
+
+
+class CatMergeBlock(nn.Module):
+    def __init__(self, net):
+        super().__init__()
+        self.net = net
+
+    def forward(self, x_in, x_out):
+        return self.net(torch.cat((x_in, x_out), dim=-1))
+
+
+class ReturnProcessedBlock(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, x_in, x_out):
+        return x_out

@@ -1,3 +1,4 @@
+# Surface/graph encoders
 diffusion_net:
   _target_: diffusion_net.DiffusionNetBlock
   C_width: ${model_hdim}
@@ -32,6 +33,7 @@ pronet_block:
   euler_noise: False
   add_seq_emb: False
 
+# Message passing schemes
 gat_comm:
   _target_: atomsurf.network_utils.communication.surface_graph_comm.SurfaceGraphCommunication
   s_pre_block: ${linear_halver}
@@ -54,7 +56,7 @@ gvp_comm:
   neigh_thresh: 8
   sigma: 2.5
 
-hmr_comm:
+bihmr_comm:
   _target_: atomsurf.network_utils.communication.surface_graph_comm.SurfaceGraphCommunication
   s_pre_block: ${linear_halver}
   g_pre_block: ${linear_halver}
@@ -65,6 +67,7 @@ hmr_comm:
   neigh_thresh: 8
   sigma: 2.5
 
+# Protein Encoder blocks
 diff|gcn|gat:
   _target_: atomsurf.networks.ProteinEncoderBlock
   surface_encoder: ${diffusion_net}
@@ -87,5 +90,5 @@ pronet|HMRMP:
   _target_: atomsurf.networks.ProteinEncoderBlock
   surface_encoder: ${diffusion_net}
   graph_encoder: ${pronet_block}
-  message_passing: ${hmr_comm}
+  message_passing: ${bihmr_comm}
 

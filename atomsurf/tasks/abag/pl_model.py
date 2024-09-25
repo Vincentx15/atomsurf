@@ -40,7 +40,7 @@ class AbAgModule(AtomPLModule):
 
     def step(self, batch):
         if batch is None or batch.num_graphs < self.hparams.cfg.min_batch_size:
-            return None, None, None, None
+            return None, None, None
 
         # Get targets, concatenate and keep track of system sizes
         label_abs_cdr = torch.cat(batch.label_abs_cdr)

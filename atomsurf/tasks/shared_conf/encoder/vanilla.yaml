@@ -2,7 +2,7 @@ name: vanilla
 
 
 blocks:
-  - ${hmr_input_encoder}
+  - ${input_encoder_hmr}
   - ${diff|gcn|gat}
   - ${diff|gcn|gat}
   - ${diff|gcn|gat}

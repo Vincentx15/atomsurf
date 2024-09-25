@@ -5,6 +5,8 @@
 #    elif name == "return_processed":
 #        return ReturnProcessedBlock()
 
+
+# Block layers
 identity:
   _target_: atomsurf.network_utils.utils_blocks.IdentityLayer
 
@@ -13,16 +15,47 @@ linear_halver:
   in_features: ${model_hdim}
   out_features: ${eval:'${model_hdim} // 2'}
 
+2layer_input:
+  _target_: atomsurf.network_utils.communication.utils_blocks.HMR2LayerMLP
+  dim_in: ${model_hdim}
+  dim_mid: ${model_hdim}
+  dim_out: ${model_hdim}
+  dropout: ${model_dropout}
+
+2layer_input_chunk:
+  _target_: atomsurf.network_utils.communication.utils_blocks.HMR2LayerMLPChunk
+  dim_in: ${model_hdim}
+  hdim: ${model_hdim}
+  dropout: ${model_dropout}
+
+2layer_bigbigsmall:
+  _target_: atomsurf.network_utils.communication.utils_blocks.HMR2LayerMLP
+  dim_in: ${eval:'${model_hdim} * 2'}
+  dim_mid: ${model_hdim}
+  dim_out: ${model_hdim}
+  dropout: ${model_dropout}
+
+cat_merge:
+  _target_: atomsurf.network_utils.communication.utils_blocks.CatMergeBlock
+  net: ${2layer_bigbigsmall}
+
+cat_post_proc:
+  _target_: atomsurf.network_utils.communication.utils_blocks.CatPostProcessBlock
+  in_dim: ${model_hdim}
+  out_dim: ${model_hdim}
+
+return_processed:
+  _target_: atomsurf.network_utils.communication.utils_blocks.ReturnProcessedBlock
+
+# MP Layers
 no_param_agg:
   _target_: atomsurf.network_utils.communication.utils_blocks.NoParamAggregate
   aggr: add
   add_self_loops: false
   fill_value: mean
 
-cat_post_proc:
-  _target_: atomsurf.network_utils.communication.utils_blocks.CatPostProcessBlock
-  in_dim: ${model_hdim}
-  out_dim: ${model_hdim}
+identity_mp:
+  _target_: atomsurf.network_utils.communication.utils_blocks.IdentityMP
 
 gat_mp:
   _target_: atomsurf.network_utils.communication.utils_blocks.GraphconvWrapper
@@ -46,4 +79,20 @@ hmr_mp:
   _target_: atomsurf.network_utils.communication.utils_blocks.HMRWrapper
   dim_in: ${eval:'${model_hdim} // 2'}
   dim_out: ${eval:'${model_hdim} // 2'}
+  num_gdf: 16
+
+#  Double nets are useful for input processing, since we use more hidden dims there
+gvp_mp_double:
+  _target_: atomsurf.network_utils.communication.utils_blocks.GVPWrapper
+  dim_in: ${model_hdim}
+  dim_out: ${model_hdim}
+  n_layers: ${gvp_n_layers}
+  vector_gate: ${gvp_vector_gate}
+  gvp_use_angles: ${gvp_use_angles}
+  use_normals: ${gvp_use_normal}
+
+hmr_mp_double:
+  _target_: atomsurf.network_utils.communication.utils_blocks.HMRWrapper
+  dim_in: ${model_hdim}
+  dim_out: ${model_hdim}
   num_gdf: 16

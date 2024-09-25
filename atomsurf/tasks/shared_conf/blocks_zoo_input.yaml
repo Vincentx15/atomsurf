@@ -1,30 +1,26 @@
-# HMR like encoder : angles to normals are computed and 16 nearest are sent to vertices
-hmr_input_encoder:
-  _target_: atomsurf.networks.HMRInputEncoder
-  h_dim: ${model_hdim}
-  use_neigh: ${input_use_neigh}
-  dropout: ${model_dropout}
-  num_gdf: 16
+input_encoder_hmr:
+  _target_: atomsurf.network_utils.communication.surface_graph_comm.SurfaceGraphCommunication
+  s_pre_block: ${2layer_input}
+  g_pre_block: ${2layer_input_chunk}
+  bp_sg_block: ${identity_mp}
+  bp_gs_block: ${hmr_mp_double}
+  s_post_block: ${cat_merge}
+  g_post_block: ${return_processed}
 
+input_encoder_bihmr:
+  _target_: atomsurf.network_utils.communication.surface_graph_comm.SurfaceGraphCommunication
+  s_pre_block: ${2layer_input_chunk}
+  g_pre_block: ${2layer_input_chunk}
+  bp_sg_block: ${hmr_mp_double}
+  bp_gs_block: ${hmr_mp_double}
+  s_post_block: ${cat_merge}
+  g_post_block: ${cat_merge}
 
-bihmr_input_encoder:
-  _target_: atomsurf.networks.BiHMRInputEncoder
-  h_dim: ${model_hdim}
-  dropout: ${model_dropout}
-  num_gdf: 16
-
-input_encoder:
-  name: InputEncoder
-  _target_: atomsurf.networks.InputEncoder
-  h_dim: ${model_hdim}
-  dropout: ${model_dropout}
-  num_gdf: 16
-  use_bp: true
-  use_gvp: true
-  use_knn: ${use_knn}
-  gvp_use_angles: ${gvp_use_angles}
-  use_normals: ${gvp_use_normal}
-  vector_gate: ${gvp_vector_gate}
-  n_layers: ${gvp_n_layers}
-  neigh_thresh: 8
-  sigma: 2.5
+input_encoder_gvp:
+  _target_: atomsurf.network_utils.communication.surface_graph_comm.SurfaceGraphCommunication
+  s_pre_block: ${2layer_input}
+  g_pre_block: ${2layer_input}
+  bp_sg_block: ${gvp_mp_double}
+  bp_gs_block: ${gvp_mp_double}
+  s_post_block: ${cat_merge}
+  g_post_block: ${cat_merge}
