@@ -3,7 +3,8 @@ diffusion_net:
   _target_: diffusion_net.DiffusionNetBlock
   C_width: ${model_hdim}
   dropout: ${model_dropout}
-  use_bn: true
+  use_bn: ${eval:'not ${use_layernorm}'}
+  use_layernorm: ${use_layernorm}
   init_time: 2.0  # either null (for constant init) or a float
   init_std: 2.0
 

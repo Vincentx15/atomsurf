@@ -5,6 +5,9 @@ model_dropout: 0.1
 # Input params
 input_use_neigh: true
 
+# DiffusionNet Params
+use_layernorm: true
+
 # MP params
 use_knn: true
 gvp_use_normal: true
