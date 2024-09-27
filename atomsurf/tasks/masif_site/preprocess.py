@@ -29,7 +29,7 @@ class PreProcessMSDataset(PreprocessDataset):
             script_dir = os.path.dirname(os.path.realpath(__file__))
             data_dir = os.path.join(script_dir, '..', '..', '..', 'data', 'masif_site')
 
-        super().__init__(data_dir=data_dir, recompute_s=recompute_s, recompute_g=recompute_g, compute_s=False,
+        super().__init__(data_dir=data_dir, recompute_s=recompute_s, recompute_g=recompute_g,
                          max_vert_number=max_vert_number, face_reduction_rate=face_reduction_rate,
                          use_pymesh=use_pymesh)
         # Set up input/output dirs
@@ -48,46 +48,47 @@ class PreProcessMSDataset(PreprocessDataset):
         ply_path = os.path.join(self.ply_dir, pdb_name + '.ply')
         surface_dump = os.path.join(self.out_surf_dir, f'{pdb_name}.pt')
         try:
-            # Made a version without pymesh to load the initial data
-            if self.use_pymesh:
-                import pymesh
-                mesh = pymesh.load_mesh(ply_path)
-                verts = mesh.vertices.astype(np.float32)
-                faces = mesh.faces.astype(np.int32)
-                iface_labels = mesh.get_attribute("vertex_iface").astype(np.int32)
-            else:
-                from plyfile import PlyData
-                with open(ply_path, 'rb') as f:
-                    plydata = PlyData.read(f)
-                    vx = plydata['vertex']['x']
-                    vy = plydata['vertex']['y']
-                    vz = plydata['vertex']['z']
-                    verts = np.stack((vx, vy, vz), axis=1).astype(np.float32)
-                    faces = np.stack(plydata['face']['vertex_indices'], axis=0).astype(np.int32)
-                    iface_labels = plydata['vertex']['iface'].astype(np.int32)
-            iface_labels = torch.from_numpy(iface_labels)
-            # If coarsened, we need to adapt the iface_labels on the new verts
-            surface = SurfaceObject.from_verts_faces(verts=verts, faces=faces,
-                                                     use_pymesh=self.use_pymesh,
-                                                     face_reduction_rate=self.face_reduction_rate)
-            if len(surface.verts) < len(iface_labels):
-                old_verts = torch.from_numpy(verts)
-                new_verts = torch.from_numpy(surface.verts)
-                with torch.no_grad():
-                    k = 4
-                    dists = torch.cdist(old_verts, new_verts)  # (old,new)
-                    min_indices = torch.topk(-dists, k=k, dim=0).indices  # (k, new)
-                    neigh_labels = torch.sum(iface_labels[min_indices], dim=0) > k / 2
-                    # old_fraction = iface_labels.sum() / len(iface_labels)
-                    # new_fraction = neigh_labels.sum() / len(neigh_labels)
-                    iface_labels = neigh_labels.int()
-            surface.iface_labels = iface_labels
-            surface.add_geom_feats()
-            surface.save_torch(surface_dump)
+            if self.recompute_s or not os.path.exists(surface_dump):
+                # Made a version without pymesh to load the initial data
+                if self.use_pymesh:
+                    import pymesh
+                    mesh = pymesh.load_mesh(ply_path)
+                    verts = mesh.vertices.astype(np.float32)
+                    faces = mesh.faces.astype(np.int32)
+                    iface_labels = mesh.get_attribute("vertex_iface").astype(np.int32)
+                else:
+                    from plyfile import PlyData
+                    with open(ply_path, 'rb') as f:
+                        plydata = PlyData.read(f)
+                        vx = plydata['vertex']['x']
+                        vy = plydata['vertex']['y']
+                        vz = plydata['vertex']['z']
+                        verts = np.stack((vx, vy, vz), axis=1).astype(np.float32)
+                        faces = np.stack(plydata['face']['vertex_indices'], axis=0).astype(np.int32)
+                        iface_labels = plydata['vertex']['iface'].astype(np.int32)
+                iface_labels = torch.from_numpy(iface_labels)
+                # If coarsened, we need to adapt the iface_labels on the new verts
+                surface = SurfaceObject.from_verts_faces(verts=verts, faces=faces,
+                                                         use_pymesh=self.use_pymesh,
+                                                         face_reduction_rate=self.face_reduction_rate)
+                if len(surface.verts) < len(iface_labels):
+                    old_verts = torch.from_numpy(verts)
+                    new_verts = torch.from_numpy(surface.verts)
+                    with torch.no_grad():
+                        k = 4
+                        dists = torch.cdist(old_verts, new_verts)  # (old,new)
+                        min_indices = torch.topk(-dists, k=k, dim=0).indices  # (k, new)
+                        neigh_labels = torch.sum(iface_labels[min_indices], dim=0) > k / 2
+                        # old_fraction = iface_labels.sum() / len(iface_labels)
+                        # new_fraction = neigh_labels.sum() / len(neigh_labels)
+                        iface_labels = neigh_labels.int()
+                surface.iface_labels = iface_labels
+                surface.add_geom_feats()
+                surface.save_torch(surface_dump)
         except Exception as e:
             print('*******failed******', pdb_name, e)
             return 0
-        success = self.name_to_surf_graphs(name=pdb_name)
+        success = self.name_to_graphs(name=pdb_name)
         return success
 
 
@@ -100,4 +101,4 @@ if __name__ == '__main__':
             dataset = PreProcessMSDataset(recompute_s=recompute_s, recompute_g=recompute_g,
                                           face_reduction_rate=face_red, use_pymesh=use_pymesh)
             # do_all(dataset, num_workers=0)
-            do_all(dataset, num_workers=40)
+            do_all(dataset, num_workers=20)

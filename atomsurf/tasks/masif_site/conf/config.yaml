@@ -19,6 +19,7 @@ hydra:
 # general params
 seed: 2024
 run_name: default
+data_dir: ../../../data/masif_site/
 out_dir: ../../../outputs/masif_site/out_dir # does not work for me with chdir=False
 log_dir: "./"
 test_freq: 5

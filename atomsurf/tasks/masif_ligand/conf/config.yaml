@@ -20,8 +20,8 @@ hydra:
 seed: 2024
 use_wandb: False
 run_name: default
+data_dir: ../../../data/masif_ligand/
 out_dir: ../../../outputs/masif_ligand/out_dir
-data_dir: null
 test_freq: 5
 epochs: 100
 device: 0

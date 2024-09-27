@@ -1,6 +1,5 @@
 name: vanilla
 
-
 blocks:
   - ${input_encoder_hmr}
   - ${diff|gcn|gat}

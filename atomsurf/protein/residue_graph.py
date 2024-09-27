@@ -220,8 +220,8 @@ class ResidueGraphBuilder:
         pos_ca = np.full((len(amino_types), 3), np.nan)
         pos_ca[atom_amino_id[mask_ca]] = atom_pos[mask_ca]
         pos_ca = torch.FloatTensor(pos_ca)
-        
-        edge_index, edge_dists = atom_coords_to_edges(pos_ca,edge_dist_cutoff=12)
+
+        edge_index, edge_dists = atom_coords_to_edges(pos_ca, edge_dist_cutoff=12)
 
         res_graph = ResidueGraph(node_pos=pos_ca,
                                  edge_index=edge_index,

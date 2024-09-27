@@ -6,7 +6,8 @@ from .utils_blocks import IdentityLayer
 
 
 class SurfaceGraphCommunication(nn.Module):
-    def __init__(self, s_pre_block=None, g_pre_block=None,
+    def __init__(self,
+                 s_pre_block=None, g_pre_block=None,
                  bp_sg_block=None, bp_gs_block=None,
                  s_post_block=None, g_post_block=None,
                  neigh_thresh=8, sigma=2.5, use_knn=False,

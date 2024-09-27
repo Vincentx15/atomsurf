@@ -9,7 +9,7 @@ from torch_geometric.data import Batch
 from torch_sparse import SparseTensor
 
 from atomsurf.protein.surfaces import SurfaceObject, SurfaceBatch
-from atomsurf.protein.graphs import parse_pdb_path,parse_pdb_path_nopqr
+from atomsurf.protein.graphs import parse_pdb_path, parse_pdb_path_nopqr
 from atomsurf.protein.atom_graph import AtomGraph, AGraphBatch, AtomGraphBuilder
 from atomsurf.protein.residue_graph import ResidueGraph, RGraphBatch, ResidueGraphBuilder
 
@@ -109,20 +109,30 @@ class GraphLoader:
         return graph
 
 
-def pdb_to_surf_graphs(pdb_path, surface_dump, agraph_dump, rgraph_dump, face_reduction_rate, max_vert_number,
-                       use_pymesh=None, compute_s=True, compute_g=True, recompute_s=False, recompute_g=False):
+def pdb_to_surf(pdb_path, surface_dump, face_reduction_rate, max_vert_number, use_pymesh=None, recompute_s=False):
     """
-    Wrapper code to go from a PDB to a surface, an AtomGraph and a ResidueGraph
+    Wrapper code to go from a PDB to a surface
     """
     try:
-        if compute_s and (recompute_s or not os.path.exists(surface_dump)):
+        if recompute_s or not os.path.exists(surface_dump):
             use_pymesh = False if use_pymesh is None else use_pymesh
             surface = SurfaceObject.from_pdb_path(pdb_path, face_reduction_rate=face_reduction_rate,
                                                   use_pymesh=use_pymesh, max_vert_number=max_vert_number)
             surface.add_geom_feats()
             surface.save_torch(surface_dump)
+        success = 1
+    except Exception as e:
+        print('pdb_to_surf failed for : ', pdb_path, e)
+        success = 0
+    return success
 
-        if compute_g and (recompute_g or not os.path.exists(agraph_dump) or not os.path.exists(rgraph_dump)):
+
+def pdb_to_graphs(pdb_path, agraph_dump, rgraph_dump, recompute_g=False):
+    """
+    Wrapper code to go from a PDB to an AtomGraph and a ResidueGraph
+    """
+    try:
+        if recompute_g or not os.path.exists(agraph_dump) or not os.path.exists(rgraph_dump):
             # arrays = parse_pdb_path(pdb_path)
             # create atomgraph
             # if recompute_g or not os.path.exists(agraph_dump):
@@ -140,7 +150,7 @@ def pdb_to_surf_graphs(pdb_path, surface_dump, agraph_dump, rgraph_dump, face_re
                 torch.save(rgraph, open(rgraph_dump, 'wb'))
         success = 1
     except Exception as e:
-        print('pdb_to_surf failed for : ', pdb_path, e)
+        print('pdb_to_graph failed for : ', pdb_path, e)
         success = 0
     return success
 
@@ -152,7 +162,7 @@ class PreprocessDataset(Dataset):
     those files and generate rgraphs/ agraphs/ and surfaces/ directories and files.
     """
 
-    def __init__(self, data_dir, recompute_s=False, recompute_g=False, compute_s=True, compute_g=True,
+    def __init__(self, data_dir, recompute_s=False, recompute_g=False,
                  max_vert_number=100000, face_reduction_rate=0.1, use_pymesh=None):
         self.pdb_dir = os.path.join(data_dir, 'pdb')
 
@@ -173,8 +183,6 @@ class PreprocessDataset(Dataset):
         os.makedirs(self.out_agraph_dir, exist_ok=True)
         self.recompute_s = recompute_s
         self.recompute_g = recompute_g
-        self.compute_s = compute_s
-        self.compute_g = compute_g
 
     def get_all_pdbs(self):
         pdb_list = sorted([file_name for file_name in os.listdir(self.pdb_dir) if '.pdb' in file_name])
@@ -183,20 +191,36 @@ class PreprocessDataset(Dataset):
     def __len__(self):
         return len(self.all_pdbs)
 
-    def path_to_surf_graphs(self, pdb_path, surface_dump, agraph_dump, rgraph_dump):
-        return pdb_to_surf_graphs(pdb_path, surface_dump, agraph_dump, rgraph_dump,
-                                  face_reduction_rate=self.face_reduction_rate,
-                                  max_vert_number=self.max_vert_number,
-                                  use_pymesh=self.use_pymesh,
-                                  recompute_s=self.recompute_s,
-                                  recompute_g=self.recompute_g)
+    def path_to_surf(self, pdb_path, surface_dump):
+        return pdb_to_surf(pdb_path, surface_dump,
+                           face_reduction_rate=self.face_reduction_rate,
+                           max_vert_number=self.max_vert_number,
+                           use_pymesh=self.use_pymesh,
+                           recompute_s=self.recompute_s)
 
-    def name_to_surf_graphs(self, name):
+    def path_to_graphs(self, pdb_path, agraph_dump, rgraph_dump):
+        return pdb_to_graphs(pdb_path, agraph_dump, rgraph_dump, recompute_g=self.recompute_g)
+
+    def path_to_surf_graphs(self, pdb_path, surface_dump, agraph_dump, rgraph_dump):
+        success1 = self.path_to_surf(pdb_path, surface_dump)
+        success2 = self.path_to_graphs(pdb_path, agraph_dump, rgraph_dump)
+        return success1 and success2
+
+    def name_to_surf(self, name):
         pdb_path = os.path.join(self.pdb_dir, f'{name}.pdb')
         surface_dump = os.path.join(self.out_surf_dir, f'{name}.pt')
+        return self.path_to_surf(pdb_path, surface_dump)
+
+    def name_to_graphs(self, name):
+        pdb_path = os.path.join(self.pdb_dir, f'{name}.pdb')
         agraph_dump = os.path.join(self.out_agraph_dir, f'{name}.pt')
         rgraph_dump = os.path.join(self.out_rgraph_dir, f'{name}.pt')
-        return self.path_to_surf_graphs(pdb_path, surface_dump, agraph_dump, rgraph_dump)
+        return self.path_to_graphs(pdb_path, agraph_dump, rgraph_dump)
+
+    def name_to_surf_graphs(self, name):
+        success1 = self.name_to_surf(name)
+        success2 = self.name_to_graphs(name)
+        return success1 and success2
 
 
 class AtomBatch(Data):
