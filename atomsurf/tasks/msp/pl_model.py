@@ -18,7 +18,7 @@ class MSPModule(AtomPLModule):
     def step(self, batch):
         if batch is None or batch.num_graphs < self.hparams.cfg.min_batch_size:
             return None, None, None
-        labels = batch.label.reshape(-1, 1)
+        labels = torch.stack(batch.label).reshape(-1, 1)
         outputs = self(batch)
         loss = self.criterion(outputs, labels)
         # names = batch.name

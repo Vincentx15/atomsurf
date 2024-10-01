@@ -279,5 +279,15 @@ if __name__ == "__main__":
     # torch is MUCH faster : 4.34 vs 0.7...
 
     verts, faces = surface.verts, surface.faces
-    surface_hmr = SurfaceObject.from_verts_faces(verts, faces, use_fem_decomp=True)
+    surface_hmr = SurfaceObject.from_verts_faces(verts, faces, use_fem_decomp=False)
+
+    surface_1ycr_large = SurfaceObject.from_pdb_path("../../data/example_files/1ycr_A.pdb", use_fem_decomp=False,
+                                              face_reduction_rate=1.)
+    surface_file_torch = "../../data/example_files/1ycr_large.pt"
+    surface_1ycr_large.save_torch(surface_file_torch)
+
+    surface_1ycr_small = SurfaceObject.from_pdb_path("../../data/example_files/1ycr_A.pdb", use_fem_decomp=False,
+                                              face_reduction_rate=0.1)
+    surface_file_torch = "../../data/example_files/1ycr_small.pt"
+    surface_1ycr_small.save_torch(surface_file_torch)
     a = 1

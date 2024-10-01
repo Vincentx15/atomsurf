@@ -18,3 +18,4 @@ sympy
 tensorboard
 tqdm
 trimesh
+wandb

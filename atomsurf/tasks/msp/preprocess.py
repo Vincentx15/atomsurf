@@ -9,6 +9,7 @@ if __name__ == '__main__':
     script_dir = os.path.dirname(os.path.realpath(__file__))
     sys.path.append(os.path.join(script_dir, '..', '..', '..'))
 
+from atomsurf.protein.create_esm import get_esm_embedding_batch
 from atomsurf.utils.atom_utils import df_to_pdb
 from atomsurf.utils.data_utils import PreprocessDataset
 from atomsurf.utils.python_utils import do_all
@@ -145,3 +146,8 @@ if __name__ == '__main__':
                                        recompute_pdb=recompute_pdb, recompute_interfaces=recompute_interface,
                                        mode=mode, max_vert_number=100000, face_reduction_rate=0.1)
         do_all(dataset, num_workers=20)
+
+        pdb_dir = os.path.join(data_dir, mode, 'pdb')
+        out_esm_dir = os.path.join(data_dir, mode, 'esm')
+        os.makedirs(out_esm_dir, exist_ok=True)
+        get_esm_embedding_batch(in_pdbs_dir=pdb_dir, dump_dir=out_esm_dir)
