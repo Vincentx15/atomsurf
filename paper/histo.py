@@ -35,7 +35,7 @@ method2_mcc = MCC_methods['AtomSurf']
 x = np.arange(len(x_labels))  # the label locations
 width = 0.35  # the width of the bars
 
-fig, ax1 = plt.subplots(figsize=(8, 7))
+fig, ax1 = plt.subplots(figsize=(8, 4.5))
 
 # Plot AuROC for the first method (GEP)
 ax1.bar(x[:2] - width / 2, method1_auroc, width, label=r'GEP', color=color_gep)
@@ -68,7 +68,7 @@ fig.legend(loc="upper left", bbox_to_anchor=(0.15, 0.9))
 # Adjust layout
 fig.tight_layout()
 
-plt.savefig('histogram.pdf')
+plt.savefig('gep_histogram.pdf')
 
 # Show plot
 plt.show()
