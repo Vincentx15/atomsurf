@@ -15,3 +15,4 @@ gvp_vector_gate: false
 gvp_n_layers: 3
 gvp_use_angles: True
 
+dmasif_config: /work/lpdi/users/ymiao/code/code_1015/atomsurf/atomsurf/tasks/shared_conf/config.yml

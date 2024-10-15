@@ -93,3 +93,21 @@ pronet|HMRMP:
   graph_encoder: ${pronet_block}
   message_passing: ${bihmr_comm}
 
+dmasif_block:
+  _target_: atomsurf.network_utils.dMasifWrapper
+  dim_in: ${model_hdim}
+  dim_out: ${model_hdim}
+  argdir: ${dmasif_config}
+
+diffonly:
+  _target_: atomsurf.networks.ProteinEncoderBlock
+  surface_encoder: ${diffusion_net}
+  graph_encoder: None
+  message_passing: None
+
+dmasifonly:
+  _target_: atomsurf.networks.ProteinEncoderBlock
+  surface_encoder: ${dmasif_block}
+  graph_encoder: None
+  message_passing: None
+

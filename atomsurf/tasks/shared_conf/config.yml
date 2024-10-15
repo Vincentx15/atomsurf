@@ -1,0 +1,16 @@
+model:
+  dmasif:
+    curvature_scales: [1.0, 2.0, 3.0, 5.0, 10.0]
+    resolution: 1.0
+    distance: 1.05
+    variance: 0.1
+    sup_sampling: 20
+    atom_dims: 22
+    emb_dims: 128
+    in_channels: 32
+    orientation_units: 32
+    n_layers: 3
+    radius: 9.0
+    dropout: 0.3
+    residue: false
+    

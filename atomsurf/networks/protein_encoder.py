@@ -31,17 +31,17 @@ class ProteinEncoderBlock(nn.Module):
         self.graph_encoder = graph_encoder
         self.message_passing = message_passing
 
+
     def forward(self, surface=None, graph=None):
-        if surface is not None:
+        if surface is not None and self.surface_encoder !='None':
             surface = self.surface_encoder(surface)
 
-        if graph is not None:
+        if graph is not None and self.graph_encoder !='None':
             graph = self.graph_encoder(graph)
-
-        surface, graph = self.message_passing(surface, graph)
+        if self.message_passing !='None':
+            surface, graph = self.message_passing(surface, graph)
 
         return surface, graph
-
 
 class SequentialProteinEncoderBlock(nn.Module):
     def __init__(self, hparams):

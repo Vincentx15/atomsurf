@@ -1,0 +1,7 @@
+name: dmasif
+
+blocks:
+  - ${input_encoder_gvp}
+  - ${dmasifonly}
+  # - ${dmasifonly}
+  # - ${dmasifonly}

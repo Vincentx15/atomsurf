@@ -1,0 +1,8 @@
+name: surf_only
+
+
+blocks:
+  - ${input_encoder_gvp}
+  - ${diffonly}
+  # - ${diffonly}
+  # - ${diffonly}
