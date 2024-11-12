@@ -18,7 +18,7 @@ from atomsurf.utils.torch_utils import safe_to_torch
 
 
 class AtomGraph(Data, FeaturesHolder):
-    def __init__(self, node_pos, res_map, edge_index=None, edge_attr=None, features=None, **kwargs):
+    def __init__(self, node_pos, res_map, edge_index=None, edge_attr=None, features=None, node_names=None, **kwargs):
         edge_index = safe_to_torch(edge_index)
         edge_attr = safe_to_torch(edge_attr)
         super(AtomGraph, self).__init__(edge_index=edge_index, edge_attr=edge_attr, **kwargs)
@@ -26,6 +26,7 @@ class AtomGraph(Data, FeaturesHolder):
         self.res_map = safe_to_torch(res_map)
         self.num_atoms = len(node_pos) if node_pos is not None else 0
         self.num_res = res_map.max() + 1 if res_map is not None else 0
+        self.node_names = node_names
         # Useful for bipartite computations
         self.node_len = self.num_atoms
         if features is None:
@@ -62,12 +63,13 @@ class AtomGraphBuilder:
         pass
 
     def arrays_to_agraph(self, arrays):
-        amino_types, _, atom_amino_id, _, atom_types, atom_pos, atom_charge, atom_radius, res_sse = arrays
+        amino_types, _, atom_amino_id, _, atom_types, atom_pos, atom_charge, atom_radius, res_sse, _, atom_ids = arrays
         edge_index, edge_dists = atom_coords_to_edges(atom_pos)
         atom_graph = AtomGraph(node_pos=atom_pos,
                                res_map=atom_amino_id,
                                edge_index=edge_index,
-                               edge_attr=edge_dists)
+                               edge_attr=edge_dists,
+                               node_names=atom_ids)
         # Add res_level features to be expanded
         atom_graph.features.add_named_oh_features('amino_types', amino_types, nclasses=21)
         atom_graph.features.add_named_oh_features('sse', res_sse, nclasses=8)

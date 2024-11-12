@@ -169,12 +169,13 @@ class PronetFeaturesComputer:
 
 
 class ResidueGraph(Data, FeaturesHolder):
-    def __init__(self, node_pos, edge_index=None, edge_attr=None, features=None, **kwargs):
+    def __init__(self, node_pos, edge_index=None, edge_attr=None, features=None, node_names=None, **kwargs):
         edge_index = safe_to_torch(edge_index)
         edge_attr = safe_to_torch(edge_attr)
         super(ResidueGraph, self).__init__(edge_index=edge_index, edge_attr=edge_attr, **kwargs)
         self.node_pos = safe_to_torch(node_pos)
         self.num_res = len(node_pos) if node_pos is not None else 0
+        self.node_names = node_names
         # Useful for bipartite computations
         self.node_len = self.num_res
         if features is None:
@@ -215,7 +216,7 @@ class ResidueGraphBuilder:
         :param esm_path:
         :return:
         """
-        amino_types, atom_chain_id, atom_amino_id, atom_names, _, atom_pos, atom_charge, atom_radius, res_sse = arrays
+        amino_types, atom_chain_id, atom_amino_id, atom_names, _, atom_pos, atom_charge, atom_radius, res_sse, amino_ids, _ = arrays
         mask_ca = np.char.equal(atom_names, 'CA')
         pos_ca = np.full((len(amino_types), 3), np.nan)
         pos_ca[atom_amino_id[mask_ca]] = atom_pos[mask_ca]
@@ -225,7 +226,8 @@ class ResidueGraphBuilder:
 
         res_graph = ResidueGraph(node_pos=pos_ca,
                                  edge_index=edge_index,
-                                 edge_attr=edge_dists)
+                                 edge_attr=edge_dists,
+                                 node_names=amino_ids)
         res_graph.features.add_named_oh_features('amino_types', amino_types, 21)
         res_graph.features.add_named_oh_features('sse', res_sse, nclasses=8)
         hphob = np.asarray([res_type_to_hphob[amino_type] for amino_type in amino_types], dtype=np.float32)

@@ -133,7 +133,7 @@ def parse_pdb_path(pdb_path):
         err = stderr.decode('utf-8').strip('\n')
         if 'CRITICAL' in err:
             print(f'{pdb_id} pdb2pqr failed', flush=True)
-            return None, None, None, None, None, None, None, None, None
+            return None, None, None, None, None, None, None, None, None, None, None
     parser = PDBParser(QUIET=True, is_pqr=True)
     structure = parser.get_structure("toto", pqr_path)
 
@@ -145,6 +145,8 @@ def parse_pdb_path(pdb_path):
     atom_pos = []  # size: (n_atom,3)
     atom_charge = []  # size: (n_atom,1)
     atom_radius = []  # size: (n_atom,1)
+    amino_ids = []  # size: (n_amino,) 1 letter AA type + seq position in PDB file, not used as features
+    atom_ids = []  # size: (n_atom,) 1 letter AA type + seq position in PDB + atom name, not used as features
     res_id = 0
     for residue in structure.get_residues():
         for atom in residue.get_atoms():
@@ -156,11 +158,14 @@ def parse_pdb_path(pdb_path):
         if residue.id[0] != " ":
             continue
         resname = residue.get_resname()
+        res_pdb_pos = residue.get_id()[1]
         # resname = protein_letters_3to1[resname.title()]
         if resname.upper() not in res_type_dict:
             resname = 'UNK'
         resname = res_type_dict[resname.upper()]
+        res_unique_id = res_type_idx_to_1[resname] + str(res_pdb_pos)
         amino_types.append(resname)
+        amino_ids.append(res_unique_id)
 
         for atom in residue.get_atoms():
             # Skip H
@@ -176,6 +181,7 @@ def parse_pdb_path(pdb_path):
             atom_amino_id.append(res_id)
             atom_charge.append(atom.get_charge())
             atom_radius.append(atom.get_radius())
+            atom_ids.append(res_unique_id + "_" + atom.get_id())
 
         res_id += 1
     amino_types = np.asarray(amino_types, dtype=np.int32)
@@ -186,6 +192,8 @@ def parse_pdb_path(pdb_path):
     atom_pos = np.asarray(atom_pos, dtype=np.float32)
     atom_charge = np.asarray(atom_charge, dtype=np.float32)
     atom_radius = np.asarray(atom_radius, dtype=np.float32)
+    amino_ids = np.asarray(amino_ids)
+    atom_ids = np.asarray(atom_ids)
 
     # We need to dump this adapted pdb with new coordinates and missing atoms
     from Bio.PDB.PDBIO import PDBIO
@@ -202,7 +210,7 @@ def parse_pdb_path(pdb_path):
     os.remove(pqr_path)
     os.remove(pqr_log_path)
     os.remove(pqrpdbpath)
-    return amino_types, atom_chain_id, atom_amino_id, atom_names, atom_types, atom_pos, atom_charge, atom_radius, res_sse
+    return amino_types, atom_chain_id, atom_amino_id, atom_names, atom_types, atom_pos, atom_charge, atom_radius, res_sse, amino_ids, atom_ids
 
 
 def parse_pdb_path_nopqr(pdb_path):
@@ -217,6 +225,8 @@ def parse_pdb_path_nopqr(pdb_path):
     atom_pos = []  # size: (n_atom,3)
     # atom_charge = []  # size: (n_atom,1)
     # atom_radius = []  # size: (n_atom,1)
+    amino_ids = []  # size: (n_amino,) 1 letter AA type + seq position in PDB file, not used as features
+    atom_ids = []  # size: (n_atom,) 1 letter AA type + seq position in PDB + atom name, not used as features
     res_id = 0
     for residue in structure.get_residues():
         for atom in residue.get_atoms():
@@ -228,11 +238,14 @@ def parse_pdb_path_nopqr(pdb_path):
         if residue.id[0] != " ":
             continue
         resname = residue.get_resname()
+        res_pdb_pos = residue.get_id()[1]
         # resname = protein_letters_3to1[resname.title()]
         if resname.upper() not in res_type_dict:
             resname = 'UNK'
         resname = res_type_dict[resname.upper()]
+        res_unique_id = res_type_idx_to_1[resname] + str(res_pdb_pos)
         amino_types.append(resname)
+        amino_ids.append(res_unique_id)
 
         for atom in residue.get_atoms():
             # Skip H
@@ -248,6 +261,7 @@ def parse_pdb_path_nopqr(pdb_path):
             atom_amino_id.append(res_id)
             # atom_charge.append(atom.get_charge())
             # atom_radius.append(atom.get_radius())
+            atom_ids.append(res_unique_id + "_" + atom.get_id())
 
         res_id += 1
     amino_types = np.asarray(amino_types, dtype=np.int32)
@@ -258,6 +272,8 @@ def parse_pdb_path_nopqr(pdb_path):
     atom_pos = np.asarray(atom_pos, dtype=np.float32)
     # atom_charge = np.asarray(atom_charge, dtype=np.float32)
     # atom_radius = np.asarray(atom_radius, dtype=np.float32)
+    amino_ids = np.asarray(amino_ids)
+    atom_ids = np.asarray(atom_ids)
 
     # We need to dump this adapted pdb with new coordinates and missing atoms
     # from Bio.PDB.PDBIO import PDBIO
@@ -275,7 +291,7 @@ def parse_pdb_path_nopqr(pdb_path):
     # os.remove(pqrpdbpath)
     atom_charge = None
     atom_radius = None
-    return amino_types, atom_chain_id, atom_amino_id, atom_names, atom_types, atom_pos, atom_charge, atom_radius, res_sse
+    return amino_types, atom_chain_id, atom_amino_id, atom_names, atom_types, atom_pos, atom_charge, atom_radius, res_sse, amino_ids, atom_ids
 
 
 def atom_coords_to_edges(node_pos, edge_dist_cutoff=4.5):
