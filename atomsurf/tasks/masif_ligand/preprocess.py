@@ -28,9 +28,7 @@ class PreprocessPatchDataset(Dataset):
         else:
             masif_ligand_data_dir = data_dir
         self.patch_dir = os.path.join(masif_ligand_data_dir, 'dataset_MasifLigand')
-        self.out_surf_dir_hmr = os.path.join(masif_ligand_data_dir, 'surf_hmr')
-        # self.out_surf_dir_ours = os.path.join(masif_ligand_data_dir, 'surf_ours')
-        self.out_surf_dir_ours = os.path.join(masif_ligand_data_dir, f'surf_ours_{face_reduction_rate}_{use_pymesh}')
+        self.out_surf_dir_ours = os.path.join(masif_ligand_data_dir, f'surf_{face_reduction_rate}_{use_pymesh}')
 
         self.face_reduction_rate = face_reduction_rate
         self.use_pymesh = use_pymesh
@@ -38,7 +36,6 @@ class PreprocessPatchDataset(Dataset):
         self.patches = list(os.listdir(self.patch_dir))
         self.recompute = recompute
         os.makedirs(self.out_surf_dir_ours, exist_ok=True)
-        os.makedirs(self.out_surf_dir_hmr, exist_ok=True)
 
     def __len__(self):
         return len(self.patches)
@@ -47,51 +44,18 @@ class PreprocessPatchDataset(Dataset):
         patch = self.patches[idx]
         path_torch_name = patch.replace('.npz', '.pt')
         surface_ours_dump = os.path.join(self.out_surf_dir_ours, path_torch_name)
-        surface_hmr_dump = os.path.join(self.out_surf_dir_hmr, path_torch_name)
-
         try:
             patch_in = os.path.join(self.patch_dir, patch)
             data = np.load(patch_in, allow_pickle=True)
             verts = data['pkt_verts']
             faces = data['pkt_faces'].astype(int)
 
-            # Compare different ways to produce surface, our, using HMR preprocs, HMR eigenvecs cached...
-            # Ours from verts faces (pdb further)
             if self.recompute or not os.path.exists(surface_ours_dump):
                 surface_ours = SurfaceObject.from_verts_faces(verts=verts, faces=faces,
                                                               face_reduction_rate=self.face_reduction_rate,
                                                               use_pymesh=self.use_pymesh)
                 surface_ours.add_geom_feats()
                 surface_ours.save_torch(surface_ours_dump)
-
-            # Using HMR preproc
-            if self.recompute or not os.path.exists(surface_hmr_dump):
-                surface_ours_hmr = SurfaceObject.from_verts_faces(verts=verts,
-                                                                  faces=faces,
-                                                                  face_reduction_rate=self.face_reduction_rate,
-                                                                  use_pymesh=self.use_pymesh,
-                                                                  use_fem_decomp=True)
-                surface_ours_hmr.add_geom_feats()
-                surface_ours_hmr.save_torch(surface_hmr_dump)
-
-            # # These are close, but not identical. Usually there is a max difference of about 0.003
-            # for a_hmr, a_ours in zip(surface_ours.evecs.T, surface_ours_hmr.evecs[:, :40].T):
-            #     max_diff = torch.max(a_hmr - a_ours)
-            #     max_diff_opp = torch.max(a_hmr + a_ours)
-            #     a = 1
-
-            # # SANITY CHECK, our recomputation is the same as cached vectors => OK, evecs are the same or opposite
-            # # Using HMR cached, we still need our processing to get grads operators
-            # eigen_vals = data['eigen_vals']
-            # eigen_vecs = data['eigen_vecs']
-            # mass = data['mass'].item()
-            # surface_hmr = SurfaceObject(verts=verts, faces=faces, mass=mass, L=surface_ours_hmr.L,
-            #                             evals=eigen_vals, evecs=eigen_vecs,
-            #                             gradX=surface_ours_hmr.gradX, gradY=surface_ours_hmr.gradY)
-            # surface_hmr.save_torch(surface_hmr_dump)
-            # for a_hmr, a_ours in zip(surface_hmr.evecs.T, surface_ours_hmr.evecs[:, :40].T):
-            #     max_diff = torch.max(a_hmr - a_ours)
-            #     max_diff_opp = torch.max(a_hmr + a_ours)
             success = 1
         except Exception as e:
             print(e)
@@ -101,7 +65,7 @@ class PreprocessPatchDataset(Dataset):
 
 class PreProcessPDBDataset(PreprocessDataset):
 
-    def __init__(self, data_dir=None, recompute_s=False, recompute_g=False,
+    def __init__(self, data_dir=None, compute_s=True, recompute_s=False, recompute_g=False,
                  max_vert_number=100000, face_reduction_rate=1.0, use_pymesh=True):
         if data_dir is None:
             script_dir = os.path.dirname(os.path.realpath(__file__))
@@ -115,30 +79,34 @@ class PreProcessPDBDataset(PreprocessDataset):
         surface_dirname = f'surfaces_full_{face_reduction_rate}{f"_{use_pymesh}" if use_pymesh is not None else ""}'
         self.out_surf_dir = os.path.join(data_dir, surface_dirname)
         os.makedirs(self.out_surf_dir, exist_ok=True)
+        self.compute_s = compute_s
 
         self.all_pdbs = self.get_all_pdbs()
 
     def __getitem__(self, idx):
         pdb = self.all_pdbs[idx]
         name = pdb[0:-4]
-        success = self.name_to_surf_graphs(name)
+        if self.compute_s:
+            success = self.name_to_surf_graphs(name)
+        else:
+            success = self.name_to_graphs(name)
         return success
 
 
 if __name__ == '__main__':
     pass
     recompute = False
-    recompute_s = True
+    recompute_s = False
     recompute_g = False
     use_pymesh = False
     dataset = PreprocessPatchDataset(recompute=recompute,
                                      face_reduction_rate=1.0,
                                      use_pymesh=use_pymesh)
-    # do_all(dataset, num_workers=20)
-
+    do_all(dataset, num_workers=20)
     dataset = PreProcessPDBDataset(recompute_g=recompute_g,
                                    recompute_s=recompute_s,
-                                   face_reduction_rate=0.5,
+                                   compute_s=False,
+                                   face_reduction_rate=1.0,
                                    use_pymesh=use_pymesh)
     do_all(dataset, num_workers=20)
 
