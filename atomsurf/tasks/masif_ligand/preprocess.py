@@ -122,5 +122,5 @@ if __name__ == '__main__':
     script_dir = os.path.dirname(os.path.realpath(__file__))
     masif_ligand_data_dir = os.path.join(script_dir, '..', '..', '..', 'data', 'masif_ligand')
     pdb_dir = os.path.join(masif_ligand_data_dir, 'raw_data_MasifLigand', 'pdb')
-    out_esm_dir = os.path.join(masif_ligand_data_dir, 'esm_embs')
+    out_esm_dir = os.path.join(masif_ligand_data_dir, 'esm')
     get_esm_embedding_batch(in_pdbs_dir=pdb_dir, dump_dir=out_esm_dir, batch_size=4)

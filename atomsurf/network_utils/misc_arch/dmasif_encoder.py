@@ -2,9 +2,7 @@ import sys
 import torch
 import torch.nn as nn
 from .dmasif_utils.benchmark_models  import dMaSIFConv_seg
-from .dmasif_utils.geometry_processing import (
-        curvatures,
-)
+from .dmasif_utils.geometry_processing import curvatures
 from easydict import EasyDict
 import yaml
 
