@@ -7,8 +7,8 @@ input_use_neigh: true
 
 # DiffusionNet Params
 use_layernorm: true
-init_time: 2  # either null (for constant init) or a float
-init_std: 2
+diff_time_mean: 2  # either null (for constant init) or a float
+diff_time_std: 2
 
 # MP params
 use_knn: true
