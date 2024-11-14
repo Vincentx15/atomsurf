@@ -89,9 +89,10 @@ class PreProcessPDBDataset(Dataset):
         return pdb_name, seq
 
 
-def get_esm_embedding_batch(in_pdbs_dir, dump_dir, num_workers=4, batch_size=8):
+def get_esm_embedding_batch(in_pdbs_dir, dump_dir, num_workers=4, batch_size=8, recompute=False):
     dataset = PreProcessPDBDataset(in_pdbs_dir, dump_dir)
     dataloader = DataLoader(dataset,
+                            recompute=recompute,
                             collate_fn=lambda samples: samples,
                             num_workers=num_workers,
                             batch_size=batch_size)

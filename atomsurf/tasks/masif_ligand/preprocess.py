@@ -73,14 +73,23 @@ class PreProcessPDBDataset(PreprocessDataset):
 
         super().__init__(data_dir=data_dir, recompute_s=recompute_s, recompute_g=recompute_g,
                          max_vert_number=max_vert_number, face_reduction_rate=face_reduction_rate)
-        # Compared to super(), we redefine the original PDB location and the
-        # out_surf dir (since those are "_full", as opposed to patches)
+        # Compared to super(), we redefine the original PDB location
         self.pdb_dir = os.path.join(data_dir, 'raw_data_MasifLigand', 'pdb')
-        surface_dirname = f'surfaces_full_{face_reduction_rate}{f"_{use_pymesh}" if use_pymesh is not None else ""}'
-        self.out_surf_dir = os.path.join(data_dir, surface_dirname)
-        os.makedirs(self.out_surf_dir, exist_ok=True)
-        self.compute_s = compute_s
 
+        self.compute_s = compute_s
+        if self.compute_s:
+            # Compared to super(), we redefine the out_surf dir (since those are "_full", as opposed to patches)
+            surface_dirname = f'surfaces_full_{face_reduction_rate}{f"_{use_pymesh}" if use_pymesh is not None else ""}'
+            self.out_surf_dir = os.path.join(data_dir, surface_dirname)
+            os.makedirs(self.out_surf_dir, exist_ok=True)
+        else:
+            # remove dir
+            surface_dirname = f'surfaces_{face_reduction_rate}{f"_{use_pymesh}" if use_pymesh is not None else ""}'
+            out_surf_dir = os.path.join(data_dir, surface_dirname)
+            try:
+                os.rmdir(out_surf_dir)
+            except (FileNotFoundError, OSError):
+                pass
         self.all_pdbs = self.get_all_pdbs()
 
     def __getitem__(self, idx):
@@ -114,4 +123,4 @@ if __name__ == '__main__':
     masif_ligand_data_dir = os.path.join(script_dir, '..', '..', '..', 'data', 'masif_ligand')
     pdb_dir = os.path.join(masif_ligand_data_dir, 'raw_data_MasifLigand', 'pdb')
     out_esm_dir = os.path.join(masif_ligand_data_dir, 'esm_embs')
-    get_esm_embedding_batch(in_pdbs_dir=pdb_dir, dump_dir=out_esm_dir)
+    get_esm_embedding_batch(in_pdbs_dir=pdb_dir, dump_dir=out_esm_dir, batch_size=4)

@@ -65,7 +65,7 @@ cfg_surface:
   use_whole_surfaces: False
   #  data_dir: ../../../data/masif_ligand/surf_full
   data_dir: ${data_dir}
-  data_name: surf_hmr
+  data_name: surf
   feat_keys: 'all'
   oh_keys: 'all'
   gdf_expand: true
