@@ -5,8 +5,8 @@ diffusion_net:
   dropout: ${model_dropout}
   use_bn: ${eval:'not ${use_layernorm}'}
   use_layernorm: ${use_layernorm}
-  init_time: 2.0  # either null (for constant init) or a float
-  init_std: 2.0
+  init_time: ${diff_time_mean}  # either null (for constant init) or a float
+  init_std: ${diff_time_std}
 
 gcn_block:
   _target_: atomsurf.network_utils.GCNx2Block
