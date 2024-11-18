@@ -15,7 +15,7 @@ conda install boost=1.73.0 dssp -c conda-forge -c salilab # if this fails, it ca
 conda install cudatoolkit=11.7 -c nvidia
 conda install pytorch=1.13 torchvision torchaudio pytorch-cuda=11.7 -c pytorch -c nvidia
 conda install pyg=2.3.0 pytorch-scatter pytorch-sparse pytorch-spline-conv pytorch-cluster -c pyg
-pip install pyg-lib -f https://data.pyg.org/whl/torch-${TORCH}+${CUDA}.html
+pip install pyg-lib==0.4.0 -f https://data.pyg.org/whl/torch-1.13.0+cu117.html
 python -c "import torch; print(torch.cuda.is_available())"
 
 # Otherwise (for cpu install), pip is simpler

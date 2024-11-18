@@ -93,9 +93,13 @@ def main(cfg=None):
 
     # test
     print('*****************test best ckpt*****************')
-    trainer.test(model, ckpt_path="best", datamodule=datamodule)
+    results = trainer.test(model, ckpt_path="best", datamodule=datamodule)
+    acc_balanced_best = results[0]['accuracy_balanced/test']
+    trainer.logger.log_metrics({'accuracy_balanced/test_best': acc_balanced_best})
     print('*****************test last ckpt*****************')
-    trainer.test(model, ckpt_path="last", datamodule=datamodule)
+    results = trainer.test(model, ckpt_path="last", datamodule=datamodule)
+    acc_balanced_last = results[0]['accuracy_balanced/test']
+    trainer.logger.log_metrics({'accuracy_balanced/test_last': acc_balanced_last})
 
 
 if __name__ == "__main__":
