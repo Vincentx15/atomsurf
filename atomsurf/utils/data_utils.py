@@ -109,7 +109,8 @@ class GraphLoader:
         return graph
 
 
-def pdb_to_surf(pdb_path, surface_dump, face_reduction_rate, max_vert_number, use_pymesh=None, recompute_s=False):
+def pdb_to_surf(pdb_path, surface_dump, face_reduction_rate=0.1, max_vert_number=100000, use_pymesh=None,
+                recompute_s=False):
     """
     Wrapper code to go from a PDB to a surface
     """
