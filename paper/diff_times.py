@@ -18,7 +18,7 @@ for key, value in a['state_dict'].items():
 import numpy as np
 
 values = np.stack(values)
-np.save('../../../paper/diffusion_times.npy', values)
+np.save('diffusion_times.npy', values)
 
 arrays = np.load('diffusion_times.npy')
 # Example numpy arrays
