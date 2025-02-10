@@ -23,7 +23,7 @@ This repository is the official implementation of AtomSurf, a learnable protein 
 graphs and surfaces.
 The corresponding paper can be found on [arxiv](https://arxiv.org/abs/2309.16519).
 
-<img src="paper/pipeline_simple.jpg">
+<img src="paper/pipeline_simple.png">
 
 We provide a modular repository to preprocess pdb files into surfaces, graphs and ESM embeddings; as well as a modular
 way to define models over this data.
