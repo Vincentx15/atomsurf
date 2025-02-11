@@ -127,7 +127,7 @@ do_all(dataset, num_workers=20)
 get_esm_embedding_batch(in_pdbs_dir=pdb_dir, dump_dir=esm_dir)
 ```
 
-This results in subdirectories `surfaces/`,`atom_graphs/`,`residue_graphs/` and `esm/` holding the data expected as
+This results in subdirectories `surfaces_0.1/`,`rgraph/` and `esm_emb/` holding the data expected as
 input of our method.
 
 #### Quick peak under the hood
