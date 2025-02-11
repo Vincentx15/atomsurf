@@ -36,7 +36,6 @@ The first thing you will need is an environment.
 conda create -n atomsurf -y
 conda activate atomsurf
 conda install python=3.8
-conda install boost=1.73.0 dssp -c conda-forge -c salilab # if this fails, it can be ignored and preprocessing should be adapted
 ```
 
 Now let's install the torch/pyg dependencies !
@@ -70,13 +69,18 @@ You know have a working environment !
 
 ## Tutorial
 
-In this tutorial, we will explain:
+This tutorial covers:
 - how to go from a list of pdbs to preprocessed files
 - how to load those files into a batch of pytorch geometric objects
 - how to make a forward with our model, resulting in vector representations for each atom/residue in the graph and each vertex in the protein
 
-Beyond the toy reproduction presented in this tutorial, you can follow similar steps in each directory 
-of `atomsurf/tasks/`. A relatively simple task to follow is PSR (which only loads one protein at a time in simple regression setting).
+The concatenated code snippets can be run as a standalone python files, going from PDBs to PyTorch tensors: 
+```bash
+python example.py
+```
+
+Beyond the toy reproduction presented in this tutorial, you can follow similar steps in each directory
+of `atomsurf/tasks/`, though some tasks require a few extra adaptations. A relatively straightforward task is PSR.
 
 ### Preprocessing data
 
@@ -86,48 +90,41 @@ The first step is to produce data in a format that is compatible with our protei
 Namely, we need to produce graphs, surfaces and esm embeddings.
 
 To do so, we offer functions producing graphs and surfaces as pytorch geometric files from a PDB file (here for example,
-`1ycr.pdb`), located in a directory `./example_data/pdb/`. First set up imports and paths:
+`1ycr.pdb`), located in a directory `./example_data/pdb/`:
 
 ```python
 import os
-
-from atomsurf.protein.create_esm import compute_one_esm
+from atomsurf.protein.create_esm import get_esm_embedding_single
 from atomsurf.utils.data_utils import pdb_to_surf, pdb_to_graphs
 
+# Set up data paths
 pdb_dir = "example_data/pdb"
 surface_dir = "example_data/surfaces_0.1"
 rgraph_dir = "example_data/rgraph"
 esm_dir = "example_data/esm_emb"
+example_name = "1ycr"
 
 # Set up paths
-name = "1ycr"
-pdb_path = os.path.join(pdb_dir, f"{name}.pdb")
-surface_dump = os.path.join(surface_dir, f"{name}.pt")
-rgraph_dump = os.path.join(rgraph_dir, f"{name}.pt")
-esm_dump = os.path.join(esm_dir, f"{name}.pt")
+pdb_path = os.path.join(pdb_dir, f"{example_name}.pdb")
+surface_dump = os.path.join(surface_dir, f"{example_name}.pt")
+rgraph_dump = os.path.join(rgraph_dir, f"{example_name}.pt")
 
 # Pre-compute surface, graphs and esm embeddings
 pdb_to_surf(pdb_path, surface_dump)
 pdb_to_graphs(pdb_path, rgraph_dump=rgraph_dump)
-compute_one_esm(pdb_path, esm_dump)
+get_esm_embedding_single(pdb_path, esm_dir)
 ```
 
-In addition, we also offer a method to compute those files in parallel (hijacking pytorch dataloader):
-
-```python
-from atomsurf.utils.data_utils import PreprocessDataset
-from atomsurf.utils.python_utils import do_all
-
-dataset = PreprocessDataset(data_dir=".")
-do_all(dataset, num_workers=20)
-```
-
-Finally, we also provide similar wrappers to compute ESM embeddings.
+We also offer a method to compute those files in parallel (hijacking pytorch dataloader):
 
 ```python
 from atomsurf.protein.create_esm import get_esm_embedding_batch
+from atomsurf.utils.data_utils import PreprocessDataset
+from atomsurf.utils.python_utils import do_all
 
-get_esm_embedding_batch(in_pdbs_dir="./pdbs", dump_dir="./esm", batch_size=4)
+dataset = PreprocessDataset(data_dir="example_data")
+do_all(dataset, num_workers=20)
+get_esm_embedding_batch(in_pdbs_dir=pdb_dir, dump_dir=esm_dir)
 ```
 
 This results in subdirectories `surfaces/`,`atom_graphs/`,`residue_graphs/` and `esm/` holding the data expected as
@@ -149,30 +146,55 @@ that handles loading named features and one-hot encoded features, and stacking t
 
 ### Loading preprocessed data
 
-We now expect you to have files containing surface, graphs and esm embeddings. 
-Those can be loaded by utility classes, dynamically selecting what data to use.
+We now expect you to have files containing surface, graphs and esm embeddings.
+We provide a default loader that returns the typical input to our default network.
+You can also load the data with utility classes that dynamically select which data to use.
 
 We also provide a class `AtomBatch` to batch proteins as follows:
+
 ```python
 from torch_geometric.data import Data
 from atomsurf.utils.data_utils import SurfaceLoader, GraphLoader, AtomBatch
-cfg_surface = Data(data_dir=".", data_name='surfaces_0.1_False', feat_keys='all', oh_keys='all')
-cfg_graph = Data(data_dir='.', data_name='residue_graph', feat_keys='all', oh_keys=['amino_acid'])
-surf_loader = SurfaceLoader(cfg_surface)
-graph_loader = GraphLoader(cfg_surface)
+from atomsurf.utils.wrappers import DefaultLoader
 
-surface = surf_loader.load("1ycr")
-graph = graph_loader.load("1ycr")
+# Load precomputed files
+default_loader = DefaultLoader(surface_dir=surface_dir, graph_dir=rgraph_dir, embeddings_dir=esm_dir)
+surface, graph = default_loader(example_name)
+
+# Artifically group in a container and "batch"
 protein = Data(surface=surface, graph=graph)
 batch = AtomBatch.from_data_list([protein, protein])
+print(batch)
 ```
 
 ### Encoding a data batch
 
-#### Defining an encoder
+#### Using the default encoder
+
+We provide a function to get our default model, used throughout our published results. 
+This is the quickest way to encode our protein batch.
+
+```python
+from atomsurf.utils.wrappers import get_default_model
+
+# Instantiate a model, based on the dimensionality of the input
+in_dim_surface, in_dim_graph = surface.x.shape[-1], graph.x.shape[-1]
+atomsurf_model = get_default_model(in_dim_surface, in_dim_graph, model_dim=12)
+
+# Encode your input batch !
+surface, graph = atomsurf_model(graph=batch.graph, surface=batch.surface)
+surface.x  # (total_n_verts, hidden_dim)
+graph.x  # (total_n_nodes, hidden_dim)
+print(graph.x.shape)
+```
+
+You now have trainable embeddings! 
+
+#### Defining a custom encoder
 
 The encoder holds many architectural choices organized as building blocks.
-We have encoded those building blocks as yaml files in `tasks/shared_conf/block_zoo*.yaml`.
+To go beyond our default choice and experiment with different model designs, 
+we have encoded those building blocks as yaml files in `tasks/shared_conf/block_zoo*.yaml`.
 Whence, to easily create a model, one should first set up a configuration file including this:
 
 ```yaml
@@ -206,11 +228,10 @@ def main(cfg=None):
     prot_encoder = ProteinEncoder(cfg.encoder)
 ```
 
-The models can be easily adapted without touching python code and just by defining yaml blocks.
+The models can be easily adapted by defining yaml blocks, without touching python code.
 This allows for easy model exploration, potentially relying on hydra functionality, such as running:
 `python train.py model_hdim=64` to set the hidden dimension dynamically.
 
-However, we are working on creating a default model class to avoid those steps.
 
 Assuming we have a batch (from the above section), we can now encode our protein simply by running the following:
 ```python

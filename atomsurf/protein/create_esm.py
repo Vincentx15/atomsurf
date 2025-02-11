@@ -92,12 +92,11 @@ class PreProcessPDBDataset(Dataset):
 
 
 def get_esm_embedding_batch(in_pdbs_dir, dump_dir, num_workers=4, batch_size=8, recompute=False):
-    dataset = PreProcessPDBDataset(in_pdbs_dir, dump_dir)
+    dataset = PreProcessPDBDataset(in_pdbs_dir, dump_dir, recompute=recompute)
     dataloader = DataLoader(dataset,
-        recompute=recompute,
-        collate_fn=lambda samples: samples,
-        num_workers=num_workers,
-        batch_size=batch_size)
+                            collate_fn=lambda samples: samples,
+                            num_workers=num_workers,
+                            batch_size=batch_size)
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     model, alphabet = esm.pretrained.esm2_t33_650M_UR50D()

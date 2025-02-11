@@ -9,19 +9,26 @@ class ProteinEncoder(nn.Module):
     Just piping protein encoder blocks
     """
 
-    def __init__(self, cfg):
+    def __init__(self, cfg=None):
         super().__init__()
         self.cfg = cfg
         block_list = []
-        for x in cfg.blocks:
-            block = hydra.utils.instantiate(x)
-            block_list.append(block)
+        if cfg is not None:
+            for x in cfg.blocks:
+                block = hydra.utils.instantiate(x)
+                block_list.append(block)
         self.blocks = nn.ModuleList(block_list)
 
     def forward(self, surface=None, graph=None):
         for block in self.blocks:
             surface, graph = block(surface, graph)
         return surface, graph
+
+    @classmethod
+    def from_blocks_list(cls, block_list):
+        encoder = cls()
+        encoder.blocks = nn.ModuleList(block_list)
+        return encoder
 
 
 class ProteinEncoderBlock(nn.Module):
