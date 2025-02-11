@@ -78,7 +78,7 @@ class PreprocessPIPDataset(PreprocessDataset):
             data_dir = os.path.join(data_dir, mode)
 
         super().__init__(data_dir=data_dir, recompute_s=recompute_s, recompute_g=recompute_g,
-                         max_vert_number=max_vert_number, face_reduction_rate=face_reduction_rate)
+            max_vert_number=max_vert_number, face_reduction_rate=face_reduction_rate)
         self.all_pdbs = self.get_all_pdbs()
 
     def __getitem__(self, idx):
@@ -97,9 +97,9 @@ if __name__ == '__main__':
         # do_all(dataset, num_workers=20)
 
         dataset = PreprocessPIPDataset(mode=mode,
-                                       face_reduction_rate=0.1,
-                                       recompute_g=recompute,
-                                       recompute_s=recompute)
+            face_reduction_rate=0.1,
+            recompute_g=recompute,
+            recompute_s=recompute)
         do_all(dataset, num_workers=20)
 
         script_dir = os.path.dirname(os.path.realpath(__file__))

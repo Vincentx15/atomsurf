@@ -11,9 +11,10 @@ if __name__ == '__main__':
     sys.path.append(os.path.join(script_dir, '..', '..'))
 
 from atomsurf.protein.graphs import quick_pdb_to_seq, res_type_idx_to_1
+from atomsurf.utils.python_utils import makedirs_path
 
 
-def compute_one(pdb_path, outpath=None, model_objs=None):
+def compute_one_esm(pdb_path, outpath=None, model_objs=None):
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     if model_objs is None:
         model, alphabet = esm.pretrained.esm2_t33_650M_UR50D()
@@ -33,7 +34,8 @@ def compute_one(pdb_path, outpath=None, model_objs=None):
     embed = results['representations'][33][:, 1:-1, :][0]
     embed = embed.cpu()
     if outpath is not None:
-        torch.save(embed, outpath)
+        makedirs_path(outpath)
+        torch.save(embed, open(outpath, 'wb'))
     return embed
 
 
@@ -45,7 +47,7 @@ def get_esm_embedding_single(pdb_path, esm_path=None, recompute=False, model_obj
     if esm_path is not None and not recompute and os.path.exists(embs_path):
         embed = torch.load(embs_path)
     else:
-        embed = compute_one(pdb_path, outpath=embs_path, model_objs=model_objs)
+        embed = compute_one_esm(pdb_path, outpath=embs_path, model_objs=model_objs)
     return embed
 
 
@@ -92,10 +94,10 @@ class PreProcessPDBDataset(Dataset):
 def get_esm_embedding_batch(in_pdbs_dir, dump_dir, num_workers=4, batch_size=8, recompute=False):
     dataset = PreProcessPDBDataset(in_pdbs_dir, dump_dir)
     dataloader = DataLoader(dataset,
-                            recompute=recompute,
-                            collate_fn=lambda samples: samples,
-                            num_workers=num_workers,
-                            batch_size=batch_size)
+        recompute=recompute,
+        collate_fn=lambda samples: samples,
+        num_workers=num_workers,
+        batch_size=batch_size)
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     model, alphabet = esm.pretrained.esm2_t33_650M_UR50D()

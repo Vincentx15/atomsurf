@@ -14,6 +14,7 @@ if __name__ == '__main__':
     sys.path.append(os.path.join(script_dir, '..', '..'))
 
 import atomsurf.utils.torch_utils as diff_utils
+from atomsurf.utils.python_utils import makedirs_path
 from atomsurf.protein.features import Features, FeaturesHolder
 
 
@@ -110,31 +111,32 @@ class SurfaceObject(Data, FeaturesHolder):
     def save(self, npz_path):
         self.numpy()
         np.savez(npz_path,
-                 verts=self.verts,
-                 faces=self.faces,
-                 mass_data=self.mass.data,
-                 mass_indices=self.mass.indices,
-                 mass_indptr=self.mass.indptr,
-                 mass_shape=self.mass.shape,
-                 L_data=self.L.data,
-                 L_indices=self.L.indices,
-                 L_indptr=self.L.indptr,
-                 L_shape=self.L.shape,
-                 evals=self.evals,
-                 evecs=self.evecs,
-                 vnormals=self.vnormals,
-                 gradX_data=self.gradX.data,
-                 gradX_indices=self.gradX.indices,
-                 gradX_indptr=self.gradX.indptr,
-                 gradX_shape=self.gradX.shape,
-                 gradY_data=self.gradY.data,
-                 gradY_indices=self.gradY.indices,
-                 gradY_indptr=self.gradY.indptr,
-                 gradY_shape=self.gradY.shape,
-                 )
+            verts=self.verts,
+            faces=self.faces,
+            mass_data=self.mass.data,
+            mass_indices=self.mass.indices,
+            mass_indptr=self.mass.indptr,
+            mass_shape=self.mass.shape,
+            L_data=self.L.data,
+            L_indices=self.L.indices,
+            L_indptr=self.L.indptr,
+            L_shape=self.L.shape,
+            evals=self.evals,
+            evecs=self.evecs,
+            vnormals=self.vnormals,
+            gradX_data=self.gradX.data,
+            gradX_indices=self.gradX.indices,
+            gradX_indptr=self.gradX.indptr,
+            gradX_shape=self.gradX.shape,
+            gradY_data=self.gradY.data,
+            gradY_indices=self.gradY.indices,
+            gradY_indptr=self.gradY.indptr,
+            gradY_shape=self.gradY.shape,
+        )
 
     def save_torch(self, torch_path):
         self.from_numpy()
+        makedirs_path(torch_path)
         torch.save(self, open(torch_path, 'wb'))
 
     @classmethod
@@ -146,12 +148,12 @@ class SurfaceObject(Data, FeaturesHolder):
         mass, L, evals, evecs, vnormals, gradX, gradY = load_operators(npz_file)
 
         return cls(verts=verts, faces=faces,
-                   mass=mass, L=L, evals=evals, evecs=evecs, vnormals=vnormals, gradX=gradX, gradY=gradY)
+            mass=mass, L=L, evals=evals, evecs=evecs, vnormals=vnormals, gradX=gradX, gradY=gradY)
 
     def add_geom_feats(self):
         self.numpy()
         geom_feats = get_geom_feats(verts=self.verts, faces=self.faces, evecs=self.evecs, evals=self.evals,
-                                    vnormals=self.vnormals)
+            vnormals=self.vnormals)
         self.features.add_named_features('geom_feats', geom_feats)
 
     @classmethod
@@ -168,19 +170,19 @@ class SurfaceObject(Data, FeaturesHolder):
         verts = diff_utils.toNP(verts)
         faces = diff_utils.toNP(faces).astype(int)
         verts, faces = mesh_simplification(verts=verts,
-                                           faces=faces,
-                                           out_ply=out_ply_path,
-                                           face_reduction_rate=face_reduction_rate,
-                                           min_vert_number=min_vert_number,
-                                           max_vert_number=max_vert_number,
-                                           use_pymesh=use_pymesh)
+            faces=faces,
+            out_ply=out_ply_path,
+            face_reduction_rate=face_reduction_rate,
+            min_vert_number=min_vert_number,
+            max_vert_number=max_vert_number,
+            use_pymesh=use_pymesh)
         vnormals = igl.per_vertex_normals(verts, faces)
         frames, massvec, L, evals, evecs, gradX, gradY = compute_operators(verts, faces,
-                                                                           normals=vnormals,
-                                                                           use_fem_decomp=use_fem_decomp)
+            normals=vnormals,
+            use_fem_decomp=use_fem_decomp)
 
         surface = cls(verts=verts, faces=faces, mass=massvec, L=L, evals=evals,
-                      evecs=evecs, gradX=gradX, gradY=gradY, vnormals=vnormals)
+            evecs=evecs, gradX=gradX, gradY=gradY, vnormals=vnormals)
         return surface
 
     @classmethod
@@ -282,12 +284,12 @@ if __name__ == "__main__":
     surface_hmr = SurfaceObject.from_verts_faces(verts, faces, use_fem_decomp=False)
 
     surface_1ycr_large = SurfaceObject.from_pdb_path("../../data/example_files/1ycr_A.pdb", use_fem_decomp=False,
-                                              face_reduction_rate=1.)
+        face_reduction_rate=1.)
     surface_file_torch = "../../data/example_files/1ycr_large.pt"
     surface_1ycr_large.save_torch(surface_file_torch)
 
     surface_1ycr_small = SurfaceObject.from_pdb_path("../../data/example_files/1ycr_A.pdb", use_fem_decomp=False,
-                                              face_reduction_rate=0.1)
+        face_reduction_rate=0.1)
     surface_file_torch = "../../data/example_files/1ycr_small.pt"
     surface_1ycr_small.save_torch(surface_file_torch)
     a = 1

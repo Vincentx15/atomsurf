@@ -12,6 +12,7 @@ from atomsurf.protein.surfaces import SurfaceObject, SurfaceBatch
 from atomsurf.protein.graphs import parse_pdb_path, parse_pdb_path_nopqr
 from atomsurf.protein.atom_graph import AtomGraph, AGraphBatch, AtomGraphBuilder
 from atomsurf.protein.residue_graph import ResidueGraph, RGraphBatch, ResidueGraphBuilder
+from atomsurf.utils.python_utils import makedirs_path
 
 
 class GaussianDistance(object):
@@ -58,9 +59,9 @@ class SurfaceLoader:
             surface.set_vnormals()
             with torch.no_grad():
                 surface.expand_features(remove_feats=True,
-                                        feature_keys=self.config.feat_keys,
-                                        oh_keys=self.config.oh_keys,
-                                        feature_expander=self.feature_expander)
+                    feature_keys=self.config.feat_keys,
+                    oh_keys=self.config.oh_keys,
+                    feature_expander=self.feature_expander)
             if torch.isnan(surface.x).any() or torch.isnan(surface.verts).any():
                 return None
             return surface
@@ -78,8 +79,8 @@ class GraphLoader:
     def __init__(self, config):
         self.config = config
         self.data_dir = os.path.join(config.data_dir, config.data_name)
-        self.esm_dir = config.esm_dir
         self.use_esm = config.use_esm
+        self.esm_dir = config.esm_dir
         self.feature_expander = None
 
     def load(self, graph_name):
@@ -99,9 +100,9 @@ class GraphLoader:
                     feature_keys.append('esm_feats')
             with torch.no_grad():
                 graph.expand_features(remove_feats=True,
-                                      feature_keys=feature_keys,
-                                      oh_keys=self.config.oh_keys,
-                                      feature_expander=self.feature_expander)
+                    feature_keys=feature_keys,
+                    oh_keys=self.config.oh_keys,
+                    feature_expander=self.feature_expander)
             if torch.isnan(graph.x).any() or torch.isnan(graph.node_pos).any():
                 return None
         except Exception:
@@ -118,7 +119,7 @@ def pdb_to_surf(pdb_path, surface_dump, face_reduction_rate=0.1, max_vert_number
         if recompute_s or not os.path.exists(surface_dump):
             use_pymesh = False if use_pymesh is None else use_pymesh
             surface = SurfaceObject.from_pdb_path(pdb_path, face_reduction_rate=face_reduction_rate,
-                                                  use_pymesh=use_pymesh, max_vert_number=max_vert_number)
+                use_pymesh=use_pymesh, max_vert_number=max_vert_number)
             surface.add_geom_feats()
             surface.save_torch(surface_dump)
         success = 1
@@ -128,27 +129,29 @@ def pdb_to_surf(pdb_path, surface_dump, face_reduction_rate=0.1, max_vert_number
     return success
 
 
-def pdb_to_graphs(pdb_path, agraph_dump, rgraph_dump, recompute_g=False):
+def pdb_to_graphs(pdb_path, agraph_dump=None, rgraph_dump=None, recompute_g=False):
     """
     Wrapper code to go from a PDB to an AtomGraph and a ResidueGraph
     """
     try:
-        if recompute_g or not os.path.exists(agraph_dump) or not os.path.exists(rgraph_dump):
-            # arrays = parse_pdb_path(pdb_path)
-            # create atomgraph
-            # if recompute_g or not os.path.exists(agraph_dump):
-            #     agraph = AtomGraphBuilder().arrays_to_agraph(arrays)
-            #     torch.save(agraph, open(agraph_dump, 'wb'))
-
-            # create residuegraph
+        do_rgraphs = rgraph_dump is not None and (recompute_g or not os.path.exists(rgraph_dump))
+        do_agraphs = agraph_dump is not None and (recompute_g or not os.path.exists(agraph_dump))
+        if do_rgraphs or do_agraphs:
             try:
                 arrays = parse_pdb_path_nopqr(pdb_path)
             except:
                 print('Trying to use pqr to fix sse')
                 arrays = parse_pdb_path(pdb_path)
-            if recompute_g or not os.path.exists(rgraph_dump):
+            # create residuegraph
+            if do_rgraphs:
                 rgraph = ResidueGraphBuilder(add_pronet=True, add_esm=False).arrays_to_resgraph(arrays)
+                makedirs_path(rgraph_dump)
                 torch.save(rgraph, open(rgraph_dump, 'wb'))
+            # create atomgraph
+            if do_agraphs:
+                agraph = AtomGraphBuilder().arrays_to_agraph(arrays)
+                makedirs_path(agraph_dump)
+                torch.save(agraph, open(agraph_dump, 'wb'))
         success = 1
     except Exception as e:
         print('pdb_to_graph failed for : ', pdb_path, e)
@@ -163,7 +166,7 @@ class PreprocessDataset(Dataset):
     those files and generate rgraphs/ agraphs/ and surfaces/ directories and files.
     """
 
-    def __init__(self, data_dir, recompute_s=False, recompute_g=False,
+    def __init__(self, data_dir, recompute_s=False, recompute_g=False, do_agraph=False,
                  max_vert_number=100000, face_reduction_rate=0.1, use_pymesh=None):
         self.pdb_dir = os.path.join(data_dir, 'pdb')
 
@@ -173,17 +176,20 @@ class PreprocessDataset(Dataset):
         self.use_pymesh = use_pymesh
         surface_dirname = f'surfaces_{face_reduction_rate}{f"_{use_pymesh}" if use_pymesh is not None else ""}'
         self.out_surf_dir = os.path.join(data_dir, surface_dirname)
+        os.makedirs(self.out_surf_dir, exist_ok=True)
 
         # Graph dirs
         self.out_rgraph_dir = os.path.join(data_dir, 'rgraph')
-        self.out_agraph_dir = os.path.join(data_dir, 'agraph')
-
-        # Setup
-        os.makedirs(self.out_surf_dir, exist_ok=True)
         os.makedirs(self.out_rgraph_dir, exist_ok=True)
-        os.makedirs(self.out_agraph_dir, exist_ok=True)
+
+        self.do_agraph = do_agraph
+        if do_agraph:
+            self.out_agraph_dir = os.path.join(data_dir, 'agraph')
+            os.makedirs(self.out_agraph_dir, exist_ok=True)
+
         self.recompute_s = recompute_s
         self.recompute_g = recompute_g
+        self.all_pdbs = self.get_all_pdbs()
 
     def get_all_pdbs(self):
         pdb_list = sorted([file_name for file_name in os.listdir(self.pdb_dir) if '.pdb' in file_name])
@@ -194,10 +200,10 @@ class PreprocessDataset(Dataset):
 
     def path_to_surf(self, pdb_path, surface_dump):
         return pdb_to_surf(pdb_path, surface_dump,
-                           face_reduction_rate=self.face_reduction_rate,
-                           max_vert_number=self.max_vert_number,
-                           use_pymesh=self.use_pymesh,
-                           recompute_s=self.recompute_s)
+            face_reduction_rate=self.face_reduction_rate,
+            max_vert_number=self.max_vert_number,
+            use_pymesh=self.use_pymesh,
+            recompute_s=self.recompute_s)
 
     def path_to_graphs(self, pdb_path, agraph_dump, rgraph_dump):
         return pdb_to_graphs(pdb_path, agraph_dump, rgraph_dump, recompute_g=self.recompute_g)
@@ -214,7 +220,7 @@ class PreprocessDataset(Dataset):
 
     def name_to_graphs(self, name):
         pdb_path = os.path.join(self.pdb_dir, f'{name}.pdb')
-        agraph_dump = os.path.join(self.out_agraph_dir, f'{name}.pt')
+        agraph_dump = os.path.join(self.out_agraph_dir, f'{name}.pt') if self.do_agraph else None
         rgraph_dump = os.path.join(self.out_rgraph_dir, f'{name}.pt')
         return self.path_to_graphs(pdb_path, agraph_dump, rgraph_dump)
 
@@ -222,6 +228,12 @@ class PreprocessDataset(Dataset):
         success1 = self.name_to_surf(name)
         success2 = self.name_to_graphs(name)
         return success1 and success2
+
+    def __getitem__(self, idx):
+        pdb = self.all_pdbs[idx]
+        name = pdb[0:-4]
+        success = self.name_to_surf_graphs(name)
+        return success
 
 
 class AtomBatch(Data):

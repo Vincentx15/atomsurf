@@ -86,19 +86,30 @@ The first step is to produce data in a format that is compatible with our protei
 Namely, we need to produce graphs, surfaces and esm embeddings.
 
 To do so, we offer functions producing graphs and surfaces as pytorch geometric files from a PDB file (here for example,
-`1ycr.pdb`), located in a directory `./pdbs/`:
+`1ycr.pdb`), located in a directory `./example_data/pdb/`. First set up imports and paths:
 
 ```python
 import os
+
+from atomsurf.protein.create_esm import compute_one_esm
 from atomsurf.utils.data_utils import pdb_to_surf, pdb_to_graphs
 
-name = "1ycr.pdb"
-pdb_path = os.path.join("pdbs", f"{name}.pdb")
-surface_dump = os.path.join("surfaces", f"{name}.pt")
-agraph_dump = os.path.join("atom_graphs", f"{name}.pt")
-rgraph_dump = os.path.join("residue_graphs", f"{name}.pt")
+pdb_dir = "example_data/pdb"
+surface_dir = "example_data/surfaces_0.1"
+rgraph_dir = "example_data/rgraph"
+esm_dir = "example_data/esm_emb"
+
+# Set up paths
+name = "1ycr"
+pdb_path = os.path.join(pdb_dir, f"{name}.pdb")
+surface_dump = os.path.join(surface_dir, f"{name}.pt")
+rgraph_dump = os.path.join(rgraph_dir, f"{name}.pt")
+esm_dump = os.path.join(esm_dir, f"{name}.pt")
+
+# Pre-compute surface, graphs and esm embeddings
 pdb_to_surf(pdb_path, surface_dump)
-pdb_to_graphs(pdb_path, agraph_dump, rgraph_dump)
+pdb_to_graphs(pdb_path, rgraph_dump=rgraph_dump)
+compute_one_esm(pdb_path, esm_dump)
 ```
 
 In addition, we also offer a method to compute those files in parallel (hijacking pytorch dataloader):
@@ -145,7 +156,7 @@ We also provide a class `AtomBatch` to batch proteins as follows:
 ```python
 from torch_geometric.data import Data
 from atomsurf.utils.data_utils import SurfaceLoader, GraphLoader, AtomBatch
-cfg_surface = Data(data_dir="surfaces", feat_keys='all', oh_keys=['amino_acid'])
+cfg_surface = Data(data_dir=".", data_name='surfaces_0.1_False', feat_keys='all', oh_keys='all')
 cfg_graph = Data(data_dir='.', data_name='residue_graph', feat_keys='all', oh_keys=['amino_acid'])
 surf_loader = SurfaceLoader(cfg_surface)
 graph_loader = GraphLoader(cfg_surface)

@@ -81,12 +81,6 @@ class PreprocessPIPDataset(PreprocessDataset):
                          max_vert_number=max_vert_number, face_reduction_rate=face_reduction_rate)
         self.all_pdbs = self.get_all_pdbs()
 
-    def __getitem__(self, idx):
-        pdb = self.all_pdbs[idx]
-        name = pdb[0:-4]
-        success = self.name_to_surf_graphs(name)
-        return success
-
 
 if __name__ == '__main__':
     pass

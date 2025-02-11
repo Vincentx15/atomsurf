@@ -59,15 +59,9 @@ class PreprocessPSRDataset(PreprocessDataset):
             data_dir = os.path.join(data_dir, mode)
 
         super().__init__(data_dir=data_dir, recompute_s=recompute_s, recompute_g=recompute_g,
-                         max_vert_number=max_vert_number, face_reduction_rate=face_reduction_rate)
+            max_vert_number=max_vert_number, face_reduction_rate=face_reduction_rate)
 
         self.all_pdbs = self.get_all_pdbs()
-
-    def __getitem__(self, idx):
-        pdb = self.all_pdbs[idx]
-        name = pdb[0:-4]
-        success = self.name_to_surf_graphs(name)
-        return success
 
 
 if __name__ == '__main__':
@@ -83,12 +77,12 @@ if __name__ == '__main__':
         manager = mp.Manager()
         shared_dict = manager.dict()
         dataset = ExtractPSRpdbDataset(shared_score_dict=shared_dict, data_dir=data_dir, mode=mode,
-                                       recompute=recompute_pdb)
+            recompute=recompute_pdb)
         do_all(dataset, num_workers=20, max_sys=20)
         shared_score_dict = dict(sorted(dataset.shared_score_dict.items()))
         with open(os.path.join(data_dir, mode, mode + '_score.json'), "w") as outfile:
             json.dump(shared_score_dict, outfile)
 
         dataset = PreprocessPSRDataset(data_dir=data_dir, recompute_s=recompute_s, recompute_g=recompute_g, mode=mode,
-                                       max_vert_number=100000, face_reduction_rate=0.1)
+            max_vert_number=100000, face_reduction_rate=0.1)
         do_all(dataset, num_workers=20)
