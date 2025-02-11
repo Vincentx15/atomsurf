@@ -115,27 +115,31 @@ def extract_chains(input_pdb, output_pdb, chains_to_extract, recompute=False, ve
         print(f"Chains {', '.join(chains_to_extract)} extracted and saved to {output_pdb}")
 
 
-def parse_pdb_path(pdb_path):
-    pdb2pqr_bin = shutil.which('pdb2pqr')
-    if pdb2pqr_bin is None:
-        raise RuntimeError('pdb2pqr executable not found')
+def parse_pdb_path(pdb_path, use_pqr=True):
+    if use_pqr:
+        pdb2pqr_bin = shutil.which('pdb2pqr')
+        if pdb2pqr_bin is None:
+            raise RuntimeError('pdb2pqr executable not found')
 
-    pdb_path = Path(pdb_path)
-    # process pqr
-    out_dir = pdb_path.parent
-    pdb_id = pdb_path.stem
-    pqr_path = Path(out_dir / f'{pdb_id}.pqr')
-    pqr_log_path = Path(out_dir / f'{pdb_id}.log')
-    if not pqr_path.exists():
-        cmd = [pdb2pqr_bin, '--ff=AMBER', str(pdb_path), str(pqr_path), '--keep-chain']
-        proc = Popen(cmd, stdout=PIPE, stderr=PIPE)
-        stdout, stderr = proc.communicate()
-        err = stderr.decode('utf-8').strip('\n')
-        if 'CRITICAL' in err:
-            print(f'{pdb_id} pdb2pqr failed', flush=True)
-            return None, None, None, None, None, None, None, None, None, None, None
-    parser = PDBParser(QUIET=True, is_pqr=True)
-    structure = parser.get_structure("toto", pqr_path)
+        pdb_path = Path(pdb_path)
+        # process pqr
+        out_dir = pdb_path.parent
+        pdb_id = pdb_path.stem
+        pqr_path = Path(out_dir / f'{pdb_id}.pqr')
+        pqr_log_path = Path(out_dir / f'{pdb_id}.log')
+        if not pqr_path.exists():
+            cmd = [pdb2pqr_bin, '--ff=AMBER', str(pdb_path), str(pqr_path), '--keep-chain']
+            proc = Popen(cmd, stdout=PIPE, stderr=PIPE)
+            stdout, stderr = proc.communicate()
+            err = stderr.decode('utf-8').strip('\n')
+            if 'CRITICAL' in err:
+                print(f'{pdb_id} pdb2pqr failed', flush=True)
+                return None, None, None, None, None, None, None, None, None, None, None
+        parser = PDBParser(QUIET=True, is_pqr=True)
+        structure = parser.get_structure("toto", pqr_path)
+    else:
+        parser = PDBParser(QUIET=True)
+        structure = parser.get_structure("toto", pdb_path)
 
     amino_types = []  # size: (n_amino,)
     atom_chain_id = []  # size:(n_atom,)
@@ -179,9 +183,10 @@ def parse_pdb_path(pdb_path):
             atom_names.append(atom.get_name())
             atom_pos.append(atom.get_coord())
             atom_amino_id.append(res_id)
-            atom_charge.append(atom.get_charge())
-            atom_radius.append(atom.get_radius())
             atom_ids.append(res_unique_id + "_" + atom.get_id())
+            if use_pqr:
+                atom_charge.append(atom.get_charge())
+                atom_radius.append(atom.get_radius())
 
         res_id += 1
     amino_types = np.asarray(amino_types, dtype=np.int32)
@@ -190,107 +195,33 @@ def parse_pdb_path(pdb_path):
     atom_names = np.asarray(atom_names)
     atom_types = np.asarray(atom_types, dtype=np.int32)
     atom_pos = np.asarray(atom_pos, dtype=np.float32)
-    atom_charge = np.asarray(atom_charge, dtype=np.float32)
-    atom_radius = np.asarray(atom_radius, dtype=np.float32)
+    atom_charge = np.asarray(atom_charge, dtype=np.float32) if use_pqr else None
+    atom_radius = np.asarray(atom_radius, dtype=np.float32) if use_pqr else None
     amino_ids = np.asarray(amino_ids)
     atom_ids = np.asarray(atom_ids)
 
     # We need to dump this adapted pdb with new coordinates and missing atoms
-    from Bio.PDB.PDBIO import PDBIO
-    io = PDBIO()
-    io.set_structure(structure)
-    pqrpdbpath = str(pqr_path) + 'pdb'
-    io.save(pqrpdbpath)
+    if use_pqr:
+        from Bio.PDB.PDBIO import PDBIO
+        io = PDBIO()
+        io.set_structure(structure)
+        pqrpdbpath = str(pqr_path) + 'pdb'
+        io.save(pqrpdbpath)
+        p = PDBParser(QUIET=True)
+        structure = p.get_structure("test", pqrpdbpath)
 
-    # process DSSP
-    p = PDBParser(QUIET=True)
-    structure = p.get_structure("test", pqrpdbpath)[0]
-    dssp = DSSP(structure, pqrpdbpath, file_type="PDB")
-    res_sse = np.array([SSE_type_dict[dssp[key][2]] for key in list(dssp.keys())])
-    os.remove(pqr_path)
-    os.remove(pqr_log_path)
-    os.remove(pqrpdbpath)
-    return amino_types, atom_chain_id, atom_amino_id, atom_names, atom_types, atom_pos, atom_charge, atom_radius, res_sse, amino_ids, atom_ids
+    # process DSSP, if installed and not buggy
+    try:
+        dssp = DSSP(structure[0], pqrpdbpath if use_pqr else pdb_path, file_type="PDB")
+        res_sse = np.array([SSE_type_dict[dssp[key][2]] for key in list(dssp.keys())])
+        assert len(res_sse) == sum(atom_names == 'CA')
+    except Exception as e:
+        res_sse = np.zeros_like(amino_ids)
 
-
-def parse_pdb_path_nopqr(pdb_path):
-    parser = PDBParser(QUIET=True)
-    structure = parser.get_structure("toto", pdb_path)
-
-    amino_types = []  # size: (n_amino,)
-    atom_chain_id = []  # size:(n_atom,)
-    atom_amino_id = []  # size: (n_atom,)
-    atom_names = []  # size: (n_atom,)
-    atom_types = []  # size: (n_atom,)
-    atom_pos = []  # size: (n_atom,3)
-    # atom_charge = []  # size: (n_atom,1)
-    # atom_radius = []  # size: (n_atom,1)
-    amino_ids = []  # size: (n_amino,) 1 letter AA type + seq position in PDB file, not used as features
-    atom_ids = []  # size: (n_atom,) 1 letter AA type + seq position in PDB + atom name, not used as features
-    res_id = 0
-    for residue in structure.get_residues():
-        for atom in residue.get_atoms():
-            # Add occupancy to write as pdb
-            atom.set_occupancy(1.0)
-            atom.set_bfactor(1.0)
-
-        # HETATM
-        if residue.id[0] != " ":
-            continue
-        resname = residue.get_resname()
-        res_pdb_pos = residue.get_id()[1]
-        # resname = protein_letters_3to1[resname.title()]
-        if resname.upper() not in res_type_dict:
-            resname = 'UNK'
-        resname = res_type_dict[resname.upper()]
-        res_unique_id = res_type_idx_to_1[resname] + str(res_pdb_pos)
-        amino_types.append(resname)
-        amino_ids.append(res_unique_id)
-
-        for atom in residue.get_atoms():
-            # Skip H
-            element = atom.element
-            if atom.get_name().startswith("H"):
-                continue
-            if not element in atom_type_dict:
-                element = 'UNK'
-            atom_chain_id.append(residue.full_id[2])
-            atom_types.append(atom_type_dict[element])
-            atom_names.append(atom.get_name())
-            atom_pos.append(atom.get_coord())
-            atom_amino_id.append(res_id)
-            # atom_charge.append(atom.get_charge())
-            # atom_radius.append(atom.get_radius())
-            atom_ids.append(res_unique_id + "_" + atom.get_id())
-
-        res_id += 1
-    amino_types = np.asarray(amino_types, dtype=np.int32)
-    atom_chain_id = np.asarray(atom_chain_id)
-    atom_amino_id = np.asarray(atom_amino_id, dtype=np.int32)
-    atom_names = np.asarray(atom_names)
-    atom_types = np.asarray(atom_types, dtype=np.int32)
-    atom_pos = np.asarray(atom_pos, dtype=np.float32)
-    # atom_charge = np.asarray(atom_charge, dtype=np.float32)
-    # atom_radius = np.asarray(atom_radius, dtype=np.float32)
-    amino_ids = np.asarray(amino_ids)
-    atom_ids = np.asarray(atom_ids)
-
-    # We need to dump this adapted pdb with new coordinates and missing atoms
-    # from Bio.PDB.PDBIO import PDBIO
-    # io = PDBIO()
-    # io.set_structure(structure)
-    # pqrpdbpath = str(pqr_path) + 'pdb'
-    # io.save(pqrpdbpath)
-
-    # process DSSP
-    dssp = DSSP(structure[0], pdb_path, file_type="PDB")
-    res_sse = np.array([SSE_type_dict[dssp[key][2]] for key in list(dssp.keys())])
-    assert len(res_sse) == sum(atom_names == 'CA')
-    # os.remove(pqr_path)
-    # os.remove(pqr_log_path)
-    # os.remove(pqrpdbpath)
-    atom_charge = None
-    atom_radius = None
+    if use_pqr:
+        os.remove(pqr_path)
+        os.remove(pqr_log_path)
+        os.remove(pqrpdbpath)
     return amino_types, atom_chain_id, atom_amino_id, atom_names, atom_types, atom_pos, atom_charge, atom_radius, res_sse, amino_ids, atom_ids
 
 

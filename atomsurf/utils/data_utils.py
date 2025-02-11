@@ -9,7 +9,7 @@ from torch_geometric.data import Batch
 from torch_sparse import SparseTensor
 
 from atomsurf.protein.surfaces import SurfaceObject, SurfaceBatch
-from atomsurf.protein.graphs import parse_pdb_path, parse_pdb_path_nopqr
+from atomsurf.protein.graphs import parse_pdb_path
 from atomsurf.protein.atom_graph import AtomGraph, AGraphBatch, AtomGraphBuilder
 from atomsurf.protein.residue_graph import ResidueGraph, RGraphBatch, ResidueGraphBuilder
 from atomsurf.utils.python_utils import makedirs_path
@@ -138,7 +138,7 @@ def pdb_to_graphs(pdb_path, agraph_dump=None, rgraph_dump=None, recompute_g=Fals
         do_agraphs = agraph_dump is not None and (recompute_g or not os.path.exists(agraph_dump))
         if do_rgraphs or do_agraphs:
             try:
-                arrays = parse_pdb_path_nopqr(pdb_path)
+                arrays = parse_pdb_path(pdb_path, use_pqr=False)
             except:
                 print('Trying to use pqr to fix sse')
                 arrays = parse_pdb_path(pdb_path)
