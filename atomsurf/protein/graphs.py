@@ -167,7 +167,7 @@ def parse_pdb_path(pdb_path, use_pqr=True):
         if resname.upper() not in res_type_dict:
             resname = 'UNK'
         resname = res_type_dict[resname.upper()]
-        res_unique_id = res_type_idx_to_1[resname] + str(res_pdb_pos)
+        res_unique_id = f"{residue.full_id[2]}:{res_type_idx_to_1[resname]}{str(res_pdb_pos)}"  # chain:AApos e.g. B:I26
         amino_types.append(resname)
         amino_ids.append(res_unique_id)
 
@@ -197,8 +197,8 @@ def parse_pdb_path(pdb_path, use_pqr=True):
     atom_pos = np.asarray(atom_pos, dtype=np.float32)
     atom_charge = np.asarray(atom_charge, dtype=np.float32) if use_pqr else None
     atom_radius = np.asarray(atom_radius, dtype=np.float32) if use_pqr else None
-    amino_ids = np.asarray(amino_ids)
-    atom_ids = np.asarray(atom_ids)
+    amino_ids = np.asarray(amino_ids, dtype=object)
+    atom_ids = np.asarray(atom_ids, dtype=object)
 
     # We need to dump this adapted pdb with new coordinates and missing atoms
     if use_pqr:
@@ -213,10 +213,24 @@ def parse_pdb_path(pdb_path, use_pqr=True):
     # process DSSP, if installed and not buggy
     try:
         dssp = DSSP(structure[0], pqrpdbpath if use_pqr else pdb_path, file_type="PDB")
-        res_sse = np.array([SSE_type_dict[dssp[key][2]] for key in list(dssp.keys())])
-        assert len(res_sse) == sum(atom_names == 'CA')
+        # Make sure DSSP is consistent with residue number in pdb. Map to unknown if no SSE found for a residue
+        res_sse_list = [len(SSE_type_dict) for _ in range(len(amino_types))]
+
+        shift = 0
+        dssp_keys = list(dssp.keys())
+        for i, amino_id in enumerate(amino_ids):
+            if i - shift >= len(dssp_keys):
+                break
+            key = dssp_keys[i - shift]
+            res_id = f"{key[0]}:{dssp[key][1]}{key[1][1]}"  # chain:res_type_res_pos
+            if res_id == amino_id:
+                res_sse_list[i] = SSE_type_dict[dssp[key][2]]
+            else:
+                shift += 1
+        res_sse = np.array(res_sse_list)
+
     except Exception as e:
-        res_sse = np.zeros_like(amino_ids)
+        res_sse = np.full_like(amino_types, len(SSE_type_dict), dtype=np.int64)
 
     if use_pqr:
         os.remove(pqr_path)
