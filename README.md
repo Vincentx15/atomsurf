@@ -51,11 +51,12 @@ python -c "import torch; print(torch.cuda.is_available())"
 # This should return True
 ```
 
-Otherwise (for cpu install), pip is simpler:
+Otherwise (for cpu install), pip is simpler. Using the --no-cache-dir can help avoid installation problems:
 
 ```bash
-pip install torch
-pip install torch_geometric==2.3.0 torch_scatter torch_sparse torch_spline_conv torch_cluster pyg_lib -f https://data.pyg.org/whl/torch-1.13.1+cpu.html
+pip install --no-cache-dir torch==1.13.1+cpu --extra-index-url https://download.pytorch.org/whl/cpu
+pip install --no-cache-dir torch_scatter torch_sparse torch_spline_conv torch_cluster pyg_lib -f https://data.pyg.org/whl/torch-1.13.1+cpu.html
+pip install --no-cache-dir torch_geometric==2.3.0 -f https://data.pyg.org/whl/torch-1.13.1+cpu.html
 ```
 
 Finally, let's install other dependencies, in particular diffusion-net:

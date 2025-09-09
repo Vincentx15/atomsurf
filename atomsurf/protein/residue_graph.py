@@ -229,7 +229,7 @@ class ResidueGraphBuilder:
                                  edge_attr=edge_dists,
                                  node_names=amino_ids)
         res_graph.features.add_named_oh_features('amino_types', amino_types, 21)
-        res_graph.features.add_named_oh_features('sse', res_sse, nclasses=8)
+        res_graph.features.add_named_oh_features('sse', res_sse, nclasses=9)  # 8 SSE types + 1 unknown (DSSP failure)
         hphob = np.asarray([res_type_to_hphob[amino_type] for amino_type in amino_types], dtype=np.float32)
         res_graph.features.add_named_features('hphobs', hphob)
         if self.add_esm:
