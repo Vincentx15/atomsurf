@@ -88,7 +88,7 @@ class MasifLigandDataset(Dataset):
 
 class MasifLigandDataset_InMemory(Dataset):
     def __init__(self, dataset_dir):
-        self.systems = torch.load(dataset_dir)
+        self.systems = torch.load(dataset_dir, weights_only=False)
 
     def __len__(self):
         return len(self.systems)

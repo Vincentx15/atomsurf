@@ -54,14 +54,14 @@ class SurfaceLoader:
         if not self.config.use_surfaces:
             return Data()
         try:
-            surface = torch.load(os.path.join(self.data_dir, f"{surface_name}.pt"))
+            surface = torch.load(os.path.join(self.data_dir, f"{surface_name}.pt"), weights_only=False)
             # Early version of the data did not include the normals
             surface.set_vnormals()
             with torch.no_grad():
                 surface.expand_features(remove_feats=True,
-                    feature_keys=self.config.feat_keys,
-                    oh_keys=self.config.oh_keys,
-                    feature_expander=self.feature_expander)
+                                        feature_keys=self.config.feat_keys,
+                                        oh_keys=self.config.oh_keys,
+                                        feature_expander=self.feature_expander)
             if torch.isnan(surface.x).any() or torch.isnan(surface.verts).any():
                 return None
             return surface
@@ -87,22 +87,22 @@ class GraphLoader:
         if not self.config.use_graphs:
             return Data()
         try:
-            graph = torch.load(os.path.join(self.data_dir, f"{graph_name}.pt"))
+            graph = torch.load(os.path.join(self.data_dir, f"{graph_name}.pt"), weights_only=False)
             # patch
             if "node_len" not in graph.keys:
                 graph.node_len = len(graph.node_pos)
             feature_keys = self.config.feat_keys
             if self.use_esm:
                 esm_feats_path = os.path.join(self.esm_dir, f"{graph_name}_esm.pt")
-                esm_feats = torch.load(esm_feats_path)
+                esm_feats = torch.load(esm_feats_path, weights_only=False)
                 graph.features.add_named_features('esm_feats', esm_feats)
                 if feature_keys != 'all':
                     feature_keys.append('esm_feats')
             with torch.no_grad():
                 graph.expand_features(remove_feats=True,
-                    feature_keys=feature_keys,
-                    oh_keys=self.config.oh_keys,
-                    feature_expander=self.feature_expander)
+                                      feature_keys=feature_keys,
+                                      oh_keys=self.config.oh_keys,
+                                      feature_expander=self.feature_expander)
             if torch.isnan(graph.x).any() or torch.isnan(graph.node_pos).any():
                 return None
         except Exception:
@@ -119,7 +119,7 @@ def pdb_to_surf(pdb_path, surface_dump, face_reduction_rate=0.1, max_vert_number
         if recompute_s or not os.path.exists(surface_dump):
             use_pymesh = False if use_pymesh is None else use_pymesh
             surface = SurfaceObject.from_pdb_path(pdb_path, face_reduction_rate=face_reduction_rate,
-                use_pymesh=use_pymesh, max_vert_number=max_vert_number)
+                                                  use_pymesh=use_pymesh, max_vert_number=max_vert_number)
             surface.add_geom_feats()
             surface.save_torch(surface_dump)
         success = 1
@@ -200,10 +200,10 @@ class PreprocessDataset(Dataset):
 
     def path_to_surf(self, pdb_path, surface_dump):
         return pdb_to_surf(pdb_path, surface_dump,
-            face_reduction_rate=self.face_reduction_rate,
-            max_vert_number=self.max_vert_number,
-            use_pymesh=self.use_pymesh,
-            recompute_s=self.recompute_s)
+                           face_reduction_rate=self.face_reduction_rate,
+                           max_vert_number=self.max_vert_number,
+                           use_pymesh=self.use_pymesh,
+                           recompute_s=self.recompute_s)
 
     def path_to_graphs(self, pdb_path, agraph_dump, rgraph_dump):
         return pdb_to_graphs(pdb_path, agraph_dump, rgraph_dump, recompute_g=self.recompute_g)

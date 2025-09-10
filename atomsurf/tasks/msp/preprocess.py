@@ -88,7 +88,10 @@ class PreprocessMSPDataset(PreprocessDataset):
                 if not success:
                     print(f"Preprocess failed for {system_name} at the surface/graph creation step")
                     return 0
-                graphs_results.append((agraph_dump, torch.load(agraph_dump), rgraph_dump, torch.load(rgraph_dump)))
+                graphs_results.append((agraph_dump,
+                                       torch.load(agraph_dump, weights_only=False),
+                                       rgraph_dump,
+                                       torch.load(rgraph_dump, weights_only=False)))
 
             if not self.recompute_interfaces:
                 need_compute_any = False

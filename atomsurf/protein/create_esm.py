@@ -45,7 +45,7 @@ def get_esm_embedding_single(pdb_path, esm_path=None, recompute=False, model_obj
         os.makedirs(esm_path, exist_ok=True)
     embs_path = os.path.join(esm_path, f"{name}_esm.pt")
     if esm_path is not None and not recompute and os.path.exists(embs_path):
-        embed = torch.load(embs_path)
+        embed = torch.load(embs_path, weights_only=False)
     else:
         embed = compute_one_esm(pdb_path, outpath=embs_path, model_objs=model_objs)
     return embed

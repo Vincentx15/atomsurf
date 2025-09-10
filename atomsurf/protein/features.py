@@ -132,7 +132,7 @@ class Features(Data):
 
     @staticmethod
     def load(save_path):
-        return torch.load(save_path, map_location=torch.device('cpu'))
+        return torch.load(save_path, map_location=torch.device('cpu'), weights_only=False)
 
     def save(self, save_path):
         torch.save(self, save_path)
