@@ -1,0 +1,78 @@
+BOOTSTRAP: docker
+FROM: debian:12.1
+
+%setup
+    if [ ! -d atomsurf ];then
+        git clone https://github.com/Vincentx15/atomsurf.git
+    else
+        cd atomsurf
+        git pull
+        cd ..
+    fi
+    sed -i 's/^pandas==1.1.3$/pandas/' atomsurf/requirements.txt
+    sed -i 's/^deltaconv==1.0.2$/deltaconv/' atomsurf/requirements.txt
+    # For testing
+    mkdir -p atomsurf/example_data/pdb
+    if [ ! -f atomsurf/example_data/pdb/1ycr.pdb ]; then
+        wget https://files.rcsb.org/view/1YCR.pdb -O atomsurf/example_data/pdb/1ycr.pdb
+    fi
+    if [ ! -f esm2_t33_650M_UR50D.pt ]; then
+        wget https://dl.fbaipublicfiles.com/fair-esm/models/esm2_t33_650M_UR50D.pt
+    fi
+    if [ ! -f esm2_t33_650M_UR50D-contact-regression.pt ]; then
+        wget https://dl.fbaipublicfiles.com/fair-esm/regression/esm2_t33_650M_UR50D-contact-regression.pt
+    fi
+
+%files
+    atomsurf /opt/atomsurf
+    esm2_t33_650M_UR50D.pt /root/.cache/torch/hub/checkpoints/
+    esm2_t33_650M_UR50D-contact-regression.pt /root/.cache/torch/hub/checkpoints/
+
+%post
+export MAKEFLAGS="-j$(nproc)"
+################################# APT INSTALL #################################
+export DEBIAN_FRONTEND=noninteractive
+mkdir -p /tmp/apt/cache
+mkdir -p /tmp/apt/lists
+echo 'Dir::Cache "/tmp/apt/cache";' > /etc/apt/apt.conf.d/99custom
+echo 'Dir::State::Lists "/tmp/apt/lists";' >> /etc/apt/apt.conf.d/99custom
+
+apt-get update
+apt-get install -y --no-install-recommends \
+                   python3-pip \
+                   git \
+                   build-essential \
+                   python3-dev \
+                   cmake \
+                   libeigen3-dev \
+                   libgl1 \
+                   gawk \
+                   libglvnd0
+###############################################################################
+
+################################# PIP INSTALL #################################
+TORCH="2.6.0"
+CUDA="cu124"
+python3 -m pip config set global.break-system-packages true  # See: https://stackoverflow.com/a/75722775/1679629
+mkdir -p /tmp/pip/cache
+python3 -m pip config set global.cache-dir /tmp/pip/cache
+
+pip3 install numpy==2.2.6
+pip3 install torch==${TORCH} --index-url https://download.pytorch.org/whl/${CUDA} --extra-index-url https://pypi.org/simple
+pip3 install torch_scatter torch_sparse torch_spline_conv torch_cluster -f https://data.pyg.org/whl/torch-${TORCH}+${CUDA}.html
+pip3 install pyg-lib -f https://data.pyg.org/whl/torch-${TORCH}+${CUDA}.html
+pip3 install torch_geometric==2.3.0 -f https://data.pyg.org/whl/torch-${TORCH}+${CUDA}.html
+###############################################################################
+
+cd /opt/atomsurf
+pip3 --cache-dir=/tmp/pip/cache install git+https://github.com/pvnieo/diffusion-net-plus.git
+pip3 --cache-dir=/tmp/pip/cache install -r requirements.txt
+
+echo "####################### TESTING atomsurf #######################"
+cd /opt/atomsurf
+python3 example.py \
+    || { echo "!!!!!!!!! TESTING FAILED !!!!!!!!!"; exit 1; }
+echo "########################   TESTING OK    #######################"
+
+# %runscript
+# cmd $@

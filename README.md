@@ -30,6 +30,16 @@ way to define models over this data.
 
 ## Installation
 
+#### Use within a container
+
+For convenience, a definition file to be used with Singularity/Apptainer is provided in `atomsurf.def` (courtesy of @bougui505).
+You need to build the image first, and then freely use it:
+```bash
+apptainer build --fakeroot atomsurf.sif atomsurf.def
+apptainer run atomsurf.sif <your-command>
+```
+#### Direct installation (no container)
+
 The first thing you will need is an environment.
 
 ```bash
