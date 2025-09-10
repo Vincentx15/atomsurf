@@ -20,6 +20,7 @@ from torch.nn import Embedding
 import torch.nn.functional as F
 
 import numpy as np
+import math
 
 num_aa_type = 26
 num_side_chain_embs = 8
@@ -117,8 +118,8 @@ def sph_harm_prefactor(l, m):
     return (
             (2 * l + 1)
             / (4 * np.pi)
-            * np.math.factorial(l - abs(m))
-            / np.math.factorial(l + abs(m))
+            * math.factorial(l - abs(m))
+            / math.factorial(l + abs(m))
     ) ** 0.5
 
 

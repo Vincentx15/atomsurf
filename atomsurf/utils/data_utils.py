@@ -54,7 +54,7 @@ class SurfaceLoader:
         if not self.config.use_surfaces:
             return Data()
         try:
-            surface = torch.load(os.path.join(self.data_dir, f"{surface_name}.pt"))
+            surface = torch.load(os.path.join(self.data_dir, f"{surface_name}.pt"), weights_only=False)
             # Early version of the data did not include the normals
             surface.set_vnormals()
             with torch.no_grad():
@@ -87,7 +87,7 @@ class GraphLoader:
         if not self.config.use_graphs:
             return Data()
         try:
-            graph = torch.load(os.path.join(self.data_dir, f"{graph_name}.pt"))
+            graph = torch.load(os.path.join(self.data_dir, f"{graph_name}.pt"), weights_only=False)
             # patch
             if "node_len" not in graph.keys:
                 graph.node_len = len(graph.node_pos)
