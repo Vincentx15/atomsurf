@@ -27,7 +27,13 @@ log_dir: "./"
 path_model: "version_x/checkpoints/last.ckpt"
 min_batch_size: 2
 use_wandb: False
-
+prediction_type: single #pair single
+prediction_save_dir: /scratch/ymiao/testpred
+prediction_name: test_embedding
+freeze: False
+nohomo: False
+devices: 4
+num_nodes: 2
 # loader params
 loader:
   num_workers: 0
@@ -56,11 +62,11 @@ train:
   detect_anomaly: False
   # # debugging
   overfit_batches: 0
-  to_monitor: auroc/val
+  to_monitor: auroc_site/val
 
 cfg_surface:
   use_surfaces: true
-  data_dir: ${datadir}
+  data_dir: '/work/lpdi/users/ymiao/atom2D/data/DIPS-split/data/'
   data_name: 'surfaces_0.1'
   feat_keys: 'all'
   oh_keys: 'all'
@@ -68,11 +74,11 @@ cfg_surface:
 # python train.py 'cfg_graph.feat_keys=[hphobs]' 'cfg_graph.oh_keys=[amino_types]' cfg_graph.use_esm=True
 cfg_graph:
   use_graphs: true
-  data_dir: ${datadir}
+  data_dir: '/work/lpdi/users/ymiao/atom2D/data/DIPS-split/data/'
   data_name: 'rgraph'
   feat_keys: 'all'
   oh_keys: 'all'
-  esm_dir: ${datadir}
+  esm_dir: '/work/lpdi/users/ymiao/atom2D/data/DIPS-split/data/'
   use_esm: false
 
 
