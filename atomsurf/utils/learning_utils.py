@@ -40,7 +40,7 @@ def get_lr_scheduler(scheduler, optimizer, **kwargs):
         decay_scheduler = ReduceLROnPlateau(optimizer,
                                             patience=kwargs['patience'],
                                             factor=kwargs['factor'],
-                                            mode='max')
+                                            mode='max', min_lr=1e-4)
     else:
         raise NotImplementedError
 
@@ -98,7 +98,7 @@ class AtomPLModule(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx: int):
-        self.model.eval()
+        self.model.train()
         loss, logits, labels = self.step(batch)
         if loss is None or logits.isnan().any() or labels.isnan().any():
             print("validation step skipped!")
@@ -108,7 +108,7 @@ class AtomPLModule(pl.LightningModule):
         self.val_res.append((logits.detach().cpu(), labels.detach().cpu()))
 
     def test_step(self, batch, batch_idx: int):
-        self.model.eval()
+        self.model.train()
         loss, logits, labels = self.step(batch)
         if loss is None or logits.isnan().any() or labels.isnan().any():
             return None
@@ -144,8 +144,9 @@ class AtomPLModule(pl.LightningModule):
         opt_params = self.hparams.cfg.optimizer
         sched_params = self.hparams.cfg.scheduler
         num_epochs = self.hparams.cfg.epochs
-        optimizer = torch.optim.Adam(self.parameters(), lr=opt_params.lr)
 
+        # optimizer = torch.optim.Adam(self.parameters(), lr=opt_params.lr)
+        optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, self.parameters()), lr=opt_params.lr)
         # Set up the scheduler.
         # For schedulers others than ReduceLROnPlateau, we don't need to monitor any metrics, so we don't need them
         scheduler_obj = get_lr_scheduler(scheduler=sched_params.name,

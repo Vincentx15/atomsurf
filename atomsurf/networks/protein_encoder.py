@@ -12,10 +12,17 @@ class ProteinEncoder(nn.Module):
     def __init__(self, cfg):
         super().__init__()
         self.cfg = cfg
-        self.blocks = nn.ModuleList([hydra.utils.instantiate(x.instanciate, x.kwargs) for x in cfg.blocks])
+        block_list = []
+        for x in cfg.blocks:
+            block = hydra.utils.instantiate(x.instanciate, x.kwargs)
+            block_list.append(block)
+
+        self.blocks = nn.ModuleList(block_list)
 
     def forward(self, surface=None, graph=None):
         for block in self.blocks:
+            # import torch
+            # print('check nan',torch.isnan(surface.x).any(),torch.isnan(graph.x).any())
             surface, graph = block(surface, graph)
         return surface, graph
 
@@ -24,24 +31,30 @@ class ProteinEncoderBlock(nn.Module):
     def __init__(self, hparams):
         super().__init__()
         self.hparams = hparams
-
-        self.surface_encoder = hydra.utils.instantiate(hparams.surface_encoder.instanciate,
+        if hparams.surface_encoder!='None':
+            self.surface_encoder = hydra.utils.instantiate(hparams.surface_encoder.instanciate,
                                                        **hparams.surface_encoder.kwargs)
-        self.graph_encoder = hydra.utils.instantiate(hparams.graph_encoder.instanciate, **hparams.graph_encoder.kwargs)
-        self.message_passing = hydra.utils.instantiate(hparams.communication_block.instanciate,
+        else:
+            self.surface_encoder ='None'
+        if hparams.graph_encoder!='None':
+            self.graph_encoder = hydra.utils.instantiate(hparams.graph_encoder.instanciate, **hparams.graph_encoder.kwargs)
+        else:
+            self.graph_encoder ='None'
+        if hparams.communication_block!='None':
+            self.message_passing = hydra.utils.instantiate(hparams.communication_block.instanciate,
                                                        **hparams.communication_block.kwargs)
-
+        else:
+            self.message_passing ='None'
     def forward(self, surface=None, graph=None):
-        if surface is not None:
+        if surface is not None and self.surface_encoder !='None':
             surface = self.surface_encoder(surface)
 
-        if graph is not None:
+        if graph is not None and self.graph_encoder !='None':
             graph = self.graph_encoder(graph)
-
-        surface, graph = self.message_passing(surface, graph)
+        if self.message_passing !='None':
+            surface, graph = self.message_passing(surface, graph)
 
         return surface, graph
-
 
 class SequentialProteinEncoderBlock(nn.Module):
     def __init__(self, hparams):

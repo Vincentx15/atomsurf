@@ -123,18 +123,18 @@ def pdb_to_surf_graphs(pdb_path, surface_dump, agraph_dump, rgraph_dump, face_re
             surface.save_torch(surface_dump)
 
         if compute_g and (recompute_g or not os.path.exists(agraph_dump) or not os.path.exists(rgraph_dump)):
-            # arrays = parse_pdb_path(pdb_path)
+            arrays = parse_pdb_path(pdb_path)
             # create atomgraph
-            # if recompute_g or not os.path.exists(agraph_dump):
-            #     agraph = AtomGraphBuilder().arrays_to_agraph(arrays)
-            #     torch.save(agraph, open(agraph_dump, 'wb'))
+            if recompute_g or not os.path.exists(agraph_dump):
+                agraph = AtomGraphBuilder().arrays_to_agraph(arrays)
+                torch.save(agraph, open(agraph_dump, 'wb'))
 
             # create residuegraph
-            try:
-                arrays = parse_pdb_path_nopqr(pdb_path)
-            except:
-                print('Trying to use pqr to fix sse')
-                arrays = parse_pdb_path(pdb_path)
+            # try:
+            #     arrays = parse_pdb_path_nopqr(pdb_path)
+            # except:
+            #     print('Trying to use pqr to fix sse')
+            #     arrays = parse_pdb_path(pdb_path)
             if recompute_g or not os.path.exists(rgraph_dump):
                 rgraph = ResidueGraphBuilder(add_pronet=True, add_esm=False).arrays_to_resgraph(arrays)
                 torch.save(rgraph, open(rgraph_dump, 'wb'))

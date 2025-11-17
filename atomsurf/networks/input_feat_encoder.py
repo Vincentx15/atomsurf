@@ -7,6 +7,28 @@ from atomsurf.network_utils.communication.utils_blocks import init_block
 from atomsurf.network_utils.communication.passing_utils import _rbf
 
 
+class MLPInputEncoder_graphonly(nn.Module):
+    def __init__(self, hparams):
+        super().__init__()
+
+        h_dim = hparams.h_dim
+        dropout = hparams.dropout
+        chem_feat_dim = hparams.graph_feat_dim
+        geom_feat_dim = hparams.surface_feat_dim
+        self.chem_mlp = nn.Sequential(
+            nn.Linear(chem_feat_dim, h_dim),
+            nn.Dropout(dropout),
+            nn.BatchNorm1d(h_dim),
+            nn.SiLU(),
+            nn.Linear(h_dim, h_dim),
+            nn.Dropout(dropout),
+            nn.BatchNorm1d(h_dim)
+        )
+    def forward(self, surface, graph):
+        chem_feats = graph.x
+        graph.x = self.chem_mlp(chem_feats)
+        return surface,graph
+
 class HMRInputEncoder(nn.Module):
     def __init__(self, hparams):
         super().__init__()

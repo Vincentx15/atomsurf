@@ -14,9 +14,67 @@ def compute_accuracy(predictions, labels, add_sigmoid=False):
     correct_count = (predicted_labels == labels).sum().item()
     total_count = labels.size(0)
     # Compute accuracy
-    accuracy = correct_count / total_count
+    if total_count>0:
+        accuracy = correct_count / total_count
+    else:
+        print('no number')
+        accuracy=0.5
     return accuracy
+def compute_f1metrics(predictions, labels, threshold=0.5, add_sigmoid=True, eps=1e-8):
+    """
+    Compute precision, recall, and F1 score for binary classification.
 
+    Args:
+        predictions (Tensor): Raw logits or probabilities, shape [N] or [N, 1]
+        labels (Tensor): Binary ground truth labels (0 or 1), same shape
+        threshold (float): Threshold for converting probabilities to binary (default: 0.5)
+        add_sigmoid (bool): Whether to apply sigmoid to predictions
+        eps (float): Small value to avoid division by zero
+
+    Returns:
+        dict with keys: 'precision', 'recall', 'f1'
+    """
+    if add_sigmoid:
+        predictions = torch.sigmoid(predictions)
+
+    predicted_labels = (predictions > threshold).int()
+    labels = labels.int()
+
+    tp = ((predicted_labels == 1) & (labels == 1)).sum().item()
+    fp = ((predicted_labels == 1) & (labels == 0)).sum().item()
+    fn = ((predicted_labels == 0) & (labels == 1)).sum().item()
+
+    precision = tp / (tp + fp + eps)
+    recall = tp / (tp + fn + eps)
+    f1 = 2 * precision * recall / (precision + recall + eps)
+
+    return {
+        "precision": precision,
+        "recall": recall,
+        "f1": f1
+    }
+
+from sklearn.metrics import average_precision_score, roc_auc_score
+
+def compute_auc_metrics(pred_probs, labels):
+    """
+    pred_probs: Tensor or np.array of probabilities (after sigmoid)
+    labels: Ground-truth binary labels (0 or 1)
+
+    Returns: dict with AUROC and AUPRC
+    """
+    if isinstance(pred_probs, torch.Tensor):
+        pred_probs = pred_probs.detach().cpu().numpy()
+    if isinstance(labels, torch.Tensor):
+        labels = labels.detach().cpu().numpy()
+    try:
+        auroc = roc_auc_score(labels, pred_probs)
+        auprc = average_precision_score(labels, pred_probs)
+        return auroc,auprc
+    except ValueError as e:
+        print("Auroc computation failed, ", e)
+        return 0.5,0.5
+    
 
 def compute_auroc(predictions, labels):
     labels = labels.detach().cpu().numpy().astype(int)

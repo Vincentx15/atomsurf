@@ -1,4 +1,4 @@
-from .input_feat_encoder import HMRInputEncoder, InputEncoder,BiHMRInputEncoder
+from .input_feat_encoder import HMRInputEncoder, InputEncoder,BiHMRInputEncoder,MLPInputEncoder_graphonly
 from .protein_encoder import ProteinEncoder, ProteinEncoderBlock
 
 __all__ = [
@@ -7,4 +7,5 @@ __all__ = [
     "BiHMRInputEncoder",
     "ProteinEncoder",
     "ProteinEncoderBlock",
+    "MLPInputEncoder_graphonly",
 ]
