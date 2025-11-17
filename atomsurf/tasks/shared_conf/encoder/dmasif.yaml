@@ -1,0 +1,9 @@
+name: dmasif
+
+
+blocks:
+  - ${hmr_input_encoder_neigh}
+  - ${diffonly}
+  # - ${dmasif|gvp}
+  # - ${dmasif|gvp}
+  # - ${dmasif|gvp}

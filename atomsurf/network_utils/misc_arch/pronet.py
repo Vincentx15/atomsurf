@@ -597,6 +597,118 @@ class InteractionBlock(torch.nn.Module):
         return h
 
 
+# class InteractionBlock(torch.nn.Module):
+#     def __init__(
+#             self,
+#             hidden_channels,
+#             output_channels,
+#             num_radial,
+#             num_spherical,
+#             num_layers,
+#             mid_emb,
+#             act=nn.SiLU(),  # Assuming swish is the SiLU activation
+#             num_pos_emb=16,
+#             dropout=0,
+#             level='allatom'
+#     ):
+#         super(InteractionBlock, self).__init__()
+#         self.act = act
+#         self.dropout = nn.Dropout(dropout)
+
+#         # Adding BatchNorm layers
+#         self.bn0 = nn.BatchNorm1d(hidden_channels)
+#         self.bn1 = nn.BatchNorm1d(hidden_channels)
+#         self.bn2 = nn.BatchNorm1d(hidden_channels)
+#         self.bn3 = nn.BatchNorm1d(hidden_channels)
+#         self.bn4 = nn.BatchNorm1d(hidden_channels)
+        
+#         self.conv0 = EdgeGraphConv(hidden_channels, hidden_channels)
+#         self.conv1 = EdgeGraphConv(hidden_channels, hidden_channels)
+#         self.conv2 = EdgeGraphConv(hidden_channels, hidden_channels)
+
+#         self.lin_feature0 = TwoLinear(num_radial * num_spherical ** 2, mid_emb, hidden_channels)
+#         if level == 'aminoacid':
+#             self.lin_feature1 = TwoLinear(num_radial * num_spherical, mid_emb, hidden_channels)
+#         elif level == 'backbone' or level == 'allatom':
+#             self.lin_feature1 = TwoLinear(3 * num_radial * num_spherical, mid_emb, hidden_channels)
+#         self.lin_feature2 = TwoLinear(num_pos_emb, mid_emb, hidden_channels)
+
+#         self.lin_1 = Linear(hidden_channels, hidden_channels)
+#         self.lin_2 = Linear(hidden_channels, hidden_channels)
+
+#         self.lin0 = Linear(hidden_channels, hidden_channels)
+#         self.lin1 = Linear(hidden_channels, hidden_channels)
+#         self.lin2 = Linear(hidden_channels, hidden_channels)
+
+#         self.lins_cat = torch.nn.ModuleList()
+#         self.lins_cat.append(Linear(3 * hidden_channels, hidden_channels))
+#         for _ in range(num_layers - 1):
+#             self.lins_cat.append(Linear(hidden_channels, hidden_channels))
+
+#         self.lins = torch.nn.ModuleList()
+#         for _ in range(num_layers - 1):
+#             self.lins.append(Linear(hidden_channels, hidden_channels))
+#         self.final = Linear(hidden_channels, output_channels)
+
+#         self.reset_parameters()
+
+#     def reset_parameters(self):
+#         self.conv0.reset_parameters()
+#         self.conv1.reset_parameters()
+#         self.conv2.reset_parameters()
+
+#         self.lin_feature0.reset_parameters()
+#         self.lin_feature1.reset_parameters()
+#         self.lin_feature2.reset_parameters()
+
+#         self.lin_1.reset_parameters()
+#         self.lin_2.reset_parameters()
+
+#         self.lin0.reset_parameters()
+#         self.lin1.reset_parameters()
+#         self.lin2.reset_parameters()
+
+#         for lin in self.lins:
+#             lin.reset_parameters()
+#         for lin in self.lins_cat:
+#             lin.reset_parameters()
+
+#         self.final.reset_parameters()
+
+#     def forward(self, x, feature0, feature1, pos_emb, edge_index, batch):
+#         x_lin_1 = self.act(self.bn0(self.lin_1(x)))  # Apply BatchNorm after lin_1
+#         x_lin_2 = self.act(self.bn1(self.lin_2(x)))  # Apply BatchNorm after lin_2
+
+#         feature0 = self.lin_feature0(feature0)
+#         h0 = self.conv0(x_lin_1, edge_index, feature0)
+#         h0 = self.bn2(self.lin0(h0))  # Apply BatchNorm after conv0 and lin0
+#         h0 = self.act(h0)
+#         h0 = self.dropout(h0)
+
+#         feature1 = self.lin_feature1(feature1)
+#         h1 = self.conv1(x_lin_1, edge_index, feature1)
+#         h1 = self.bn3(self.lin1(h1))  # Apply BatchNorm after conv1 and lin1
+#         h1 = self.act(h1)
+#         h1 = self.dropout(h1)
+
+#         feature2 = self.lin_feature2(pos_emb)
+#         h2 = self.conv2(x_lin_1, edge_index, feature2)
+#         h2 = self.bn4(self.lin2(h2))  # Apply BatchNorm after conv2 and lin2
+#         h2 = self.act(h2)
+#         h2 = self.dropout(h2)
+
+#         h = torch.cat((h0, h1, h2), 1)
+#         for lin in self.lins_cat:
+#             h = self.act(lin(h))
+
+#         h = h + x_lin_2
+
+#         for lin in self.lins:
+#             h = self.act(lin(h))
+#         h = self.final(h)
+#         return h
+    
+
 class ProNet(nn.Module):
     r"""
          The ProNet from the "Learning Protein Representations via Complete 3D Graph Networks" paper.

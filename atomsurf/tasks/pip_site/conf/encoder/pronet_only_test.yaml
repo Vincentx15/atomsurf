@@ -1,0 +1,7 @@
+name: pronet_only_test
+
+blocks:
+  - ${mlp_input_encoder_graph}
+  - ${pronetonly}
+  - ${pronetonly}
+  - ${pronetonly}

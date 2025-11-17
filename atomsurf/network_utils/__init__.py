@@ -5,7 +5,8 @@ from .misc_arch.deltaconv import DeltaConv
 from .misc_arch.dgcnn import DGCNN, DGCNNLayer
 from .misc_arch.pointnet import PointNet
 from .misc_arch.pronet import ProNet
-
+from .misc_arch.dmasif_encoder import dMasifWrapper
+from .misc_arch.graph_blocks import GVPBlock
 __all__ = [
     "ConcurrentCommunication",
     "SequentialCommunication",
@@ -18,4 +19,6 @@ __all__ = [
     "SequentialCommunicationV1",
     "GATCommunicationV1",
     "ProNet",
+    "dMasifWrapper",
+    "GVPBlock"
 ]

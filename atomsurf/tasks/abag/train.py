@@ -51,7 +51,7 @@ def main(cfg=None):
     lr_logger = pl.callbacks.LearningRateMonitor()
 
     checkpoint_callback = pl.callbacks.ModelCheckpoint(
-        filename="{epoch}-{accuracy_val:.2f}",
+        filename="{epoch}-{ag_auroc/val:.2f}",
         dirpath=Path(tb_logger.log_dir) / "checkpoints",
         monitor=cfg.train.to_monitor,
         mode="max",

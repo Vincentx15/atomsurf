@@ -14,7 +14,11 @@ def compute_accuracy(predictions, labels, add_sigmoid=False):
     correct_count = (predicted_labels == labels).sum().item()
     total_count = labels.size(0)
     # Compute accuracy
-    accuracy = correct_count / total_count
+    if total_count>0:
+        accuracy = correct_count / total_count
+    else:
+        print('no number')
+        accuracy=0.5
     return accuracy
 
 

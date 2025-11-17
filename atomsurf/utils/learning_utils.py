@@ -40,7 +40,7 @@ def get_lr_scheduler(scheduler, optimizer, **kwargs):
         decay_scheduler = ReduceLROnPlateau(optimizer,
                                             patience=kwargs['patience'],
                                             factor=kwargs['factor'],
-                                            mode='max')
+                                            mode='max', min_lr=1e-4)
     else:
         raise NotImplementedError
 
@@ -98,7 +98,7 @@ class AtomPLModule(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx: int):
-        self.model.eval()
+        self.model.train()
         loss, logits, labels = self.step(batch)
         if loss is None or logits.isnan().any() or labels.isnan().any():
             print("validation step skipped!")
@@ -108,7 +108,7 @@ class AtomPLModule(pl.LightningModule):
         self.val_res.append((logits.detach().cpu(), labels.detach().cpu()))
 
     def test_step(self, batch, batch_idx: int):
-        self.model.eval()
+        self.model.train()
         loss, logits, labels = self.step(batch)
         if loss is None or logits.isnan().any() or labels.isnan().any():
             return None

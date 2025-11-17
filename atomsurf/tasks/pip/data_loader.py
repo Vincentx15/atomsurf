@@ -112,7 +112,7 @@ class PIPDataset(Dataset):
             return None
         item = Data(surface_1=surface_1, graph_1=graph_1, surface_2=surface_2, graph_2=graph_2, idx_left=idx_left,
                     idx_right=idx_right, label=labels, g1_len=graph_1.node_pos.shape[0],
-                    g2_len=graph_2.node_pos.shape[0])
+                    g2_len=graph_2.node_pos.shape[0],id=[pos_pairs.subunit0[0],pos_pairs.subunit1[0]])
         return item
 
 
@@ -150,7 +150,7 @@ class PIPDataModule(pl.LightningDataModule):
 
     def test_dataloader(self):
         dataset = PIPDataset(self.systems[2], self.surface_loaders[2], self.graph_loaders[2],
-                             max_pos_regions_per_ensemble=5)
+                             max_pos_regions_per_ensemble=-1)
         return DataLoader(dataset, shuffle=False, **self.loader_args)
 
 

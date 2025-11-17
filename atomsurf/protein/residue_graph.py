@@ -33,65 +33,113 @@ class PronetFeaturesComputer:
         return torch.nan_to_num(
             torch.div(tensor, torch.norm(tensor, dim=dim, keepdim=True)))
 
+    # @staticmethod
+    # def get_atom_pos(amino_types, atom_names, atom_amino_id, atom_pos):
+    #     # atoms to compute side chain torsion angles: N, CA, CB, _G/_G1, _D/_D1, _E/_E1, _Z, NH1
+    #     mask_n = np.char.equal(atom_names, 'N')
+    #     mask_ca = np.char.equal(atom_names, 'CA')
+    #     mask_c = np.char.equal(atom_names, 'C')
+    #     mask_cb = np.char.equal(atom_names, 'CB')  # This was wrong
+    #     mask_g = np.char.equal(atom_names, 'CG') | np.char.equal(atom_names, 'SG') | np.char.equal(atom_names,
+    #                                                                                                'OG') | np.char.equal \
+    #                  (atom_names, 'CG1') | np.char.equal(atom_names, 'OG1')
+    #     mask_d = np.char.equal(atom_names, 'CD') | np.char.equal(atom_names, 'SD') | np.char.equal(atom_names,
+    #                                                                                                'CD1') | np.char.equal \
+    #                  (atom_names, 'OD1') | np.char.equal(atom_names, 'ND1')
+    #     mask_e = np.char.equal(atom_names, 'CE') | np.char.equal(atom_names, 'NE') | np.char.equal(atom_names, 'OE1')
+    #     mask_z = np.char.equal(atom_names, 'CZ') | np.char.equal(atom_names, 'NZ')
+    #     mask_h = np.char.equal(atom_names, 'NH1')
+
+    #     pos_n = np.full((len(amino_types), 3), np.nan)
+    #     pos_n[atom_amino_id[mask_n]] = atom_pos[mask_n]
+    #     pos_n = torch.FloatTensor(pos_n)
+
+    #     pos_ca = np.full((len(amino_types), 3), np.nan)
+    #     pos_ca[atom_amino_id[mask_ca]] = atom_pos[mask_ca]
+    #     pos_ca = torch.FloatTensor(pos_ca)
+
+    #     pos_c = np.full((len(amino_types), 3), np.nan)
+    #     pos_c[atom_amino_id[mask_c]] = atom_pos[mask_c]
+    #     pos_c = torch.FloatTensor(pos_c)
+
+    #     # if data only contain pos_ca, we set the position of C and N as the position of CA
+    #     pos_n[torch.isnan(pos_n)] = pos_ca[torch.isnan(pos_n)]
+    #     pos_c[torch.isnan(pos_c)] = pos_ca[torch.isnan(pos_c)]
+
+    #     pos_cb = np.full((len(amino_types), 3), np.nan)
+    #     pos_cb[atom_amino_id[mask_cb]] = atom_pos[mask_cb]
+    #     pos_cb = torch.FloatTensor(pos_cb)
+
+    #     pos_g = np.full((len(amino_types), 3), np.nan)
+    #     pos_g[atom_amino_id[mask_g]] = atom_pos[mask_g]
+    #     pos_g = torch.FloatTensor(pos_g)
+
+    #     pos_d = np.full((len(amino_types), 3), np.nan)
+    #     pos_d[atom_amino_id[mask_d]] = atom_pos[mask_d]
+    #     pos_d = torch.FloatTensor(pos_d)
+
+    #     pos_e = np.full((len(amino_types), 3), np.nan)
+    #     pos_e[atom_amino_id[mask_e]] = atom_pos[mask_e]
+    #     pos_e = torch.FloatTensor(pos_e)
+
+    #     pos_z = np.full((len(amino_types), 3), np.nan)
+    #     pos_z[atom_amino_id[mask_z]] = atom_pos[mask_z]
+    #     pos_z = torch.FloatTensor(pos_z)
+
+    #     pos_h = np.full((len(amino_types), 3), np.nan)
+    #     pos_h[atom_amino_id[mask_h]] = atom_pos[mask_h]
+    #     pos_h = torch.FloatTensor(pos_h)
+
+    #     return pos_n, pos_ca, pos_c, pos_cb, pos_g, pos_d, pos_e, pos_z, pos_h
     @staticmethod
     def get_atom_pos(amino_types, atom_names, atom_amino_id, atom_pos):
-        # atoms to compute side chain torsion angles: N, CA, CB, _G/_G1, _D/_D1, _E/_E1, _Z, NH1
+        """
+        Extract atom positions, using CA position as fallback for missing atoms.
+        This avoids NaN values entirely.
+        """
+        num_amino = len(amino_types)
+        
+        # Define atom masks
         mask_n = np.char.equal(atom_names, 'N')
         mask_ca = np.char.equal(atom_names, 'CA')
         mask_c = np.char.equal(atom_names, 'C')
-        mask_cb = np.char.equal(atom_names, 'CB')  # This was wrong
-        mask_g = np.char.equal(atom_names, 'CG') | np.char.equal(atom_names, 'SG') | np.char.equal(atom_names,
-                                                                                                   'OG') | np.char.equal \
-                     (atom_names, 'CG1') | np.char.equal(atom_names, 'OG1')
-        mask_d = np.char.equal(atom_names, 'CD') | np.char.equal(atom_names, 'SD') | np.char.equal(atom_names,
-                                                                                                   'CD1') | np.char.equal \
-                     (atom_names, 'OD1') | np.char.equal(atom_names, 'ND1')
-        mask_e = np.char.equal(atom_names, 'CE') | np.char.equal(atom_names, 'NE') | np.char.equal(atom_names, 'OE1')
+        mask_cb = np.char.equal(atom_names, 'CB')
+        mask_g = np.char.equal(atom_names, 'CG') | np.char.equal(atom_names, 'SG') | \
+                np.char.equal(atom_names, 'OG') | np.char.equal(atom_names, 'CG1') | \
+                np.char.equal(atom_names, 'OG1')
+        mask_d = np.char.equal(atom_names, 'CD') | np.char.equal(atom_names, 'SD') | \
+                np.char.equal(atom_names, 'CD1') | np.char.equal(atom_names, 'OD1') | \
+                np.char.equal(atom_names, 'ND1')
+        mask_e = np.char.equal(atom_names, 'CE') | np.char.equal(atom_names, 'NE') | \
+                np.char.equal(atom_names, 'OE1')
         mask_z = np.char.equal(atom_names, 'CZ') | np.char.equal(atom_names, 'NZ')
         mask_h = np.char.equal(atom_names, 'NH1')
-
-        pos_n = np.full((len(amino_types), 3), np.nan)
-        pos_n[atom_amino_id[mask_n]] = atom_pos[mask_n]
-        pos_n = torch.FloatTensor(pos_n)
-
-        pos_ca = np.full((len(amino_types), 3), np.nan)
-        pos_ca[atom_amino_id[mask_ca]] = atom_pos[mask_ca]
-        pos_ca = torch.FloatTensor(pos_ca)
-
-        pos_c = np.full((len(amino_types), 3), np.nan)
-        pos_c[atom_amino_id[mask_c]] = atom_pos[mask_c]
-        pos_c = torch.FloatTensor(pos_c)
-
-        # if data only contain pos_ca, we set the position of C and N as the position of CA
-        pos_n[torch.isnan(pos_n)] = pos_ca[torch.isnan(pos_n)]
-        pos_c[torch.isnan(pos_c)] = pos_ca[torch.isnan(pos_c)]
-
-        pos_cb = np.full((len(amino_types), 3), np.nan)
-        pos_cb[atom_amino_id[mask_cb]] = atom_pos[mask_cb]
-        pos_cb = torch.FloatTensor(pos_cb)
-
-        pos_g = np.full((len(amino_types), 3), np.nan)
-        pos_g[atom_amino_id[mask_g]] = atom_pos[mask_g]
-        pos_g = torch.FloatTensor(pos_g)
-
-        pos_d = np.full((len(amino_types), 3), np.nan)
-        pos_d[atom_amino_id[mask_d]] = atom_pos[mask_d]
-        pos_d = torch.FloatTensor(pos_d)
-
-        pos_e = np.full((len(amino_types), 3), np.nan)
-        pos_e[atom_amino_id[mask_e]] = atom_pos[mask_e]
-        pos_e = torch.FloatTensor(pos_e)
-
-        pos_z = np.full((len(amino_types), 3), np.nan)
-        pos_z[atom_amino_id[mask_z]] = atom_pos[mask_z]
-        pos_z = torch.FloatTensor(pos_z)
-
-        pos_h = np.full((len(amino_types), 3), np.nan)
-        pos_h[atom_amino_id[mask_h]] = atom_pos[mask_h]
-        pos_h = torch.FloatTensor(pos_h)
-
+        
+        # First extract CA (our fallback)
+        pos_ca = torch.zeros((num_amino, 3), dtype=torch.float32)
+        if mask_ca.any():
+            pos_ca[atom_amino_id[mask_ca]] = torch.from_numpy(atom_pos[mask_ca]).float()
+        
+        def extract_positions_with_fallback(mask, fallback_pos):
+            """Extract positions, using fallback for missing atoms."""
+            pos = fallback_pos.clone()
+            if mask.any():
+                indices = atom_amino_id[mask]
+                pos[indices] = torch.from_numpy(atom_pos[mask]).float()
+            return pos
+        
+        # Extract all positions with CA as fallback
+        pos_n = extract_positions_with_fallback(mask_n, pos_ca)
+        pos_c = extract_positions_with_fallback(mask_c, pos_ca)
+        pos_cb = extract_positions_with_fallback(mask_cb, pos_ca)
+        pos_g = extract_positions_with_fallback(mask_g, pos_ca)
+        pos_d = extract_positions_with_fallback(mask_d, pos_ca)
+        pos_e = extract_positions_with_fallback(mask_e, pos_ca)
+        pos_z = extract_positions_with_fallback(mask_z, pos_ca)
+        pos_h = extract_positions_with_fallback(mask_h, pos_ca)
+        
         return pos_n, pos_ca, pos_c, pos_cb, pos_g, pos_d, pos_e, pos_z, pos_h
-
+    
     def side_chain_embs(self, pos_n, pos_ca, pos_c, pos_cb, pos_g, pos_d, pos_e, pos_z, pos_h):
         v1, v2, v3, v4, v5, v6, v7 = pos_ca - pos_n, pos_cb - pos_ca, pos_g - pos_cb, pos_d - pos_g, pos_e - pos_d, pos_z - pos_e, pos_h - pos_z
 
@@ -199,7 +247,7 @@ class RGraphBatch(Batch):
         surface_batch = cls()
         surface_batch.__dict__.update(batch.__dict__)
         return surface_batch
-
+ 
 
 class ResidueGraphBuilder:
     def __init__(self, add_pronet=True, add_esm=False):
@@ -215,11 +263,17 @@ class ResidueGraphBuilder:
         :param esm_path:
         :return:
         """
-        amino_types, atom_chain_id, atom_amino_id, atom_names, _, atom_pos, atom_charge, atom_radius, res_sse = arrays
+        if len(arrays)== 9:
+            amino_types, atom_chain_id, atom_amino_id, atom_names, _, atom_pos, atom_charge, atom_radius, res_sse = arrays
+        elif len(arrays)== 4:
+            amino_types, atom_amino_id, atom_names, atom_pos = arrays
+            res_sse = None
+        num_amino = len(amino_types)
         mask_ca = np.char.equal(atom_names, 'CA')
-        pos_ca = np.full((len(amino_types), 3), np.nan)
-        pos_ca[atom_amino_id[mask_ca]] = atom_pos[mask_ca]
-        pos_ca = torch.FloatTensor(pos_ca)
+        pos_ca = torch.zeros((num_amino, 3), dtype=torch.float32)
+        if mask_ca.any():
+            pos_ca[atom_amino_id[mask_ca]] = torch.from_numpy(atom_pos[mask_ca]).float()
+    
         
         edge_index, edge_dists = atom_coords_to_edges(pos_ca,edge_dist_cutoff=12)
 
@@ -227,7 +281,8 @@ class ResidueGraphBuilder:
                                  edge_index=edge_index,
                                  edge_attr=edge_dists)
         res_graph.features.add_named_oh_features('amino_types', amino_types, 21)
-        res_graph.features.add_named_oh_features('sse', res_sse, nclasses=8)
+        if res_sse!=None:
+            res_graph.features.add_named_oh_features('sse', res_sse, nclasses=8)
         hphob = np.asarray([res_type_to_hphob[amino_type] for amino_type in amino_types], dtype=np.float32)
         res_graph.features.add_named_features('hphobs', hphob)
         if self.add_esm:

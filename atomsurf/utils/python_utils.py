@@ -12,6 +12,8 @@ def silentremove(filename):
         if e.errno != errno.ENOENT:  # errno.ENOENT = no such file or directory
             raise  # re-raise exception if a different error occurred
 
+def collate_first(batch):
+    return batch[0]
 
 def do_all(dataset, num_workers=4, prefetch_factor=100, max_sys=None):
     """
@@ -26,7 +28,7 @@ def do_all(dataset, num_workers=4, prefetch_factor=100, max_sys=None):
                             num_workers=num_workers,
                             batch_size=1,
                             prefetch_factor=prefetch_factor,
-                            collate_fn=lambda x: x[0])
+                            collate_fn=collate_first)#lambda x: x[0])
     total_success = 0
     t0 = time.time()
     for i, success in enumerate(dataloader):

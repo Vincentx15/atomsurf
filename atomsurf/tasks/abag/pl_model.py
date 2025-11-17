@@ -40,7 +40,7 @@ class AbAgModule(AtomPLModule):
 
     def step(self, batch):
         if batch is None or batch.num_graphs < self.hparams.cfg.min_batch_size:
-            return None, None, None, None
+            return None, None, None
 
         # Get targets, concatenate and keep track of system sizes
         label_abs_cdr = torch.cat(batch.label_abs_cdr)
@@ -52,7 +52,7 @@ class AbAgModule(AtomPLModule):
         pred_ab, pred_ag = self(batch)
         ab_loss = compute_BCE(pred_ab, label_abs_cdr)
         ag_loss = compute_BCE(pred_ag, label_ags)
-        loss = ab_loss + 2 * ag_loss
+        loss = ab_loss + 5 * ag_loss
 
         # Split per system
         label_abs = [x.detach().cpu() for x in batch.label_abs_cdr]
@@ -75,10 +75,10 @@ class AbAgModule(AtomPLModule):
                       on_step=True, on_epoch=True, prog_bar=False, batch_size=len(abs[0]))
         self.log_dict({"loss/ag_loss": losses[1].item()},
                       on_step=True, on_epoch=True, prog_bar=False, batch_size=len(ags[0]))
-        return losses[0] + 2 * losses[1]
+        return losses[0] + 5 * losses[1]
 
     def validation_step(self, batch, batch_idx: int):
-        self.model.eval()
+        self.model.train()
         losses, abs, ags = self.step(batch)
         if losses is None:
             return None
@@ -86,12 +86,12 @@ class AbAgModule(AtomPLModule):
         self.val_res.append((losses_values, abs, ags))
 
     def test_step(self, batch, batch_idx: int):
-        self.model.eval()
+        self.model.train()
         losses, abs, ags = self.step(batch)
         if losses is None:
             return None
         losses_values = (losses[0].item(), losses[1].item())
-        self.test_res.append((losses_values, abs, ags))
+        self.test_res.append((losses_values, abs, ags,batch.id))
 
     def get_metrics(self, results, prefix):
         # Unwrap on at the individual level
@@ -113,10 +113,10 @@ class AbAgModule(AtomPLModule):
         mcc_ags = [mcc_computer(log, lab) for log, lab in zip(all_ags_logits, all_ags_labels)]
         auroc_abs, mcc_abs, auroc_ags, mcc_ags = [torch.mean(torch.stack(x)) for x in
                                                   (auroc_abs, mcc_abs, auroc_ags, mcc_ags)]
-
+        print('auroc_abs, mcc_abs, auroc_ags, mcc_ags',auroc_abs, mcc_abs, auroc_ags, mcc_ags)
         self.log_dict({f"ab_loss/{prefix}": ab_loss,
                        f"ag_loss/{prefix}": ag_loss,
-                       f"ag_auroc/{prefix}": auroc_abs,
+                       f"ab_auroc/{prefix}": auroc_abs,
                        f"ag_auroc/{prefix}": auroc_ags,
                        f"ab_mcc/{prefix}": mcc_abs,
                        f"ag_mcc/{prefix}": mcc_ags,

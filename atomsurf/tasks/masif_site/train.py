@@ -7,7 +7,8 @@ import torch
 from omegaconf import OmegaConf
 import pytorch_lightning as pl
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
-
+import warnings
+warnings.filterwarnings("ignore") 
 # project
 if __name__ == '__main__':
     sys.path.append(str(Path(__file__).absolute().parents[3]))

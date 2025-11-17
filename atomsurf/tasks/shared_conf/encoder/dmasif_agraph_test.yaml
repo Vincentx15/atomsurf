@@ -1,0 +1,8 @@
+name: dmasif_agraph_test
+
+
+blocks:
+  - ${hmr_input_encoder_neigh}
+  - ${dmasif|gvp|gvp_normals}
+  - ${dmasif|gvp|gvp_normals}
+  - ${dmasif|gvp|gvp_normals}

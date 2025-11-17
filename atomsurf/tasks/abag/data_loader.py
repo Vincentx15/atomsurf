@@ -36,13 +36,13 @@ class AbAgDataset(Dataset):
             interact_idx = json.load(open(os.path.join(self.data_dir, 'pdb', system_id + '.json'), 'r'))
         else:
             return None
-
+        
         surface_ab = self.surface_loader.load(system_id + '_ab')
         surface_ag = self.surface_loader.load(system_id + '_ag')
         graph_ab = self.graph_loader.load(system_id + '_ab')
         graph_ag = self.graph_loader.load(system_id + '_ag')
         if surface_ab is None or surface_ag is None or graph_ab is None or graph_ag is None:
-            return None
+            return None 
         if graph_ab.node_len < 10 or graph_ag.node_len < 10 or surface_ab.n_verts < 20 or surface_ag.n_verts < 20:
             return None
 
@@ -55,14 +55,43 @@ class AbAgDataset(Dataset):
         # extract cdr abs
         label_abs_cdr = label_abs_global[interact_idx['cdr']]
 
-        item = Data(surface_ab=surface_ab, graph_ab=graph_ab,
+        balance=False
+        if balance:
+            negs_ag = np.where(label_ags == 0)[0]
+            pos_ag = np.where(label_ags == 1)[0]
+            if len(pos_ag)< 3:
+                return None
+            num_to_use = min(len(negs_ag),len(pos_ag))
+            if num_to_use<2:
+                return None
+            pos_array_idx_ag = np.random.choice(len(pos_ag), size=num_to_use, replace=False)
+            neg_array_idx_ag = np.random.choice(len(negs_ag), size=num_to_use, replace=False)
+            pos_array_sampled_ag = pos_ag[pos_array_idx_ag]
+            neg_array_sampled_ag = negs_ag[neg_array_idx_ag]
+            pos_array_sampled_ag = torch.from_numpy(pos_array_sampled_ag)
+            neg_array_sampled_ag = torch.from_numpy(neg_array_sampled_ag)
+            idx_ag_sample = torch.cat((pos_array_sampled_ag, neg_array_sampled_ag))
+            label_ag_sample = torch.cat((torch.ones(num_to_use), torch.zeros(num_to_use)))
+
+            item = Data(surface_ab=surface_ab, graph_ab=graph_ab,
+                    surface_ag=surface_ag, graph_ag=graph_ag,
+                    cdr=interact_idx['cdr'],
+                    label_abs_cdr=label_abs_cdr,
+                    label_ag_sample=label_ag_sample,
+                    idx_ag_sample=idx_ag_sample,
+                    label_ags=label_ags,
+                    g1_len=graph_ab.node_pos.shape[0],
+                    g2_len=graph_ag.node_pos.shape[0])
+            return item
+        else:
+            item = Data(surface_ab=surface_ab, graph_ab=graph_ab,
                     surface_ag=surface_ag, graph_ag=graph_ag,
                     cdr=interact_idx['cdr'],
                     label_abs_cdr=label_abs_cdr,
                     label_ags=label_ags,
                     g1_len=graph_ab.node_pos.shape[0],
-                    g2_len=graph_ag.node_pos.shape[0])
-        return item
+                    g2_len=graph_ag.node_pos.shape[0],id=system_id)
+            return item
 
 
 class AbAgDataModule(pl.LightningDataModule):

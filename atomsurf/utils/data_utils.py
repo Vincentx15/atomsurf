@@ -123,18 +123,18 @@ def pdb_to_surf_graphs(pdb_path, surface_dump, agraph_dump, rgraph_dump, face_re
             surface.save_torch(surface_dump)
 
         if compute_g and (recompute_g or not os.path.exists(agraph_dump) or not os.path.exists(rgraph_dump)):
-            # arrays = parse_pdb_path(pdb_path)
+            arrays = parse_pdb_path(pdb_path)
             # create atomgraph
-            # if recompute_g or not os.path.exists(agraph_dump):
-            #     agraph = AtomGraphBuilder().arrays_to_agraph(arrays)
-            #     torch.save(agraph, open(agraph_dump, 'wb'))
+            if recompute_g or not os.path.exists(agraph_dump):
+                agraph = AtomGraphBuilder().arrays_to_agraph(arrays)
+                torch.save(agraph, open(agraph_dump, 'wb'))
 
             # create residuegraph
-            try:
-                arrays = parse_pdb_path_nopqr(pdb_path)
-            except:
-                print('Trying to use pqr to fix sse')
-                arrays = parse_pdb_path(pdb_path)
+            # try:
+            #     arrays = parse_pdb_path_nopqr(pdb_path)
+            # except:
+            #     print('Trying to use pqr to fix sse')
+            #     arrays = parse_pdb_path(pdb_path)
             if recompute_g or not os.path.exists(rgraph_dump):
                 rgraph = ResidueGraphBuilder(add_pronet=True, add_esm=False).arrays_to_resgraph(arrays)
                 torch.save(rgraph, open(rgraph_dump, 'wb'))
@@ -273,7 +273,10 @@ def update_model_input_dim(cfg, dataset_temp, gkey='graph', skey='surface'):
                 with open_dict(cfg):
                     feat_encoder_kwargs = cfg.encoder.blocks[0].kwargs
                     feat_encoder_kwargs['graph_feat_dim'] = example[gkey].x.shape[1]
-                    feat_encoder_kwargs['surface_feat_dim'] = example[skey].x.shape[1]
+                    if skey not in example.keys:
+                        feat_encoder_kwargs['surface_feat_dim'] = 10
+                    else:
+                        feat_encoder_kwargs['surface_feat_dim'] = example[skey].x.shape[1]
                 found = True
                 break
             if i > 50:
