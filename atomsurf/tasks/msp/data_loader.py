@@ -35,7 +35,7 @@ class MSPDataset(Dataset):
         self.surface_loader = surface_loader
         self.graph_loader = graph_loader
         self.verbose = verbose
-
+        print('dataset: ',data_dir,len(self.systems))
     def __len__(self):
         return len(self.systems)
 
@@ -61,6 +61,8 @@ class MSPDataset(Dataset):
                 return None
             try:
                 all_ids.append(graph.misc_features['interface_node'])
+                inter_face_label = torch.zeros([graph.x.shape[0],1])
+                inter_face_label[graph.misc_features['interface_node']]=1
             except KeyError:
                 if self.verbose:
                     print('missing interface nodes for', graph_name)

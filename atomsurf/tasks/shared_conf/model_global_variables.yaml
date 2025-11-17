@@ -3,3 +3,8 @@ model_dropout: 0.1
 gvp_vector_gate: false
 gvp_n_layers: 3
 gvp_use_angles: True
+dmasif_config: /work/lpdi/users/ymiao/code/MFE/configs/config.yml/
+data_dir: /work/lpdi/users/ymiao/code/masif_data/MasifSite/
+# prediction_type: single #pair single
+# prediction_save_dir: /scratch/ymiao/testpred
+# prediction_name: test_embedding

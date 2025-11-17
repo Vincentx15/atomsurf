@@ -84,3 +84,11 @@ input_encoder_knn:
     use_normals: true
     neigh_thresh: 8
     sigma: 2.5
+
+mlp_input_encoder_graph:
+  name: MLPInputEncoder_graphonly
+  instanciate:
+    _target_: atomsurf.networks.MLPInputEncoder_graphonly
+  kwargs:
+    h_dim: ${model_hdim}
+    dropout: ${model_dropout}
