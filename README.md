@@ -290,13 +290,12 @@ And you will see the corresponding results.
 If you find our work useful, you can acknowledge it using the following citation.
 
 ```bib
-@misc{mallet2024atomsurfsurfacerepresentation,
-      title={AtomSurf : Surface Representation for Learning on Protein Structures}, 
-      author={Vincent Mallet and Souhaib Attaiki and Yangyang Miao and Bruno Correia and Maks Ovsjanikov},
-      year={2024},
-      eprint={2309.16519},
-      archivePrefix={arXiv},
-      primaryClass={cs.LG},
-      url={https://arxiv.org/abs/2309.16519}, 
+@inproceedings{mallet2025atomsurf,
+  title={Atomsurf: Surface representation for learning on protein structures},
+  author={Mallet, Vincent and Miao, Yangyang and Attaiki, Souhaib and Correia, Bruno and Ovsjanikov, Maks},
+  booktitle={International Conference on Learning Representations},
+  volume={2025},
+  pages={39800--39825},
+  year={2025}
 }
 ```
